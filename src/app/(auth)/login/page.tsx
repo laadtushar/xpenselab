@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
-import { initiateGoogleSignInWithRedirect, getGoogleRedirectResult } from '@/firebase/non-blocking-login';
+import { signInWithGooglePopup } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,43 +15,13 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isUserLoading || !auth) {
-      return; 
-    }
-
-    getGoogleRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // User has just signed in via redirect.
-          // The useUser hook will pick this up and trigger the navigation effect.
-        } else {
-          // No redirect result, user likely navigated here directly.
-        }
-      })
-      .catch((error) => {
-        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-          toast({
-            title: 'Sign-In Failed',
-            description: error.message || 'An unexpected error occurred during sign-in.',
-            variant: 'destructive',
-          });
-        }
-      })
-      .finally(() => {
-        setIsProcessingRedirect(false);
-      });
-  }, [isUserLoading, auth, toast]);
-
-  useEffect(() => {
-    if (!isUserLoading && !isProcessingRedirect && user) {
+    if (!isUserLoading && user) {
       router.push('/dashboard');
     }
-  }, [isUserLoading, isProcessingRedirect, user, router]);
-
+  }, [isUserLoading, user, router]);
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
@@ -64,26 +33,37 @@ export default function LoginPage() {
       return;
     }
     setIsSigningIn(true);
-    await initiateGoogleSignInWithRedirect(auth).catch(error => {
+    try {
+      await signInWithGooglePopup(auth);
+      // On successful sign-in, the `useUser` hook will update,
+      // and the `useEffect` above will trigger the redirect to the dashboard.
+      toast({
+        title: 'Sign-In Successful',
+        description: 'Redirecting you to the dashboard...',
+      });
+    } catch (error: any) {
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
         toast({
-            title: "Sign-In Error",
-            description: "Could not start the sign-in process.",
-            variant: "destructive",
+          title: 'Sign-In Failed',
+          description: error.message || 'An unexpected error occurred during sign-in.',
+          variant: 'destructive',
         });
-        setIsSigningIn(false);
-    });
+      }
+    } finally {
+      setIsSigningIn(false);
+    }
   };
 
-  // Show a loader while Firebase is initializing or processing the redirect.
-  if (isUserLoading || isProcessingRedirect) {
+  // Show a loader while Firebase is initializing
+  if (isUserLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-
-  // If we're done loading and a user exists, they are being redirected. Show a message.
+  
+  // If a user is already logged in, show a message while redirecting.
   if (user) {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -92,6 +72,7 @@ export default function LoginPage() {
         </div>
     );
   }
+
 
   // Only show the login UI when we are certain there is no user.
   return (
@@ -109,7 +90,7 @@ export default function LoginPage() {
             {isSigningIn ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Redirecting...
+                Waiting for sign-in...
               </>
             ) : (
               <>
