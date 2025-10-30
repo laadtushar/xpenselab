@@ -5,7 +5,7 @@ import {
     PiggyBank, Wallet, BarChart, Settings, Users, BookUser, Briefcase,
     Bus, Camera, Cat, Coffee, Dog, Dumbbell, Flower, Gamepad2, Globe,
     Heart, Heater, Laptop, Library, Monitor, Pizza, Popcorn, Shirt,
-    Smartphone, Speaker, Train, Tram, TreePine, Tv, Video, Watch, Wine, Anchor, Apple, Baby,
+    Smartphone, Speaker, Train, TramFront, TreePine, Tv, Video, Watch, Wine, Anchor, Apple, Baby,
     Bike, Bone, Book, Brain, BusFront, Candy, Church, Clapperboard, Code, Cog,
     Coins, Combine, Compass, Computer, Construction, CookingPot, Crop, Crown, CupSoda,
     Diamond, Disc, DraftingCompass, Drama, Dribbble, Droplet, Drum, Ear, Egg,
@@ -23,7 +23,7 @@ export const allIcons: Record<string, React.ElementType> = {
     PiggyBank, Wallet, BarChart, Settings, Users, BookUser, Briefcase,
     Bus, Camera, Cat, Coffee, Dog, Dumbbell, Flower, Gamepad2, Globe,
     Heart, Heater, Laptop, Library, Monitor, Pizza, Popcorn, Shirt,
-    Smartphone, Speaker, Train, Tram, TreePine, Tv, Video, Watch, Wine, Anchor, Apple, Baby,
+    Smartphone, Speaker, Train, TramFront, TreePine, Tv, Video, Watch, Wine, Anchor, Apple, Baby,
     Bike, Bone, Book, Brain, BusFront, Candy, Church, Clapperboard, Code, Cog,
     Coins, Combine, Compass, Computer, Construction, CookingPot, Crop, Crown, CupSoda,
 
