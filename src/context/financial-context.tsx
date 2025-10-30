@@ -7,6 +7,7 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 interface FinancialContextType {
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addTransactions: (transactions: Omit<Transaction, 'id'>[]) => void;
   deleteTransaction: (id: string) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   budget: Budget | null;
@@ -22,6 +23,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction = { ...transaction, id: crypto.randomUUID() };
     setTransactions((prev) => [...prev, newTransaction]);
+  };
+  
+  const addTransactions = (transactions: Omit<Transaction, 'id'>[]) => {
+    const newTransactions = transactions.map(t => ({ ...t, id: crypto.randomUUID() }));
+    setTransactions(prev => [...prev, ...newTransactions]);
   };
 
   const deleteTransaction = (id: string) => {
@@ -39,6 +45,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({
     transactions,
     addTransaction,
+    addTransactions,
     deleteTransaction,
     updateTransaction,
     budget,
