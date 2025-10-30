@@ -12,6 +12,7 @@ interface FinancialContextType {
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   budget: Budget | null;
   setBudget: (budget: Omit<Budget, 'id'>) => void;
+  resetData: () => void;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -41,6 +42,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const setBudget = (newBudget: Omit<Budget, 'id'>) => {
     setBudgetState({ ...newBudget, id: crypto.randomUUID() });
   };
+  
+  const resetData = () => {
+    setTransactions([]);
+    setBudgetState(null);
+  };
 
   const value = useMemo(() => ({
     transactions,
@@ -50,6 +56,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     updateTransaction,
     budget,
     setBudget,
+    resetData,
   }), [transactions, budget]);
 
   return (
