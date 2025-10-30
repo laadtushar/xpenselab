@@ -3,211 +3,194 @@
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for personal financial data
- * and a group-based access model for shared expenses. It prioritizes clear,
- * maintainable rules using path-based authorization and helper functions.
+ * and a shared-access model for group-related data. It prioritizes simplicity
+ * and security by leveraging path-based authorization and avoiding `get()` calls
+ * wherever possible. The rules explicitly deny any ambiguous or unintended access.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles; only the user can access their own profile.
- * - /users/{userId}/incomes/{incomeId}: Income entries for a user; only the user can access.
- * - /users/{userId}/expenses/{expenseId}: Expense entries for a user; only the user can access.
- * - /users/{userId}/budgets/{budgetId}: Budget entries for a user; only the user can access.
- * - /categories/{categoryId}: Global expense categories; publicly readable.
- * - /groups/{groupId}: Groups for shared expenses; accessible by group members.
- * - /groups/{groupId}/sharedExpenses/{sharedExpenseId}: Shared expenses within a group; accessible by group members.
- * - /debts/{debtId}: Debts between users; accessible by the involved users.
+ * - /users/{userId}: Stores user profile data, accessible only by the user.
+ * - /users/{userId}/incomes/{incomeId}: Stores income entries, accessible only by the user.
+ * - /users/{userId}/expenses/{expenseId}: Stores expense entries, accessible only by the user.
+ * - /users/{userId}/categories/{categoryId}: Stores expense categories, accessible only by the user.
+ * - /users/{userId}/budgets/{budgetId}: Stores budget entries, accessible only by the user.
+ * - /groups/{groupId}: Stores group information, accessible by group members.
+ * - /groups/{groupId}/sharedExpenses/{sharedExpenseId}: Stores shared expenses, accessible by group members.
+ * - /debts/{debtId}: Stores debt information between two users, accessible by the two users involved.
  *
  * Key Security Decisions:
- * - User data is strictly controlled by the user's `uid`.
- * - Group data requires membership verification for access.
- * - Categories are globally readable.
- * - Listing of user-specific subcollections is allowed only for the owner.
+ * - User data is strictly segregated and accessible only by the authenticated user.
+ * - Group data is accessible to members of the group.
+ * - Read access is explicitly controlled.
+ * - Data validation is relaxed to allow for rapid prototyping but critical authorization fields are validated.
  *
  * Denormalization for Authorization:
- * - Group membership is stored directly in the `/groups/{groupId}` document
- *   to avoid costly `get()` calls during authorization.  The `members` field
- *   is an array of user IDs.
+ * - The `userId` is embedded within documents in the `/users/{userId}/...` subcollections,
+ *   allowing rules to quickly verify ownership based on the path.
+ * - The `members` array on `/groups/{groupId}` documents allows rules to check group membership without `get()` calls.
  *
  * Structural Segregation:
- * - User-specific data (income, expenses, budgets) is stored under the
- *   `/users/{userId}` collection to ensure clear ownership and simplified rules.
+ * - User-specific data (incomes, expenses, etc.) is stored under the `/users/{userId}` path,
+ *   while group-related data is stored in the top-level `/groups` collection,
+ *   allowing for clear separation of access control concerns.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
+     * @description Enforces access control for user profiles. Only the authenticated user can access their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' creates their profile: request.auth.uid == 'user123'
+     * @allow (get) User with ID 'user123' reads their profile: request.auth.uid == 'user123'
+     * @allow (update) User with ID 'user123' updates their profile: request.auth.uid == 'user123'
+     * @allow (delete) User with ID 'user123' deletes their profile: request.auth.uid == 'user123'
+     * @deny (create) User with ID 'user123' attempts to create profile for 'user456': request.auth.uid != 'user456'
+     * @principle Enforces document ownership for writes and reads.
      */
+    match /users/{userId} {
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for user-specific income entries. Only the authenticated user can access their own income data.
+     * @path /users/{userId}/incomes/{incomeId}
+     * @allow (create) User with ID 'user123' creates an income entry: request.auth.uid == 'user123'
+     * @allow (get) User with ID 'user123' reads an income entry: request.auth.uid == 'user123'
+     * @allow (update) User with ID 'user123' updates an income entry: request.auth.uid == 'user123'
+     * @allow (delete) User with ID 'user123' deletes an income entry: request.auth.uid == 'user123'
+     * @deny (create) User with ID 'user123' attempts to create an income entry for 'user456': request.auth.uid != 'user456'
+     * @principle Enforces document ownership for writes and reads on subcollections.
+     */
+    match /users/{userId}/incomes/{incomeId} {
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.userId == userId;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for user-specific expense entries. Only the authenticated user can access their own expense data.
+     * @path /users/{userId}/expenses/{expenseId}
+     * @allow (create) User with ID 'user123' creates an expense entry: request.auth.uid == 'user123'
+     * @allow (get) User with ID 'user123' reads an expense entry: request.auth.uid == 'user123'
+     * @allow (update) User with ID 'user123' updates an expense entry: request.auth.uid == 'user123'
+     * @allow (delete) User with ID 'user123' deletes an expense entry: request.auth.uid == 'user123'
+     * @deny (create) User with ID 'user123' attempts to create an expense entry for 'user456': request.auth.uid != 'user456'
+     * @principle Enforces document ownership for writes and reads on subcollections.
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.userId == userId;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for user-specific expense categories. Only the authenticated user can access their own categories.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow (create) User with ID 'user123' creates a category: request.auth.uid == 'user123'
+     * @allow (get) User with ID 'user123' reads a category: request.auth.uid == 'user123'
+     * @allow (update) User with ID 'user123' updates a category: request.auth.uid == 'user123'
+     * @allow (delete) User with ID 'user123' deletes a category: request.auth.uid == 'user123'
+     * @deny (create) User with ID 'user123' attempts to create a category for 'user456': request.auth.uid != 'user456'
+     * @principle Enforces document ownership for writes and reads on subcollections.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.userId == userId;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for user-specific budget entries. Only the authenticated user can access their own budget data.
+     * @path /users/{userId}/budgets/{budgetId}
+     * @allow (create) User with ID 'user123' creates a budget entry: request.auth.uid == 'user123'
+     * @allow (get) User with ID 'user123' reads a budget entry: request.auth.uid == 'user123'
+     * @allow (update) User with ID 'user123' updates a budget entry: request.auth.uid == 'user123'
+     * @allow (delete) User with ID 'user123' deletes a budget entry: request.auth.uid == 'user123'
+     * @deny (create) User with ID 'user123' attempts to create a budget entry for 'user456': request.auth.uid != 'user456'
+     * @principle Enforces document ownership for writes and reads on subcollections.
+     */
+    match /users/{userId}/budgets/{budgetId} {
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.userId == userId;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces access control for groups.  Only members of the group can access the group document.
+     * @path /groups/{groupId}
+     * @allow (create) User with ID 'user123' creates a group: request.auth.uid is in request.resource.data.members
+     * @allow (get) User with ID 'user123' reads a group they are a member of: request.auth.uid is in resource.data.members
+     * @allow (update) User with ID 'user123' updates a group they are a member of: request.auth.uid is in resource.data.members
+     * @allow (delete) User with ID 'user123' deletes a group they created and are a member of: request.auth.uid is in resource.data.members
+     * @deny (create) User with ID 'user123' attempts to create a group without being a member: request.auth.uid is not in request.resource.data.members
+     * @principle Enforces shared access based on group membership.
+     */
+    match /groups/{groupId} {
+      allow create: if isSignedIn() && request.resource.data.members.hasAny([request.auth.uid]);
+      allow get: if isSignedIn() && resource.data.members.hasAny([request.auth.uid]);
+      allow list: if false;
+      allow update: if isSignedIn() && resource.data.members.hasAny([request.auth.uid]);
+      allow delete: if isSignedIn() && resource.data.members.hasAny([request.auth.uid]);
+    }
+
+    /**
+     * @description Enforces access control for shared expenses within a group.  Only members of the group can access the shared expenses.
+     * @path /groups/{groupId}/sharedExpenses/{sharedExpenseId}
+     * @allow (create) User with ID 'user123' creates a shared expense in a group they are a member of: get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid])
+     * @allow (get) User with ID 'user123' reads a shared expense in a group they are a member of: get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid])
+     * @allow (update) User with ID 'user123' updates a shared expense in a group they are a member of: get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid])
+     * @allow (delete) User with ID 'user123' deletes a shared expense in a group they are a member of: get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid])
+     * @deny (create) User with ID 'user123' attempts to create a shared expense in a group they are not a member of: get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]) == false
+     * @principle Enforces shared access based on group membership.  Requires a `get()` call to verify group membership.
+     */
+    match /groups/{groupId}/sharedExpenses/{sharedExpenseId} {
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      allow get: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      allow list: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      allow update: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+    }
+
+    /**
+     * @description Enforces access control for debts. Only the two users involved in the debt can access the debt document.
+     * @path /debts/{debtId}
+     * @allow (create) User with ID 'user123' creates a debt: request.auth.uid == request.resource.data.fromUserId || request.auth.uid == request.resource.data.toUserId
+     * @allow (get) User with ID 'user123' reads a debt they are involved in: request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId
+     * @allow (update) User with ID 'user123' updates a debt they are involved in: request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId
+     * @allow (delete) User with ID 'user123' deletes a debt they are involved in: request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId
+     * @deny (create) User with ID 'user123' attempts to create a debt they are not involved in: request.auth.uid != request.resource.data.fromUserId && request.auth.uid != request.resource.data.toUserId
+     * @principle Enforces shared access based on user involvement in the debt.
+     */
+    match /debts/{debtId} {
+      allow create: if isSignedIn() && (request.auth.uid == request.resource.data.fromUserId || request.auth.uid == request.resource.data.toUserId);
+      allow get: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+      allow list: if false;
+      allow update: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+      allow delete: if isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user is the owner of the resource.
-     */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    /**
-     * @description Checks if the authenticated user is the owner of the resource, and that the document exists.
-     */
     function isExistingOwner(userId) {
-        return isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
-    }
-
-    /**
-     * @description Checks if the authenticated user is a member of the group.
-     */
-    function isGroupMember(groupId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-    }
-
-    /**
-     * @description Checks if the authenticated user is a member of the group by verifying that their uid exists in the groups members array.
-     */
-    function isMember(groupId) {
-        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-    }
-
-    /**
-     * @description User profile data.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile if authenticated.
-     *   request.auth.uid: 'user123', request.resource.data.id: 'user123'
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     *   request.auth.uid: 'user456', request.resource.data.id: 'user123'
-     * @principle Enforces document ownership for writes, validates ID on create.
-     */
-    match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Income entries for a specific user.
-     * @path /users/{userId}/incomes/{incomeId}
-     * @allow (create) User with ID 'user123' can create an income entry under their profile.
-     *   request.auth.uid: 'user123'
-     * @deny (create) User with ID 'user456' cannot create an income entry under user 'user123''s profile.
-     *   request.auth.uid: 'user456'
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/incomes/{incomeId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Expense entries for a specific user.
-     * @path /users/{userId}/expenses/{expenseId}
-     * @allow (create) User with ID 'user123' can create an expense entry under their profile.
-     *   request.auth.uid: 'user123'
-     * @deny (create) User with ID 'user456' cannot create an expense entry under user 'user123''s profile.
-     *   request.auth.uid: 'user456'
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/expenses/{expenseId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Budget entries for a specific user.
-     * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create) User with ID 'user123' can create a budget entry under their profile.
-     *   request.auth.uid: 'user123'
-     * @deny (create) User with ID 'user456' cannot create a budget entry under user 'user123''s profile.
-     *   request.auth.uid: 'user456'
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/budgets/{budgetId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Global expense categories; publicly readable.
-     * @path /categories/{categoryId}
-     * @allow (get, list) Any user can read categories.
-     * @deny (create, update, delete) No user can create, update, or delete categories.
-     * @principle Public read access, owner-only writes (not yet implemented).
-     */
-    match /categories/{categoryId} {
-      allow get: if true;
-      allow list: if true;
-
-      allow create, update, delete: if false; // TODO: Add admin role validation once implemented
-    }
-
-    /**
-     * @description Groups for shared expenses; accessible by group members.
-     * @path /groups/{groupId}
-     * @allow (get) User 'user123' can read group 'group456' if they are a member.
-     *   request.auth.uid: 'user123', resource.data.members: ['user123', 'user456']
-     * @deny (get) User 'user789' cannot read group 'group456' if they are not a member.
-     *   request.auth.uid: 'user789', resource.data.members: ['user123', 'user456']
-     * @principle Shared access: only group members can read/write.
-     */
-    match /groups/{groupId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId); // Fixed to allow list operation.
-
-      allow create: if isSignedIn();
-      allow update: if isGroupMember(groupId);
-      allow delete: if false; // Groups are not deletable
-    }
-
-    /**
-     * @description Shared expenses within a group; accessible by group members.
-     * @path /groups/{groupId}/sharedExpenses/{sharedExpenseId}
-     * @allow (create) User 'user123' can create a shared expense in group 'group456' if they are a member.
-     *   request.auth.uid: 'user123', get(/databases/$(database)/documents/groups/group456).data.members: ['user123', 'user456']
-     * @deny (create) User 'user789' cannot create a shared expense in group 'group456' if they are not a member.
-     *   request.auth.uid: 'user789', get(/databases/$(database)/documents/groups/group456).data.members: ['user123', 'user456']
-     * @principle Shared access: only group members can read/write.
-     */
-    match /groups/{groupId}/sharedExpenses/{sharedExpenseId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
-
-      allow create: if isGroupMember(groupId);
-      allow update: if isGroupMember(groupId);
-      allow delete: if false; // Shared Expenses are not deletable
-    }
-
-    /**
-     * @description Debts between users; accessible by the involved users.
-     * @path /debts/{debtId}
-     * @allow (get) User 'user123' can read debt 'debt456' if they are either the sender or receiver.
-     *   request.auth.uid: 'user123', resource.data.fromUserId: 'user123', resource.data.toUserId: 'user456'
-     * @deny (get) User 'user789' cannot read debt 'debt456' if they are not involved.
-     *   request.auth.uid: 'user789', resource.data.fromUserId: 'user123', resource.data.toUserId: 'user456'
-     * @principle Shared access: only involved users can read/write.
-     */
-    match /debts/{debtId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId);
-      allow list: if false; // Restrict listing debts
-
-      allow create: if isSignedIn() && (request.auth.uid == request.resource.data.fromUserId || request.auth.uid == request.resource.data.toUserId);
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId);
-      allow delete: if false; // Debts are not deletable
+      return isSignedIn() && isOwner(userId) && resource != null;
     }
   }
 }
