@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo, useEffect } from 'react';
 import type { Transaction, Budget, Income, Expense, Category } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query } from 'firebase/firestore';
 import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -19,6 +18,7 @@ interface FinancialContextType {
   expenses: Expense[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'userId'>) => void;
   deleteTransaction: (id: string, type: 'income' | 'expense') => void;
+  clearTransactions: (type: 'income' | 'expense') => Promise<void>;
   
   budget: Budget | null;
   setBudget: (budget: { amount: number }) => void;
@@ -83,6 +83,8 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const budget = useMemo(() => {
     if (!budgetsData) return null;
     const currentMonth = format(new Date(), 'yyyy-MM');
+    // In a real app, budgets might be more complex, e.g., per category.
+    // For now, we find the first budget for the current month.
     return budgetsData.find(b => b.month === currentMonth) || null;
   }, [budgetsData]);
 
@@ -103,6 +105,24 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     const docRef = doc(firestore, 'users', userId, type === 'income' ? 'incomes' : 'expenses', id);
     deleteDocumentNonBlocking(docRef);
   };
+
+  const clearTransactions = async (type: 'income' | 'expense') => {
+    if (!userId || !firestore) return;
+    const ref = type === 'income' ? incomesRef : expensesRef;
+    if (!ref) return;
+
+    const q = query(ref);
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) return;
+
+    const batch = writeBatch(firestore);
+    querySnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+  }
   
   const setBudget = (newBudget: { amount: number }) => {
     if (!userId || !firestore || !budgetsRef) return;
@@ -144,6 +164,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   
   const resetData = () => {
     console.warn("Resetting all user data from Firestore is a destructive operation and should be implemented server-side for safety.");
+    // For a client-side only demo, you could implement this, but it's risky.
+    // Example:
+    // clearTransactions('income');
+    // clearTransactions('expense');
+    // And clear budgets, categories etc.
   };
 
   const value = useMemo(() => ({
@@ -152,6 +177,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     expenses,
     addTransaction,
     deleteTransaction,
+    clearTransactions,
     budget,
     setBudget,
     categories,

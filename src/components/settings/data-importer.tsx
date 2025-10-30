@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 type ImportType = 'income' | 'expense';
+type ImportMode = 'append' | 'replace';
 
 type Log = {
   successful: number;
@@ -47,9 +48,10 @@ function excelDateToJSDate(serial: number) {
 export function DataImporter() {
   const [file, setFile] = useState<File | null>(null);
   const [importType, setImportType] = useState<ImportType>('expense');
+  const [importMode, setImportMode] = useState<ImportMode>('append');
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<Log | null>(null);
-  const { addTransaction, addCategory, expenseCategories } = useFinancials();
+  const { addTransaction, addCategory, expenseCategories, clearTransactions } = useFinancials();
   const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +73,26 @@ export function DataImporter() {
 
     setIsLoading(true);
     setLogs(null);
+    
+    if (importMode === 'replace') {
+      try {
+        await clearTransactions(importType);
+        toast({
+          title: `Existing ${importType} data cleared`,
+          description: `Ready to import new data.`,
+        });
+      } catch (error) {
+        console.error(`Error clearing ${importType} data:`, error);
+        toast({
+          title: "Error Clearing Data",
+          description: `Could not clear existing ${importType} data. Aborting import.`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const reader = new FileReader();
     
     reader.onload = async (e) => {
@@ -234,20 +256,37 @@ export function DataImporter() {
                 Ensure your file has a header row. For expenses, expected headers are `Purchase Date` or `Date`, `Item` or `Description/Invoice No.`, `Amount`, and `Category`. For income, expected headers are `Date`, `Income Source` or `Description/Invoice No.`, and `Income Amount` or `Income`. Variations are handled. Dates can be in formats like `m/d/yyyy` or parsable strings.
             </p>
         </div>
-        <RadioGroup
-          value={importType}
-          onValueChange={(value: any) => setImportType(value)}
-          className="flex gap-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="expense" id="r-expense" />
-            <Label htmlFor="r-expense">Expense</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="income" id="r-income" />
-            <Label htmlFor="r-income">Income</Label>
-          </div>
-        </RadioGroup>
+        <div className="grid grid-cols-2 gap-4">
+            <RadioGroup
+              value={importType}
+              onValueChange={(value: any) => setImportType(value)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="expense" id="r-expense" />
+                <Label htmlFor="r-expense">Expenses</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="income" id="r-income" />
+                <Label htmlFor="r-income">Income</Label>
+              </div>
+            </RadioGroup>
+            
+            <RadioGroup
+              value={importMode}
+              onValueChange={(value: any) => setImportMode(value)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="append" id="r-append" />
+                <Label htmlFor="r-append">Append</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="replace" id="r-replace" />
+                <Label htmlFor="r-replace">Replace</Label>
+              </div>
+            </RadioGroup>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <Input type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={handleFileChange} className="max-w-xs" />
