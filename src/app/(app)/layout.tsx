@@ -7,10 +7,10 @@ import { Logo } from '@/components/logo';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon, LogOut } from 'lucide-react';
-import { useUser, useAuth, useFirestore } from '@/firebase';
+import { useUser, useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { FinancialProvider } from '@/context/financial-context';
 import { Button } from '@/components/ui/button';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
@@ -23,32 +23,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // If the initial user check is done and there is no user, redirect to login.
-    if (!isUserLoading && !user) {
+    if (isUserLoading) {
+      return; // Wait until the initial auth check is complete.
+    }
+
+    if (!user) {
       router.push('/login');
       return;
     }
 
     // If we have a user, ensure their Firestore document exists.
-    if (!isUserLoading && user) {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      getDoc(userDocRef).then(userDocSnap => {
-        if (!userDocSnap.exists()) {
-          const newUserDoc: Omit<UserData, 'id'> = {
-            email: user.email!,
-            createdAt: new Date().toISOString(),
-          };
-          setDoc(userDocRef, newUserDoc).then(() => {
-            setIsReady(true); // Ready after creating doc
-          });
-        } else {
-          setIsReady(true); // Ready if doc already exists
-        }
-      }).catch(error => {
-        console.error("Error checking/creating user document:", error);
-        // Handle error, maybe sign out
-      });
-    }
+    const userDocRef = doc(firestore, 'users', user.uid);
+    getDoc(userDocRef).then(userDocSnap => {
+      if (!userDocSnap.exists()) {
+        const newUserDoc: Omit<UserData, 'id'> = {
+          email: user.email!,
+          createdAt: new Date().toISOString(),
+        };
+        // Use non-blocking set so UI can render while this happens in the background
+        setDocumentNonBlocking(userDocRef, newUserDoc).then(() => {
+          setIsReady(true);
+        });
+      } else {
+        setIsReady(true); // Ready if doc already exists
+      }
+    }).catch(error => {
+      console.error("Error checking/creating user document:", error);
+      // Optional: Handle this error, e.g., by signing out the user.
+    });
   }, [user, isUserLoading, firestore, router]);
 
 

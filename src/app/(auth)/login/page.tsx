@@ -16,63 +16,46 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
-  // This state now tracks the entire auth resolution process
-  const [isProcessingAuth, setIsProcessingAuth] = useState(true); 
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect runs once on mount to handle the redirect result.
-    if (auth) {
-      getGoogleRedirectResult(auth)
-        .then((result) => {
-          if (result) {
-            // User signed in or is signing in. The useUser hook will pick this up.
-            // We don't need to redirect here, the layout will handle it.
-            console.log('[Login Page] Redirect result processed for user:', result.user.email);
-          } else {
-            // No redirect result, probably a direct navigation.
-            console.log('[Login Page] No active redirect.');
-          }
-        })
-        .catch((error) => {
-          console.error('[Login Page] getGoogleRedirectResult error:', error);
-          if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-             toast({
-              title: 'Sign-In Failed',
-              description: error.message || 'An unexpected error occurred during sign-in.',
-              variant: 'destructive',
-            });
-          }
-        })
-        .finally(() => {
-          // Once the redirect is processed, we rely on isUserLoading to be the source of truth.
-          // This flag is now redundant, but we keep it to signal the end of this specific process.
-          // The main loading decision is made below.
-        });
+    if (isUserLoading || !auth) {
+      return; 
     }
-  }, [auth, toast]);
+
+    getGoogleRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // User has just signed in via redirect.
+          // The useUser hook will pick this up and trigger the navigation effect.
+        } else {
+          // No redirect result, user likely navigated here directly.
+        }
+      })
+      .catch((error) => {
+        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+          toast({
+            title: 'Sign-In Failed',
+            description: error.message || 'An unexpected error occurred during sign-in.',
+            variant: 'destructive',
+          });
+        }
+      })
+      .finally(() => {
+        setIsProcessingRedirect(false);
+      });
+  }, [isUserLoading, auth, toast]);
 
   useEffect(() => {
-    // This is the key change. We only stop processing auth when the useUser hook is done loading.
-    // This ensures we have the definitive user state before making any decisions.
-    if (!isUserLoading) {
-      setIsProcessingAuth(false);
-    }
-  }, [isUserLoading]);
-
-  useEffect(() => {
-    // This effect handles navigation.
-    // It only runs when auth is no longer processing and we have a definitive user object.
-    if (!isProcessingAuth && user) {
-      console.log('[Login Page] Auth processed, user exists. Redirecting to /dashboard.');
+    if (!isUserLoading && !isProcessingRedirect && user) {
       router.push('/dashboard');
     }
-  }, [isProcessingAuth, user, router]);
+  }, [isUserLoading, isProcessingRedirect, user, router]);
 
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
-      console.error('[Login Page] Google Sign-In clicked, but auth is not available.');
       toast({
         title: 'Authentication Error',
         description: 'Firebase Auth service is not available. Please try again later.',
@@ -80,9 +63,8 @@ export default function LoginPage() {
       });
       return;
     }
-    setIsSigningIn(true); // Show loader on the button
+    setIsSigningIn(true);
     await initiateGoogleSignInWithRedirect(auth).catch(error => {
-        console.error("[Login Page] Redirection initiation failed", error);
         toast({
             title: "Sign-In Error",
             description: "Could not start the sign-in process.",
@@ -92,14 +74,22 @@ export default function LoginPage() {
     });
   };
 
-  // The single source of truth for showing the loader.
-  // Show loader if we are still waiting for the initial user state OR if we have a user and are about to redirect.
-  if (isProcessingAuth || user) {
+  // Show a loader while Firebase is initializing or processing the redirect.
+  if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        {user && <p className="ml-2">Authenticated. Redirecting...</p>}
       </div>
+    );
+  }
+
+  // If we're done loading and a user exists, they are being redirected. Show a message.
+  if (user) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="ml-2">Authenticated. Redirecting...</p>
+        </div>
     );
   }
 
