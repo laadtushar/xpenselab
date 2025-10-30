@@ -8,33 +8,34 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the User entity."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
+          "description": "User's email address.",
           "format": "email"
         },
-        "username": {
+        "createdAt": {
           "type": "string",
-          "description": "The username of the user."
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "email",
-        "username"
+        "createdAt"
       ]
     },
     "Income": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Income",
       "type": "object",
-      "description": "Represents an income entry for a user.",
+      "description": "Represents a single income entry for a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the income entry."
+          "description": "Unique identifier for the Income entity."
         },
         "userId": {
           "type": "string",
@@ -42,65 +43,63 @@
         },
         "amount": {
           "type": "number",
-          "description": "The amount of income."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the income.",
-          "format": "date-time"
+          "description": "The amount of income received."
         },
         "description": {
           "type": "string",
           "description": "Description of the income source."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date when the income was received.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
         "amount",
-        "date",
-        "description"
+        "date"
       ]
     },
     "Expense": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Represents an expense entry for a user.",
+      "description": "Represents a single expense entry for a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the expense entry."
+          "description": "Unique identifier for the Expense entity."
         },
         "userId": {
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Expense)"
         },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
-        },
         "amount": {
           "type": "number",
           "description": "The amount of the expense."
         },
-        "date": {
-          "type": "string",
-          "description": "The date of the expense.",
-          "format": "date-time"
-        },
         "description": {
           "type": "string",
           "description": "Description of the expense."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date when the expense was incurred.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
-        "categoryId",
         "amount",
-        "date",
-        "description"
+        "categoryId",
+        "date"
       ]
     },
     "Category": {
@@ -111,32 +110,31 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the category."
+          "description": "Unique identifier for the Category entity."
         },
         "name": {
           "type": "string",
-          "description": "Name of the category (e.g., 'Food', 'Transportation')."
+          "description": "Name of the expense category (e.g., 'Food', 'Rent', 'Transportation')."
         },
         "description": {
           "type": "string",
-          "description": "Description of the category."
+          "description": "Description of what the category represents."
         }
       },
       "required": [
         "id",
-        "name",
-        "description"
+        "name"
       ]
     },
     "Budget": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Budget",
       "type": "object",
-      "description": "Represents a budget for a specific category and user.",
+      "description": "Represents a user's budget for a specific category and time period.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the budget."
+          "description": "Unique identifier for the Budget entity."
         },
         "userId": {
           "type": "string",
@@ -152,12 +150,12 @@
         },
         "startDate": {
           "type": "string",
-          "description": "The start date of the budget period.",
+          "description": "The starting date for the budget period.",
           "format": "date-time"
         },
         "endDate": {
           "type": "string",
-          "description": "The end date of the budget period.",
+          "description": "The ending date for the budget period.",
           "format": "date-time"
         }
       },
@@ -174,7 +172,7 @@
   "auth": {
     "providers": [
       "password",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
@@ -186,11 +184,11 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.  Accessible only by the user.",
+          "description": "Stores user profile data. Path-based ownership ensures that only the user can access their own profile.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier of the user."
             }
           ]
         }
@@ -202,15 +200,15 @@
           "schema": {
             "$ref": "#/backend/entities/Income"
           },
-          "description": "Stores income entries for a specific user. Accessible only by the user.",
+          "description": "Stores income entries for a specific user. Path-based ownership; only the user can access their own income data.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "incomeId",
-              "description": "The unique identifier for the income entry."
+              "description": "The unique identifier of the income entry."
             }
           ]
         }
@@ -222,15 +220,15 @@
           "schema": {
             "$ref": "#/backend/entities/Expense"
           },
-          "description": "Stores expense entries for a specific user. Accessible only by the user.",
+          "description": "Stores expense entries for a specific user. Path-based ownership; only the user can access their own expense data.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "expenseId",
-              "description": "The unique identifier for the expense entry."
+              "description": "The unique identifier of the expense entry."
             }
           ]
         }
@@ -242,11 +240,11 @@
           "schema": {
             "$ref": "#/backend/entities/Category"
           },
-          "description": "Stores available expense categories.  Globally accessible.",
+          "description": "Stores global expense categories.",
           "params": [
             {
               "name": "categoryId",
-              "description": "The unique identifier for the category."
+              "description": "The unique identifier of the category."
             }
           ]
         }
@@ -258,20 +256,20 @@
           "schema": {
             "$ref": "#/backend/entities/Budget"
           },
-          "description": "Stores budget information for a specific user. Accessible only by the user.",
+          "description": "Stores budget entries for a specific user. Path-based ownership; only the user can access their own budget data.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "budgetId",
-              "description": "The unique identifier for the budget entry."
+              "description": "The unique identifier of the budget entry."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. The design emphasizes structural segregation and explicit access modeling.  \n\n1.  **Authorization Independence:** Achieved by avoiding `get()` calls in security rules. The structure uses path-based ownership for user-specific data, eliminating the need to fetch parent document data for authorization.\n\n2.  **Structural Segregation:** Each collection houses documents with similar security needs. User-owned data (income, expenses, budgets) is stored under the `/users/{userId}` path, ensuring that all documents in those collections share the same ownership-based security rules.\n\n3.  **Access Modeling:**\n    *   **Private Data:** The `/users/{userId}` path enforces that only the authenticated user can access their data (income, expenses, budgets, and profile). This adheres to Path-Based ownership.\n\n4.  **QAPs (Rules are not Filters):** The structure enables secure `list` operations by ensuring that listing operations are scoped to the user's specific data using the path `/users/{userId}/{collection}`.  This means that listing expenses, for example, only returns expenses associated with the authenticated user.\n\nThe structure facilitates simple and robust security rules by:\n\n*   Using path-based ownership, making it easy to write rules that check `request.auth.uid == userId`.\n*   Avoiding hierarchical dependencies, which simplifies rules and makes them more robust.\n*   Segregating data based on access needs, making the security posture clear and consistent."
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FinanceFlow application.  It leverages path-based ownership for user-specific data and avoids `get()` calls in security rules by denormalizing authorization data where necessary. The structure prioritizes structural segregation, grouping data with similar access requirements into separate collections. This approach allows simpler, more maintainable security rules and robust `list` operations. Since the error indicates a potential issue with authentication, the structure also clearly separates user data from other entities, further isolating potential security concerns.\n\n*   **Users:** User data is stored under `/users/{userId}`.  This enables path-based security, where rules can simply check if `request.auth.uid == userId`. No `get()` calls are required to verify ownership.\n*   **Income, Expenses, Budgets:**  These are subcollections under `/users/{userId}`, reflecting the 1:N relationship. This maintains clear ownership and avoids the need for complex authorization logic.\n*   **Categories:** Categories are global (`/categories/{categoryId}`). In a real-world scenario, you might want to allow user-defined categories, which could be stored under the user's document.\n\nThis structure facilitates QAPs (Rules are not Filters) by using path-based rules on user-owned data."
   }
 }
