@@ -167,6 +167,141 @@
         "startDate",
         "endDate"
       ]
+    },
+    "Group": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Group",
+      "type": "object",
+      "description": "Represents a group of users for splitting expenses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Group."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the group."
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of user IDs who are members of this group."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "User ID of the user who created the group."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the group was created."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "members",
+        "createdBy",
+        "createdAt"
+      ]
+    },
+    "SharedExpense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Shared Expense",
+      "type": "object",
+      "description": "Represents an expense shared among users in a group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Shared Expense."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to the Group this expense belongs to."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the shared expense."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total amount of the expense."
+        },
+        "paidBy": {
+          "type": "string",
+          "description": "User ID of the user who paid for the expense."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the expense occurred."
+        },
+        "splits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "userId",
+              "amount"
+            ]
+          },
+          "description": "Details of how the expense is split among members."
+        }
+      },
+      "required": [
+        "id",
+        "groupId",
+        "description",
+        "amount",
+        "paidBy",
+        "date",
+        "splits"
+      ]
+    },
+    "Debt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Debt",
+      "type": "object",
+      "description": "Represents a debt between two users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Debt."
+        },
+        "fromUserId": {
+          "type": "string",
+          "description": "User ID of the user who owes money."
+        },
+        "toUserId": {
+          "type": "string",
+          "description": "User ID of the user who is owed money."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of money owed."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to the Group this debt is associated with."
+        }
+      },
+      "required": [
+        "id",
+        "fromUserId",
+        "toUserId",
+        "amount",
+        "groupId"
+      ]
     }
   },
   "auth": {
@@ -268,8 +403,60 @@
             }
           ]
         }
+      },
+      {
+        "path": "/groups/{groupId}",
+        "definition": {
+          "entityName": "Group",
+          "schema": {
+            "$ref": "#/backend/entities/Group"
+          },
+          "description": "Stores group information, including members. Accessible by group members.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier of the group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/groups/{groupId}/sharedExpenses/{sharedExpenseId}",
+        "definition": {
+          "entityName": "SharedExpense",
+          "schema": {
+            "$ref": "#/backend/entities/SharedExpense"
+          },
+          "description": "Stores shared expenses for a group. Accessible by group members.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier of the group."
+            },
+            {
+              "name": "sharedExpenseId",
+              "description": "The unique identifier of the shared expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/debts/{debtId}",
+        "definition": {
+          "entityName": "Debt",
+          "schema": {
+            "$ref": "#/backend/entities/Debt"
+          },
+          "description": "Stores debt information between two users. Accessible by the two users involved.",
+          "params": [
+            {
+              "name": "debtId",
+              "description": "The unique identifier of the debt."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FinanceFlow application.  It leverages path-based ownership for user-specific data and avoids `get()` calls in security rules by denormalizing authorization data where necessary. The structure prioritizes structural segregation, grouping data with similar access requirements into separate collections. This approach allows simpler, more maintainable security rules and robust `list` operations. Since the error indicates a potential issue with authentication, the structure also clearly separates user data from other entities, further isolating potential security concerns.\n\n*   **Users:** User data is stored under `/users/{userId}`.  This enables path-based security, where rules can simply check if `request.auth.uid == userId`. No `get()` calls are required to verify ownership.\n*   **Income, Expenses, Budgets:**  These are subcollections under `/users/{userId}`, reflecting the 1:N relationship. This maintains clear ownership and avoids the need for complex authorization logic.\n*   **Categories:** Categories are global (`/categories/{categoryId}`). In a real-world scenario, you might want to allow user-defined categories, which could be stored under the user's document.\n\nThis structure facilitates QAPs (Rules are not Filters) by using path-based rules on user-owned data."
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FinanceFlow application.  It leverages path-based ownership for user-specific data and avoids `get()` calls in security rules by denormalizing authorization data where necessary. The structure prioritizes structural segregation, grouping data with similar access requirements into separate collections. This approach allows simpler, more maintainable security rules and robust `list` operations. Since the error indicates a potential issue with authentication, the structure also clearly separates user data from other entities, further isolating potential security concerns.\n\n*   **Users:** User data is stored under `/users/{userId}`.  This enables path-based security, where rules can simply check if `request.auth.uid == userId`. No `get()` calls are required to verify ownership.\n*   **Income, Expenses, Budgets:**  These are subcollections under `/users/{userId}`, reflecting the 1:N relationship. This maintains clear ownership and avoids the need for complex authorization logic.\n*   **Categories:** Categories are global (`/categories/{categoryId}`). In a real-world scenario, you might want to allow user-defined categories, which could be stored under the user's document.\n*   **Groups, SharedExpenses, Debts:** These entities support the new split expense feature. Groups are top-level to be referenced by multiple users. Shared expenses are a subcollection of groups. Debts are top-level and can be queried by the users involved."
   }
 }
