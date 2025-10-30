@@ -15,6 +15,7 @@ import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  console.log('AppLayout: Component rendered.');
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -23,33 +24,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isUserDocVerified, setIsUserDocVerified] = useState(false);
 
   useEffect(() => {
+    console.log('AppLayout useEffect [user, isUserLoading, firestore, router]: Running...');
+    console.log(`AppLayout useEffect: isUserLoading=${isUserLoading}, user=${!!user}`);
+
     if (isUserLoading) {
+      console.log('AppLayout useEffect: Waiting for Firebase auth state to resolve.');
       return; // Wait until Firebase auth state is resolved
     }
 
     if (!user) {
+      console.log('AppLayout useEffect: No user found after auth loaded. Redirecting to /login.');
       router.push('/login');
       return;
     }
 
     // Once we have a user, ensure their Firestore document exists.
     const checkAndCreateUserDoc = async () => {
+      console.log('AppLayout checkAndCreateUserDoc: Starting for user:', user.uid);
       if (firestore && user.uid) {
         const userDocRef = doc(firestore, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (!userDocSnap.exists()) {
-          try {
-            const newUserDoc: Omit<UserData, 'id'> = {
-              email: user.email!,
-              createdAt: new Date().toISOString(),
-            };
-            await setDoc(userDocRef, newUserDoc);
-          } catch (error) {
-            console.error("Error creating user document:", error);
+        try {
+            const userDocSnap = await getDoc(userDocRef);
+            if (!userDocSnap.exists()) {
+              console.log('AppLayout checkAndCreateUserDoc: User document does not exist. Creating it...');
+              const newUserDoc: Omit<UserData, 'id'> = {
+                email: user.email!,
+                createdAt: new Date().toISOString(),
+              };
+              await setDoc(userDocRef, newUserDoc);
+              console.log('AppLayout checkAndCreateUserDoc: User document created successfully.');
+            } else {
+              console.log('AppLayout checkAndCreateUserDoc: User document already exists.');
+            }
+            // Mark as verified whether it existed or was just created
+            setIsUserDocVerified(true);
+            console.log('AppLayout checkAndCreateUserDoc: Setting isUserDocVerified to true.');
+        } catch (error) {
+            console.error("AppLayout checkAndCreateUserDoc: Error checking/creating user document:", error);
             // Optional: handle error, e.g., sign out user
-          }
         }
-        setIsUserDocVerified(true);
       }
     };
 
@@ -59,13 +72,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   const handleSignOut = () => {
+    console.log('handleSignOut: Clicked.');
     if (auth) {
       auth.signOut();
     }
   };
   
+  console.log(`AppLayout render: isUserLoading=${isUserLoading}, isUserDocVerified=${isUserDocVerified}`);
+
   // Show a loading screen while auth state is being determined OR we are verifying the user doc.
   if (isUserLoading || !isUserDocVerified) {
+    console.log('AppLayout render: Showing loading screen.');
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -73,8 +90,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // If we're done loading and there's a user, render the app layout.
-  // The redirect for no user is handled in the useEffect.
+  // The redirect for a non-existent user is handled in the useEffect hook.
+  // If we reach this point, it means we have a user and their doc is verified.
+  console.log('AppLayout render: All checks passed. Rendering app layout.');
   return (
     <FinancialProvider>
       <SidebarProvider>
