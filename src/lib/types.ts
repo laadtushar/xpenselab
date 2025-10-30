@@ -16,7 +16,8 @@ export type Budget = {
 export const expenseCategories = [
   "Groceries", "Rent", "Utilities", "Transportation", "Entertainment", 
   "Dining Out", "Shopping", "Travel", "Healthcare", "Education", 
-  "Personal Care", "Other"
+  "Personal Care", "Bills", "Subscriptions", "Food & Drink",
+  "Health & Wellbeing", "Education Loan Repayment", "Gifts", "Other"
 ] as const;
 
 export type ExpenseCategory = typeof expenseCategories[number];

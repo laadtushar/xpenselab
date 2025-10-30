@@ -9,9 +9,46 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Transaction } from "@/lib/types";
+import { Transaction, expenseCategories, ExpenseCategory } from "@/lib/types";
 
 type ImportType = 'income' | 'expense';
+
+function normalizeCategory(category: string): string {
+  const lowerCaseCategory = category.toLowerCase().trim();
+  const mapping: { [key: string]: ExpenseCategory } = {
+    'bills': 'Bills',
+    'subscriptions': 'Subscriptions',
+    'entertainment': 'Entertainment',
+    'food & drink': 'Food & Drink',
+    'groceries': 'Groceries',
+    'health & wellbeing': 'Health & Wellbeing',
+    'other': 'Other',
+    'shopping': 'Shopping',
+    'transport': 'Transportation',
+    'travel': 'Travel',
+    'education loan repayment': 'Education Loan Repayment',
+    'gifts': 'Gifts',
+    'rent': 'Rent',
+    'utilities': 'Utilities',
+    'transportation': 'Transportation',
+    'dining out': 'Dining Out',
+    'healthcare': 'Healthcare',
+    'education': 'Education',
+    'personal care': 'Personal Care',
+  };
+
+  const found = Object.keys(mapping).find(key => key === lowerCaseCategory);
+  if (found) {
+    return mapping[found];
+  }
+
+  const existingCategory = expenseCategories.find(c => c.toLowerCase() === lowerCaseCategory);
+  if (existingCategory) {
+    return existingCategory;
+  }
+  
+  return 'Other';
+}
 
 export function DataImporter() {
   const [file, setFile] = useState<File | null>(null);
@@ -42,51 +79,77 @@ export function DataImporter() {
       const text = e.target?.result as string;
       try {
         const lines = text.split('\n').filter(line => line.trim() !== '');
-        const header = lines.shift()?.split(',').map(h => h.trim().toLowerCase()) || [];
+        const headerLine = lines.shift()?.trim();
+        if (!headerLine) {
+          throw new Error("CSV file is empty or has no header.");
+        }
+        
+        const header = headerLine.split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
         
         const transactions: Omit<Transaction, 'id'>[] = lines.map(line => {
           const values = line.split(',');
           const row = header.reduce((obj, h, i) => {
-            obj[h] = values[i]?.trim();
+            obj[h] = values[i]?.trim().replace(/"/g, '');
             return obj;
           }, {} as Record<string, string>);
+
+          const date = new Date(row['date'] || row['purchase date']);
+          const amountString = row['income amount'] || row['amount'];
+          const amount = parseFloat(amountString?.replace('£', ''));
+          const description = row['description/invoice no.'] || row['income source'] || row['item'] || 'Imported Transaction';
+
+          if (isNaN(date.getTime()) || isNaN(amount)) {
+            console.warn("Skipping invalid row:", row);
+            return null;
+          }
 
           if (importType === 'income') {
             return {
               type: 'income',
-              date: new Date(row['date']).toISOString(),
-              description: row['description/invoice no.'] || row['income source'] || 'Imported Income',
-              amount: parseFloat(row['income amount']),
+              date: date.toISOString(),
+              description: description,
+              amount: amount,
               category: 'Income',
             };
           } else { // expense
+            const category = row['category'] ? normalizeCategory(row['category']) : 'Other';
             return {
               type: 'expense',
-              date: new Date(row['purchase date']).toISOString(),
-              description: row['item'] || 'Imported Expense',
-              amount: parseFloat(row['amount']),
-              category: row['category'] || 'Other',
+              date: date.toISOString(),
+              description: description,
+              amount: amount,
+              category: category,
             };
           }
-        }).filter(t => !isNaN(t.amount) && t.date);
+        }).filter((t): t is Omit<Transaction, 'id'> => t !== null);
         
-        addTransactions(transactions);
-
-        toast({
-          title: "Import Successful",
-          description: `Successfully imported ${transactions.length} transactions.`,
-        });
+        if (transactions.length > 0) {
+          addTransactions(transactions);
+          toast({
+            title: "Import Successful",
+            description: `Successfully imported ${transactions.length} transactions.`,
+          });
+        } else {
+           toast({
+            title: "Import Complete",
+            description: "No valid transactions were found to import.",
+            variant: "default",
+          });
+        }
 
       } catch (error) {
         console.error("Import failed", error);
         toast({
           title: "Import Failed",
-          description: "Please check the file format and try again.",
+          description: "Please check the file format and try again. Ensure it's a valid CSV.",
           variant: "destructive",
         });
       } finally {
         setIsLoading(false);
         setFile(null);
+        // Reset file input
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if(fileInput) fileInput.value = "";
       }
     };
     reader.readAsText(file);
@@ -104,7 +167,7 @@ export function DataImporter() {
         <div className="space-y-2">
             <h3 className="font-medium text-sm">File Format</h3>
             <p className="text-xs text-muted-foreground">
-                Ensure your CSV file has a header row. For expenses, we expect headers like `Purchase Date`, `Item`, `Amount`, `Category`. For income, `Date`, `Description/Invoice No.`, `Income Amount`.
+                Ensure your CSV file has a header row. For expenses, expected headers are `Purchase Date`, `Item`, `Amount`, `Category`. For income, expected headers are `Date`, `Description/Invoice No.`, `Income Amount`. Variations are handled.
             </p>
         </div>
         <RadioGroup

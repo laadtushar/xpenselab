@@ -12,6 +12,12 @@ import {
   GraduationCap,
   Smile,
   MoreHorizontal,
+  Receipt,
+  CreditCard,
+  GlassWater,
+  HeartPulse,
+  Landmark,
+  Gift,
 } from 'lucide-react';
 import React from "react";
 
@@ -27,6 +33,12 @@ const iconMap: Record<ExpenseCategory, React.ElementType> = {
   Healthcare: Stethoscope,
   Education: GraduationCap,
   'Personal Care': Smile,
+  Bills: Receipt,
+  Subscriptions: CreditCard,
+  'Food & Drink': GlassWater,
+  'Health & Wellbeing': HeartPulse,
+  'Education Loan Repayment': Landmark,
+  Gifts: Gift,
   Other: MoreHorizontal,
 };
 
