@@ -198,15 +198,21 @@
           "description": "Array of user IDs who are members of this group."
         },
         "memberDetails": {
+          "type": "object",
+          "additionalProperties": {
             "type": "object",
-            "additionalProperties": {
-                "type": "object",
-                "properties": {
-                    "email": {"type": "string"},
-                    "name": {"type": "string"}
-                },
-                "required": ["email"]
-            }
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email"
+            ]
+          }
         },
         "createdBy": {
           "type": "string",
