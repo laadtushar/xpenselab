@@ -23,13 +23,15 @@ export function BudgetForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: budget?.amount || undefined,
+      amount: undefined,
     },
   });
 
   useEffect(() => {
     if (budget) {
-      form.reset({ amount: budget.amount });
+      form.setValue("amount", budget.amount);
+    } else {
+        form.reset({ amount: undefined });
     }
   }, [budget, form]);
 
@@ -67,7 +69,7 @@ export function BudgetForm() {
             />
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Set Budget
+              {budget ? 'Update Budget' : 'Set Budget'}
             </Button>
           </form>
         </Form>
