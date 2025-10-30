@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Transaction, Category } from "@/lib/types";
+import { Transaction } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -49,48 +49,8 @@ export function DataImporter() {
   const [importType, setImportType] = useState<ImportType>('expense');
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<Log | null>(null);
-  const { addTransaction, categories } = useFinancials();
+  const { addTransaction, addCategory, expenseCategories } = useFinancials();
   const { toast } = useToast();
-
-  const normalizeCategory = (category: string): string => {
-    if (!category) return 'Other';
-    const lowerCaseCategory = category.toLowerCase().trim();
-    
-    // Check against user-defined categories
-    const existingCategory = categories.find(c => c.name.toLowerCase() === lowerCaseCategory);
-    if (existingCategory) {
-      return existingCategory.name;
-    }
-  
-    // Fallback to a predefined mapping for common variations
-    const mapping: { [key: string]: string } = {
-      'bills': 'Bills',
-      'subscriptions': 'Subscriptions',
-      'entertainment': 'Entertainment',
-      'food & drink': 'Food & Drink',
-      'groceries': 'Groceries',
-      'health & wellbeing': 'Health & Wellbeing',
-      'shopping': 'Shopping',
-      'transport': 'Transportation',
-      'transportation': 'Transportation',
-      'travel': 'Travel',
-      'education loan repayment': 'Education Loan Repayment',
-      'gifts': 'Gifts',
-      'rent': 'Rent',
-      'utilities': 'Utilities',
-      'dining out': 'Dining Out',
-      'healthcare': 'Healthcare',
-      'education': 'Education',
-      'personal care': 'Personal Care',
-    };
-  
-    const found = Object.keys(mapping).find(key => key === lowerCaseCategory);
-    if (found && categories.some(c => c.name === mapping[found])) {
-      return mapping[found];
-    }
-    
-    return 'Other';
-  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -112,9 +72,11 @@ export function DataImporter() {
     setIsLoading(true);
     setLogs(null);
     const reader = new FileReader();
+    
     reader.onload = async (e) => {
       const data = e.target?.result;
       const importLogs: Log = { successful: 0, failed: 0, errors: [] };
+      const newCategories = new Set<string>();
 
       try {
         const workbook = XLSX.read(data, {
@@ -132,6 +94,8 @@ export function DataImporter() {
         
         const header: string[] = json[0].map((h: any) => String(h || '').trim().toLowerCase());
         const dataRows = json.slice(1);
+
+        const existingCategoryNames = new Set(expenseCategories.map(c => c.name.toLowerCase()));
 
         const transactions: Omit<Transaction, 'id' | 'userId'>[] = dataRows.map((rowArray: any[], index) => {
           const rowIndex = index + 2;
@@ -185,9 +149,18 @@ export function DataImporter() {
               date: date.toISOString(),
               description: String(description),
               amount: amount,
+              category: 'Imported', // Default category for imported income
             };
           } else { // expense
-            const category = row['category'] ? normalizeCategory(String(row['category'])) : 'Other';
+            let category = 'Other';
+            if (row['category'] && String(row['category']).trim()) {
+                const importedCategoryName = String(row['category']).trim();
+                const formattedCategoryName = importedCategoryName.charAt(0).toUpperCase() + importedCategoryName.slice(1).toLowerCase();
+                category = formattedCategoryName;
+                if (!existingCategoryNames.has(category.toLowerCase())) {
+                    newCategories.add(category);
+                }
+            }
             return {
               type: 'expense',
               date: date.toISOString(),
@@ -198,13 +171,29 @@ export function DataImporter() {
           }
         }).filter((t): t is Omit<Transaction, 'id' | 'userId'> => t !== null);
         
+        // Create new categories found during import
+        if (newCategories.size > 0) {
+          const categoryCreationPromises = Array.from(newCategories).map(catName =>
+            addCategory({
+              name: catName,
+              icon: 'MoreHorizontal', // Default icon for imported categories
+              type: 'expense',
+            })
+          );
+          await Promise.all(categoryCreationPromises);
+          toast({
+            title: "New Categories Created",
+            description: `Created ${newCategories.size} new expense categories from your import file.`,
+          });
+        }
+        
         if (transactions.length > 0) {
             transactions.forEach(t => addTransaction(t));
           toast({
             title: "Import Successful",
             description: `Successfully imported ${transactions.length} transactions.`,
           });
-        } else {
+        } else if (newCategories.size === 0) { // Only show if no transactions AND no new cats
            toast({
             title: "Import Complete",
             description: "No valid transactions were found to import.",
@@ -235,7 +224,7 @@ export function DataImporter() {
       <CardHeader>
         <CardTitle>Import Data</CardTitle>
         <CardDescription>
-          Import your income or expense data from a CSV, TSV, or XLSX file.
+          Import your income or expense data from a CSV, TSV, or XLSX file. New expense categories will be created automatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -312,8 +301,4 @@ export function DataImporter() {
       </CardContent>
     </Card>
   );
-
-    
-
-
-    
+}

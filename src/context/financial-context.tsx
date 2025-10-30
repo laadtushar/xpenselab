@@ -1,15 +1,17 @@
+
 'use client';
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useEffect } from 'react';
 import type { Transaction, Budget, Income, Expense, Category } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
   setDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
 import { format } from 'date-fns';
+import { defaultCategories } from '@/lib/default-categories';
 
 interface FinancialContextType {
   transactions: Transaction[];
@@ -22,7 +24,9 @@ interface FinancialContextType {
   setBudget: (budget: { amount: number }) => void;
   
   categories: Category[];
-  addCategory: (category: Omit<Category, 'id' | 'userId'>) => void;
+  incomeCategories: Category[];
+  expenseCategories: Category[];
+  addCategory: (category: Omit<Category, 'id' | 'userId'>) => Promise<void>;
   updateCategory: (category: Category) => void;
   deleteCategory: (id: string) => void;
   
@@ -50,9 +54,23 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const { data: budgetsData, isLoading: loadingBudgets } = useCollection<Budget>(budgetsRef);
   const { data: categoriesData, isLoading: loadingCategories } = useCollection<Category>(categoriesRef);
 
+  // Seed default categories for new users
+  useEffect(() => {
+    if (firestore && userId && !loadingCategories && categoriesData?.length === 0) {
+      const batch = writeBatch(firestore);
+      defaultCategories.forEach(category => {
+        const docRef = doc(collection(firestore, 'users', userId, 'categories'));
+        batch.set(docRef, { ...category, userId });
+      });
+      batch.commit();
+    }
+  }, [firestore, userId, categoriesData, loadingCategories]);
+
   const incomes = useMemo(() => incomesData || [], [incomesData]);
   const expenses = useMemo(() => expensesData || [], [expensesData]);
   const categories = useMemo(() => categoriesData || [], [categoriesData]);
+  const incomeCategories = useMemo(() => categories.filter(c => c.type === 'income'), [categories]);
+  const expenseCategories = useMemo(() => categories.filter(c => c.type === 'expense'), [categories]);
 
   const transactions: Transaction[] = useMemo(() => {
     const combined: Transaction[] = [
@@ -105,9 +123,9 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addCategory = (category: Omit<Category, 'id' | 'userId'>) => {
+  const addCategory = async (category: Omit<Category, 'id' | 'userId'>) => {
     if (!userId || !categoriesRef) return;
-    addDocumentNonBlocking(categoriesRef, { ...category, userId });
+    await addDocumentNonBlocking(categoriesRef, { ...category, userId });
   };
 
   const updateCategory = (category: Category) => {
@@ -137,13 +155,15 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     budget,
     setBudget,
     categories,
+    incomeCategories,
+    expenseCategories,
     addCategory,
     updateCategory,
     deleteCategory,
     resetData,
     isLoading: loadingIncomes || loadingExpenses || loadingBudgets,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, budget, categories, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
+  }), [transactions, incomes, expenses, budget, categories, incomeCategories, expenseCategories, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
 
   return (
     <FinancialContext.Provider value={value}>

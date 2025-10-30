@@ -1,3 +1,4 @@
+
 export type Transaction = {
   id: string;
   userId: string;
@@ -8,8 +9,8 @@ export type Transaction = {
   category?: string; // name of the category
 };
 
-export type Income = Omit<Transaction, 'type' | 'category'>;
-export type Expense = Omit<Transaction, 'type'>;
+export type Income = Omit<Transaction, 'type' | 'category'> & { category: string };
+export type Expense = Omit<Transaction, 'type'> & { category: string };
 
 
 export type Budget = {
@@ -24,6 +25,7 @@ export type Category = {
   userId: string;
   name: string;
   icon: string; // lucide-react icon name
+  type: 'income' | 'expense';
 }
 
 // Types for Split functionality

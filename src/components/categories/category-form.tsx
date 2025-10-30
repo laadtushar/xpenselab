@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -16,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, PlusCircle, Smile } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { useFinancials } from "@/context/financial-context";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/lib/types";
@@ -29,10 +30,11 @@ const formSchema = z.object({
 
 type CategoryDialogProps = {
   category?: Category;
+  type: 'income' | 'expense';
   children?: React.ReactNode;
 };
 
-export function CategoryDialog({ category, children }: CategoryDialogProps) {
+export function CategoryDialog({ category, type, children }: CategoryDialogProps) {
   const [open, setOpen] = useState(false);
   const { addCategory, updateCategory } = useFinancials();
   const { toast } = useToast();
@@ -56,7 +58,7 @@ export function CategoryDialog({ category, children }: CategoryDialogProps) {
         description: `Updated the ${values.name} category.`,
       });
     } else {
-      addCategory(values);
+      addCategory({ ...values, type });
       toast({
         title: "Category Added",
         description: `Added the ${values.name} category.`,
@@ -76,22 +78,28 @@ export function CategoryDialog({ category, children }: CategoryDialogProps) {
     setOpen(isOpen);
   };
 
+  const title = isEditing 
+    ? `Edit ${type} Category` 
+    : `Add New ${type} Category`;
+    
+  const description = isEditing
+    ? "Edit your custom category."
+    : `Create a new custom category for your ${type}.`;
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Category
+            Add {type === 'income' ? 'Income' : 'Expense'} Category
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Category" : "Add New Category"}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? "Edit your custom category." : "Create a new custom category for your expenses."}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

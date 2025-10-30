@@ -1,10 +1,10 @@
+
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, Edit } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,41 +19,27 @@ import {
 import { CategoryDialog } from "./category-form";
 import { CategoryIcon } from "../icons/category-icon";
 import { Badge } from "../ui/badge";
+import type { Category } from "@/lib/types";
 
-export function CategoryList() {
-  const { categories, deleteCategory, isLoadingCategories } = useFinancials();
+interface CategoryListProps {
+    type: 'income' | 'expense';
+}
 
-  if (isLoadingCategories) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+export function CategoryList({ type }: CategoryListProps) {
+  const { incomeCategories, expenseCategories, deleteCategory } = useFinancials();
+
+  const categories = type === 'income' ? incomeCategories : expenseCategories;
   
   if (categories.length === 0) {
     return (
-       <Card>
-        <CardHeader>
-          <CardTitle>Categories</CardTitle>
-          <CardDescription>No categories created yet.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center text-muted-foreground py-12">
-            Click "Add Category" to get started.
-          </div>
-        </CardContent>
-      </Card>
+        <div className="text-center text-muted-foreground py-12">
+            <p>No {type} categories created yet.</p>
+            <p className="text-sm">Click "Add {type === 'income' ? 'Income' : 'Expense'} Category" to get started.</p>
+        </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Categories</CardTitle>
-        <CardDescription>A list of your custom expense categories.</CardDescription>
-      </CardHeader>
-      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
@@ -102,7 +88,5 @@ export function CategoryList() {
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
   );
 }

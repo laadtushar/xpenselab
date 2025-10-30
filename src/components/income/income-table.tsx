@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
@@ -16,7 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { Badge } from "../ui/badge";
+import { CategoryIcon } from "../icons/category-icon";
 
 export function IncomeTable() {
   const { incomes, deleteTransaction, isLoading } = useFinancials();
@@ -60,6 +63,7 @@ export function IncomeTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Description</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Date</TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -69,6 +73,12 @@ export function IncomeTable() {
             {incomes.map((income) => (
               <TableRow key={income.id}>
                 <TableCell className="font-medium">{income.description}</TableCell>
+                 <TableCell>
+                  <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+                    <CategoryIcon categoryName={income.category} className="h-3 w-3" />
+                    {income.category}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right">{formatCurrency(income.amount)}</TableCell>
                 <TableCell>{format(new Date(income.date), 'MMM d, yyyy')}</TableCell>
                  <TableCell className="text-right">

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -53,13 +54,18 @@
           "type": "string",
           "description": "Date when the income was received.",
           "format": "date-time"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the income."
         }
       },
       "required": [
         "id",
         "userId",
         "amount",
-        "date"
+        "date",
+        "category"
       ]
     },
     "Expense": {
@@ -106,7 +112,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a user-defined category for expenses.",
+      "description": "Represents a user-defined category for transactions.",
       "properties": {
         "id": {
           "type": "string",
@@ -118,18 +124,24 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the expense category (e.g., 'Food', 'Rent', 'Transportation')."
+          "description": "Name of the category (e.g., 'Food', 'Salary')."
         },
         "icon": {
           "type": "string",
           "description": "The name of the lucide-react icon for the category."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of category.",
+          "enum": ["income", "expense"]
         }
       },
       "required": [
         "id",
         "userId",
         "name",
-        "icon"
+        "icon",
+        "type"
       ]
     },
     "Budget": {
@@ -467,6 +479,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FinanceFlow application.  It leverages path-based ownership for user-specific data and avoids `get()` calls in security rules by denormalizing authorization data where necessary. The structure prioritizes structural segregation, grouping data with similar access requirements into separate collections. This approach allows simpler, more maintainable security rules and robust `list` operations. Since the error indicates a potential issue with authentication, the structure also clearly separates user data from other entities, further isolating potential security concerns.\n\n*   **Users:** User data is stored under `/users/{userId}`.  This enables path-based security, where rules can simply check if `request.auth.uid == userId`. No `get()` calls are required to verify ownership.\n*   **Income, Expenses, Budgets, Categories:**  These are subcollections under `/users/{userId}`, reflecting the 1:N relationship. This maintains clear ownership and avoids the need for complex authorization logic.\n*   **Groups, SharedExpenses, Debts:** These entities support the new split expense feature. Groups are top-level to be referenced by multiple users. Shared expenses are a subcollection of groups. Debts are top-level and can be queried by the users involved."
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FinanceFlow application.  It leverages path-based ownership for user-specific data and avoids `get()` calls in security rules by denormalizing authorization data where necessary. The structure prioritizes structural segregation, grouping data with similar access requirements into separate collections. This approach allows simpler, more maintainable security rules and robust `list` operations. Since the error indicates a potential issue with authentication, the structure also clearly separates user data from other entities, further isolating potential security concerns.\n\n*   **Users:** User data is stored under `/users/{userId}`.  This enables path-based security, where rules can simply check if `request.auth.uid == userId`. No `get()` calls are required to verify ownership.\n*   **Income, Expenses, Budgets, Categories:**  These are subcollections under `/users/{userId}`, reflecting the 1:N relationship. This maintains clear ownership and avoids the need for complex authorization logic. The Category entity now includes a 'type' field to distinguish between income and expense categories.\n*   **Groups, SharedExpenses, Debts:** These entities support the new split expense feature. Groups are top-level to be referenced by multiple users. Shared expenses are a subcollection of groups. Debts are top-level and can be queried by the users involved."
   }
 }

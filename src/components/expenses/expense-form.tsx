@@ -27,7 +27,6 @@ import { useFinancials } from "@/context/financial-context";
 import { categorizeExpense } from "@/ai/flows/categorize-expenses";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
-import type { Category } from "@/lib/types";
 
 const formSchema = z.object({
   description: z.string().min(1, "Description is required."),
@@ -39,7 +38,7 @@ const formSchema = z.object({
 export function ExpenseForm() {
   const [open, setOpen] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
-  const { addTransaction, categories } = useFinancials();
+  const { addTransaction, expenseCategories } = useFinancials();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,24 +60,20 @@ export function ExpenseForm() {
         setIsCategorizing(true);
         try {
           const result = await categorizeExpense({ description: debouncedDescription });
-          const categoryExists = categories.some(c => c.name === result.category);
+          const categoryExists = expenseCategories.some(c => c.name === result.category);
           if (result.category && categoryExists) {
             form.setValue("category", result.category, { shouldValidate: true });
           }
         } catch (error) {
           console.error("AI categorization failed:", error);
-          toast({
-            title: "AI Categorization Failed",
-            description: "Could not automatically categorize the expense.",
-            variant: "destructive",
-          });
+          // Do not show toast for this, as it can be annoying
         } finally {
           setIsCategorizing(false);
         }
       }
     };
     autoCategorize();
-  }, [debouncedDescription, form, toast, categories]);
+  }, [debouncedDescription, form, expenseCategories]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addTransaction({
@@ -185,7 +180,7 @@ export function ExpenseForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {categories.map((cat) => (
+                        {expenseCategories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.name}>
                             {cat.name}
                           </SelectItem>

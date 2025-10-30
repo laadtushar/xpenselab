@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -17,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -27,11 +29,12 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required."),
   amount: z.coerce.number().positive("Amount must be positive."),
   date: z.date({ required_error: "Date is required." }),
+  category: z.string().min(1, "Category is required."),
 });
 
 export function IncomeForm() {
   const [open, setOpen] = useState(false);
-  const { addTransaction } = useFinancials();
+  const { addTransaction, incomeCategories } = useFinancials();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -40,6 +43,7 @@ export function IncomeForm() {
       description: "",
       amount: undefined,
       date: new Date(),
+      category: "",
     },
   });
 
@@ -53,7 +57,7 @@ export function IncomeForm() {
       title: "Income Added",
       description: `Added ${values.description} to your income.`,
     });
-    form.reset({ date: new Date(), description: '', amount: undefined });
+    form.reset({ date: new Date(), description: '', amount: undefined, category: '' });
     setOpen(false);
   }
 
@@ -93,6 +97,32 @@ export function IncomeForm() {
                   <FormControl>
                     <Input type="number" step="0.01" placeholder="e.g., 3000" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                   <div className="relative">
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {incomeCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                   </div>
                   <FormMessage />
                 </FormItem>
               )}
