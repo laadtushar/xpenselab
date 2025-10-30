@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking, FirestorePermissionError } from '@/firebase';
+import { collection, query, where, getDocs, type Firestore } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,16 +37,28 @@ const formSchema = z.object({
   direction: z.enum(['iOwe', 'theyOwe'], { required_error: 'You must select who owes whom.'}),
 });
 
-// A simplified, placeholder function to find a user by email.
-// In a real app, this would be a secure backend call.
-const findUserByEmail = async (firestore: any, email: string) => {
+// A function to find a user by email, now with proper error handling.
+const findUserByEmail = async (firestore: Firestore, email: string) => {
     const q = query(collection(firestore, 'users'), where('email', '==', email));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        return { id: userDoc.id, ...userDoc.data() };
+    try {
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            return { id: userDoc.id, ...userDoc.data() };
+        }
+        return null;
+    } catch (e: any) {
+        // This is likely a permission error on the 'users' collection query.
+        // We throw a specific, rich error to be caught by the development overlay.
+        if (e.code === 'permission-denied') {
+            throw new FirestorePermissionError({
+                path: 'users',
+                operation: 'list',
+            });
+        }
+        // Re-throw other errors
+        throw e;
     }
-    return null;
 }
 
 
@@ -62,6 +74,7 @@ export function AddDebtDialog() {
       description: '',
       amount: '' as unknown as number,
       otherPartyEmail: '',
+      direction: undefined,
     },
   });
 
@@ -77,9 +90,24 @@ export function AddDebtDialog() {
         return;
     }
     
-    // This is insecure for a production app, but works for this demo.
-    // In a real app, this lookup should be done via a server-side function.
-    const otherUser = await findUserByEmail(firestore, values.otherPartyEmail);
+    let otherUser;
+    try {
+      otherUser = await findUserByEmail(firestore, values.otherPartyEmail);
+    } catch (error) {
+      // If our custom error was thrown, re-throw it to the overlay.
+      if (error instanceof FirestorePermissionError) {
+        throw error;
+      }
+      // Handle other unexpected errors from findUserByEmail
+      console.error("An unexpected error occurred while finding the user:", error);
+      toast({
+          title: "Error",
+          description: "An unexpected error occurred while searching for the user.",
+          variant: "destructive",
+      });
+      return;
+    }
+
 
     if (!otherUser) {
         toast({
@@ -96,7 +124,7 @@ export function AddDebtDialog() {
 
     try {
       const debtsCol = collection(firestore, 'debts');
-      await addDocumentNonBlocking(debtsCol, {
+      addDocumentNonBlocking(debtsCol, {
         fromUserId,
         toUserId,
         amount: values.amount,
@@ -113,6 +141,8 @@ export function AddDebtDialog() {
       setOpen(false);
     } catch (error) {
       console.error('Error adding debt:', error);
+      // This catch is for addDocumentNonBlocking, which handles its own permission errors.
+      // This is for other potential issues.
       toast({
         title: 'Error',
         description: 'Failed to record the debt.',
