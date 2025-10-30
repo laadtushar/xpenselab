@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users, Shapes } from 'lucide-react';
+import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users, Shapes, HandCoins } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { SplitIcon } from '@/components/icons/split-icon';
 
@@ -13,6 +14,7 @@ const navItems = [
   { href: '/budget', label: 'Budget', icon: PiggyBank },
   { href: '/categories', label: 'Categories', icon: Shapes },
   { href: '/splits', label: 'Splits', icon: SplitIcon },
+  { href: '/debts', label: 'Debts', icon: HandCoins },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
