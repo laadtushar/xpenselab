@@ -60,7 +60,7 @@ export function AddDebtDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: '',
-      amount: undefined,
+      amount: '' as unknown as number,
       otherPartyEmail: '',
     },
   });
@@ -109,7 +109,7 @@ export function AddDebtDialog() {
         title: 'Debt Recorded',
         description: 'The debt has been successfully recorded.',
       });
-      form.reset({ description: '', amount: undefined, otherPartyEmail: '' });
+      form.reset({ description: '', amount: '' as unknown as number, otherPartyEmail: '' });
       setOpen(false);
     } catch (error) {
       console.error('Error adding debt:', error);
