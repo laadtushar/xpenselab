@@ -298,65 +298,37 @@
     ]
   },
   "firestore": {
-    "collections": [
-      {
-        "path": "/users/{userId}",
-        "schema": {
-          "$ref": "#/entities/User"
-        },
-        "description": "Stores user profile data."
-      },
-      {
-        "path": "/users/{userId}/incomes",
-        "schema": {
-          "$ref": "#/entities/Income"
-        },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profile data."
+    },
+    "/users/{userId}/incomes/{incomeId}": {
+        "schema": { "$ref": "#/entities/Income" },
         "description": "Stores income entries for a specific user."
-      },
-      {
-        "path": "/users/{userId}/expenses",
-        "schema": {
-          "$ref": "#/entities/Expense"
-        },
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+        "schema": { "$ref": "#/entities/Expense" },
         "description": "Stores expense entries for a specific user."
-      },
-      {
-        "path": "/users/{userId}/categories",
-        "schema": {
-          "$ref": "#/entities/Category"
-        },
+    },
+    "/users/{userId}/categories/{categoryId}": {
+        "schema": { "$ref": "#/entities/Category" },
         "description": "Stores user-specific expense categories."
-      },
-      {
-        "path": "/users/{userId}/budgets",
-        "schema": {
-          "$ref": "#/entities/Budget"
-        },
+    },
+    "/users/{userId}/budgets/{budgetId}": {
+        "schema": { "$ref": "#/entities/Budget" },
         "description": "Stores budget entries for a specific user."
-      },
-      {
-        "path": "/groups",
-        "schema": {
-          "$ref": "#/entities/Group"
-        },
+    },
+    "/groups/{groupId}": {
+        "schema": { "$ref": "#/entities/Group" },
         "description": "Stores group information, including members."
-      },
-      {
-        "path": "/groups/{groupId}/sharedExpenses",
-        "schema": {
-          "$ref": "#/entities/SharedExpense"
-        },
+    },
+    "/groups/{groupId}/sharedExpenses/{expenseId}": {
+        "schema": { "$ref": "#/entities/SharedExpense" },
         "description": "Stores shared expenses for a group."
-      },
-      {
-        "path": "/debts",
-        "schema": {
-          "$ref": "#/entities/Debt"
-        },
+    },
+    "/debts/{debtId}": {
+        "schema": { "$ref": "#/entities/Debt" },
         "description": "Stores debt information between two users."
-      }
-    ]
+    }
   }
 }
-
-    
