@@ -35,7 +35,6 @@ function normalizeCategory(category: string): string {
     'healthcare': 'Healthcare',
     'education': 'Education',
     'personal care': 'Personal Care',
-    'transport': 'Transportation',
   };
 
   const found = Object.keys(mapping).find(key => key === lowerCaseCategory);
@@ -93,20 +92,22 @@ export function DataImporter() {
           if (!line.trim()) return null;
 
           const values = line.split(separator);
+          // When a line is split, if it has trailing tabs, they might be included.
+          // Let's create the row object only from the values that correspond to a header.
           const row = header.reduce((obj, h, i) => {
-            if(values[i]) {
-              obj[h] = values[i]?.trim().replace(/"/g, '');
-            }
-            return obj;
+              if (values[i] !== undefined) {
+                  obj[h] = values[i].trim().replace(/"/g, '');
+              }
+              return obj;
           }, {} as Record<string, string>);
-
-          const dateString = row['date'] || row['purchase date'];
+          
+          const dateString = row['purchase date'] || row['date'];
           const date = new Date(dateString);
           
-          const amountString = row['income amount'] || row['amount'] || row['income'];
+          const amountString = row['amount'] || row['income amount'] || row['income'];
           const amount = parseFloat(amountString?.replace(/[^0-9.-]+/g, ''));
           
-          const description = row['description/invoice no.'] || row['income source'] || row['item'] || 'Imported Transaction';
+          const description = row['item'] || row['description/invoice no.'] || row['income source'] || 'Imported Transaction';
 
           if (isNaN(date.getTime()) || !amountString || isNaN(amount) || !description?.trim()) {
             console.warn(`Skipping invalid row ${index + 2}:`, line);
