@@ -5,67 +5,64 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
-import { initiateGoogleSignIn } from '@/firebase/non-blocking-login';
+import { signInWithGooglePopup } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
-import { getRedirectResult } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
+import { UserCredential } from 'firebase/auth';
 
 export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  console.log('LoginPage Render:', { isUserLoading, user: !!user, isSigningIn });
 
   useEffect(() => {
-    // This effect runs once to check for a sign-in redirect result.
-    if (auth) {
-      getRedirectResult(auth)
-        .then((result) => {
-          // If result is not null, a sign-in redirect was just completed.
-          // The onAuthStateChanged listener in useUser will handle the user object update.
-          // We can stop our local "processing" state.
-        })
-        .catch((error) => {
-          console.error("Error processing redirect result:", error);
-        })
-        .finally(() => {
-          // Crucially, we are now done processing the redirect attempt.
-          // The auth state will now be determined by the onAuthStateChanged listener.
-          setIsProcessingRedirect(false);
-        });
-    } else {
-      // If auth isn't ready yet, we are not processing a redirect.
-      setIsProcessingRedirect(false);
-    }
-  }, [auth]);
-
-
-  useEffect(() => {
-    // This effect handles redirection to the dashboard AFTER auth state is confirmed
-    // and we are no longer in the middle of processing a redirect.
-    if (!isUserLoading && !isProcessingRedirect && user) {
+    // This effect handles redirection to the dashboard AFTER auth state is confirmed.
+    if (!isUserLoading && user) {
+      console.log('Login successful, redirecting to dashboard...');
       router.push('/dashboard');
+    } else {
+        console.log('Not redirecting:', { isUserLoading, user: !!user });
     }
-  }, [user, isUserLoading, isProcessingRedirect, router]);
+  }, [user, isUserLoading, router]);
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     if (auth) {
-      // Set processing to true before initiating redirect to show loader immediately.
-      setIsProcessingRedirect(true);
-      initiateGoogleSignIn(auth);
+      setIsSigningIn(true);
+      console.log('Initiating Google sign-in with popup...');
+      try {
+        const result: UserCredential | void = await signInWithGooglePopup(auth);
+        if (result) {
+            console.log('Sign-in with popup successful:', result.user.email);
+            // The onAuthStateChanged listener in useUser will now handle the update
+            // and the useEffect above will trigger the redirect.
+        } else {
+            // This might happen if the popup is closed before completion.
+            console.log('Sign-in popup closed or failed without error.');
+        }
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+      } finally {
+        setIsSigningIn(false);
+        console.log('Sign-in process finished.');
+      }
+    } else {
+        console.error("Auth service is not available.");
     }
   };
 
   // The loading screen should be active if:
   // 1. Firebase is still checking the initial auth state (`isUserLoading`).
-  // 2. We are actively processing a potential sign-in from a redirect (`isProcessingRedirect`).
-  // If either is true, we show the loader.
-  const showLoader = isUserLoading || isProcessingRedirect;
-
+  // 2. We are actively processing a sign-in click (`isSigningIn`).
+  const showLoader = isUserLoading || isSigningIn;
+  
   if (showLoader) {
     return (
        <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="ml-2">Loading...</p>
       </div>
     );
   }
@@ -73,9 +70,10 @@ export default function LoginPage() {
   // If we are done loading and there IS a user, we are about to redirect.
   // Showing a loader here prevents a flash of the login page.
   if (user) {
-    return (
+     return (
        <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="ml-2">Redirecting...</p>
       </div>
     );
   }
@@ -92,11 +90,20 @@ export default function LoginPage() {
           <CardDescription>Sign in to manage your finances</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleGoogleSignIn} className="w-full">
-            <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-              <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 400.2 0 264.8S111.8 17.6 244 17.6c70.2 0 121.5 27.2 166.4 69.5l-67.5 64.8C296.1 112.3 268.4 96 244 96c-59.6 0-108.2 48.6-108.2 108.2s48.6 108.2 108.2 108.2c68.2 0 97.9-53.2 101-82.3H244v-73.3h239.3c5 27.2 7.7 54.3 7.7 85.8z"></path>
-            </svg>
-            Sign in with Google
+          <Button onClick={handleGoogleSignIn} className="w-full" disabled={isSigningIn}>
+            {isSigningIn ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Please wait...
+                </>
+            ) : (
+                <>
+                    <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 400.2 0 264.8S111.8 17.6 244 17.6c70.2 0 121.5 27.2 166.4 69.5l-67.5 64.8C296.1 112.3 268.4 96 244 96c-59.6 0-108.2 48.6-108.2 108.2s48.6 108.2 108.2 108.2c68.2 0 97.9-53.2 101-82.3H244v-73.3h239.3c5 27.2 7.7 54.3 7.7 85.8z"></path>
+                    </svg>
+                    Sign in with Google
+                </>
+            )}
           </Button>
         </CardContent>
       </Card>
