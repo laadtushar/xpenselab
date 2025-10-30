@@ -9,7 +9,7 @@ import {
     Bike, Bone, Book, Brain, BusFront, Candy, Church, Clapperboard, Code, Cog,
     Coins, Combine, Compass, Computer, Construction, CookingPot, Crop, Crown, CupSoda,
     Diamond, Disc, DraftingCompass, Drama, Dribbble, Droplet, Drum, Ear, Egg,
-    Fan, FerrisWheel, File, Film, Fish, Flag, Flame, FlaskConical, Folder, Football,
+    Fan, FerrisWheel, File, Film, Fish, Flag, Flame, FlaskConical, Folder, Goal,
     Forklift, Frame, GalleryVertical, Gem, Glasses, Gavel, Globe2, Grape, Hammer,
 
 } from 'lucide-react';
@@ -28,6 +28,6 @@ export const allIcons: Record<string, React.ElementType> = {
     Coins, Combine, Compass, Computer, Construction, CookingPot, Crop, Crown, CupSoda,
 
     Diamond, Disc, DraftingCompass, Drama, Dribbble, Droplet, Drum, Ear, Egg,
-    Fan, FerrisWheel, File, Film, Fish, Flag, Flame, FlaskConical, Folder, Football,
+    Fan, FerrisWheel, File, Film, Fish, Flag, Flame, FlaskConical, Folder, Goal,
     Forklift, Frame, GalleryVertical, Gem, Glasses, Gavel, Globe2, Grape, Hammer,
 };

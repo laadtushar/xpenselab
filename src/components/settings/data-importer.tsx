@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Transaction, expenseCategories, ExpenseCategory } from "@/lib/types";
+import { Transaction, Category } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,44 +22,6 @@ type Log = {
   failed: number;
   errors: { row: any; reason: string; rowIndex: number }[];
 };
-
-function normalizeCategory(category: string): string {
-  if (!category) return 'Other';
-  const lowerCaseCategory = category.toLowerCase().trim();
-  const mapping: { [key: string]: ExpenseCategory } = {
-    'bills': 'Bills',
-    'subscriptions': 'Subscriptions',
-    'entertainment': 'Entertainment',
-    'food & drink': 'Food & Drink',
-    'groceries': 'Groceries',
-    'health & wellbeing': 'Health & Wellbeing',
-    'other': 'Other',
-    'shopping': 'Shopping',
-    'transport': 'Transportation',
-    'travel': 'Travel',
-    'education loan repayment': 'Education Loan Repayment',
-    'gifts': 'Gifts',
-    'rent': 'Rent',
-    'utilities': 'Utilities',
-    'transportation': 'Transportation',
-    'dining out': 'Dining Out',
-    'healthcare': 'Healthcare',
-    'education': 'Education',
-    'personal care': 'Personal Care',
-  };
-
-  const found = Object.keys(mapping).find(key => key === lowerCaseCategory);
-  if (found) {
-    return mapping[found];
-  }
-
-  const existingCategory = expenseCategories.find(c => c.toLowerCase() === lowerCaseCategory);
-  if (existingCategory) {
-    return existingCategory;
-  }
-  
-  return 'Other';
-}
 
 function excelDateToJSDate(serial: number) {
   if (typeof serial !== 'number' || isNaN(serial)) {
@@ -87,8 +49,48 @@ export function DataImporter() {
   const [importType, setImportType] = useState<ImportType>('expense');
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<Log | null>(null);
-  const { addTransaction } = useFinancials();
+  const { addTransaction, categories } = useFinancials();
   const { toast } = useToast();
+
+  const normalizeCategory = (category: string): string => {
+    if (!category) return 'Other';
+    const lowerCaseCategory = category.toLowerCase().trim();
+    
+    // Check against user-defined categories
+    const existingCategory = categories.find(c => c.name.toLowerCase() === lowerCaseCategory);
+    if (existingCategory) {
+      return existingCategory.name;
+    }
+  
+    // Fallback to a predefined mapping for common variations
+    const mapping: { [key: string]: string } = {
+      'bills': 'Bills',
+      'subscriptions': 'Subscriptions',
+      'entertainment': 'Entertainment',
+      'food & drink': 'Food & Drink',
+      'groceries': 'Groceries',
+      'health & wellbeing': 'Health & Wellbeing',
+      'shopping': 'Shopping',
+      'transport': 'Transportation',
+      'transportation': 'Transportation',
+      'travel': 'Travel',
+      'education loan repayment': 'Education Loan Repayment',
+      'gifts': 'Gifts',
+      'rent': 'Rent',
+      'utilities': 'Utilities',
+      'dining out': 'Dining Out',
+      'healthcare': 'Healthcare',
+      'education': 'Education',
+      'personal care': 'Personal Care',
+    };
+  
+    const found = Object.keys(mapping).find(key => key === lowerCaseCategory);
+    if (found && categories.some(c => c.name === mapping[found])) {
+      return mapping[found];
+    }
+    
+    return 'Other';
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -310,5 +312,8 @@ export function DataImporter() {
       </CardContent>
     </Card>
   );
+
+    
+
 
     
