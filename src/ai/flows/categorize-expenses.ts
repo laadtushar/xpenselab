@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
 
 Description: {{{description}}}
 
-Possible categories are: Groceries, Rent, Utilities, Transportation, Entertainment, Dining Out, Shopping, Travel, Healthcare, Education, Personal Care, Other.
+Possible categories are: Groceries, Rent, Utilities, Transportation, Entertainment, Dining Out, Shopping, Travel, Healthcare, Education, Personal Care, Bills, Subscriptions, Food & Drink, Health & Wellbeing, Education Loan Repayment, Gifts, Other.
 
 Return the category and a confidence level between 0 and 1.
 
