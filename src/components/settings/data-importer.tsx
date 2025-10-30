@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Transaction, expenseCategories, ExpenseCategory } from "@/lib/types";
 type ImportType = 'income' | 'expense';
 
 function normalizeCategory(category: string): string {
+  if (!category) return 'Other';
   const lowerCaseCategory = category.toLowerCase().trim();
   const mapping: { [key: string]: ExpenseCategory } = {
     'bills': 'Bills',
@@ -50,6 +52,27 @@ function normalizeCategory(category: string): string {
   return 'Other';
 }
 
+function excelDateToJSDate(serial: number) {
+  if (typeof serial !== 'number' || isNaN(serial)) {
+    return null;
+  }
+  const utc_days = Math.floor(serial - 25569);
+  const utc_value = utc_days * 86400;                                        
+  const date_info = new Date(utc_value * 1000);
+
+  const fractional_day = serial - Math.floor(serial) + 0.0000001;
+
+  let total_seconds = Math.floor(86400 * fractional_day);
+
+  const seconds = total_seconds % 60;
+  total_seconds -= seconds;
+
+  const hours = Math.floor(total_seconds / (60 * 60));
+  const minutes = Math.floor(total_seconds / 60) % 60;
+
+  return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+}
+
 export function DataImporter() {
   const [file, setFile] = useState<File | null>(null);
   const [importType, setImportType] = useState<ImportType>('expense');
@@ -67,7 +90,7 @@ export function DataImporter() {
     if (!file) {
       toast({
         title: "No file selected",
-        description: "Please select a CSV or TSV file to import.",
+        description: "Please select a CSV, TSV or XLSX file to import.",
         variant: "destructive",
       });
       return;
@@ -76,41 +99,59 @@ export function DataImporter() {
     setIsLoading(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const text = e.target?.result as string;
+      const data = e.target?.result;
       try {
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        const headerLine = lines.shift()?.trim();
-        if (!headerLine) {
-          throw new Error("File is empty or has no header.");
-        }
-        
-        const separator = headerLine.includes('\t') ? '\t' : ',';
-        
-        const header = headerLine.split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''));
-        
-        const transactions: Omit<Transaction, 'id'>[] = lines.map((line, index) => {
-          if (!line.trim()) return null;
+        const workbook = XLSX.read(data, {
+          type: 'binary',
+          cellDates: true,
+          dateNF: 'm/d/yyyy', 
+        });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
-          const values = line.split(separator);
-          // When a line is split, if it has trailing tabs, they might be included.
-          // Let's create the row object only from the values that correspond to a header.
+        if (json.length < 2) {
+          throw new Error("File is empty or has no data.");
+        }
+
+        const header: string[] = json[0].map(h => String(h).trim().toLowerCase());
+        const dataRows = json.slice(1);
+
+        const transactions: Omit<Transaction, 'id'>[] = dataRows.map((rowArray: any[], index) => {
+          if (!Array.isArray(rowArray) || rowArray.length === 0 || rowArray.every(cell => cell === null || cell === '')) {
+            return null;
+          }
+          
           const row = header.reduce((obj, h, i) => {
-              if (values[i] !== undefined) {
-                  obj[h] = values[i].trim().replace(/"/g, '');
+              if (rowArray[i] !== undefined) {
+                  obj[h] = rowArray[i];
               }
               return obj;
-          }, {} as Record<string, string>);
-          
+          }, {} as Record<string, any>);
+
           const dateString = row['purchase date'] || row['date'];
-          const date = new Date(dateString);
+          let date;
+
+          if (typeof dateString === 'number') { // Excel date serial number
+            date = excelDateToJSDate(dateString);
+          } else if (dateString instanceof Date) {
+            date = dateString;
+          } else if (typeof dateString === 'string') {
+            date = new Date(dateString);
+          }
+
+          if (!date || isNaN(date.getTime())) {
+            console.warn(`Skipping row ${index + 2} due to invalid date:`, row);
+            return null;
+          }
           
           const amountString = row['amount'] || row['income amount'] || row['income'];
-          const amount = parseFloat(amountString?.replace(/[^0-9.-]+/g, ''));
+          const amount = parseFloat(String(amountString).replace(/[^0-9.-]+/g, ''));
           
           const description = row['item'] || row['description/invoice no.'] || row['income source'] || 'Imported Transaction';
 
-          if (isNaN(date.getTime()) || !amountString || isNaN(amount) || !description?.trim()) {
-            console.warn(`Skipping invalid row ${index + 2}:`, line);
+          if (isNaN(amount) || !description || String(description).trim() === '') {
+            console.warn(`Skipping invalid row ${index + 2}:`, row);
             return null;
           }
 
@@ -118,16 +159,16 @@ export function DataImporter() {
             return {
               type: 'income',
               date: date.toISOString(),
-              description: description,
+              description: String(description),
               amount: amount,
               category: 'Income',
             };
           } else { // expense
-            const category = row['category'] ? normalizeCategory(row['category']) : 'Other';
+            const category = row['category'] ? normalizeCategory(String(row['category'])) : 'Other';
             return {
               type: 'expense',
               date: date.toISOString(),
-              description: description,
+              description: String(description),
               amount: amount,
               category: category,
             };
@@ -152,7 +193,7 @@ export function DataImporter() {
         console.error("Import failed", error);
         toast({
           title: "Import Failed",
-          description: "Please check the file format and try again. Ensure it's a valid CSV or TSV file.",
+          description: "Please check the file format and try again. Ensure it's a valid CSV, TSV or XLSX file.",
           variant: "destructive",
         });
       } finally {
@@ -163,7 +204,7 @@ export function DataImporter() {
         if(fileInput) fileInput.value = "";
       }
     };
-    reader.readAsText(file);
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -171,14 +212,14 @@ export function DataImporter() {
       <CardHeader>
         <CardTitle>Import Data</CardTitle>
         <CardDescription>
-          Import your income or expense data from a CSV or TSV file.
+          Import your income or expense data from a CSV, TSV, or XLSX file.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
             <h3 className="font-medium text-sm">File Format</h3>
             <p className="text-xs text-muted-foreground">
-                Ensure your file has a header row. For expenses, expected headers are `Purchase Date`, `Item`, `Amount`, `Category`. For income, expected headers are `Date`, `Description/Invoice No.`, `Income Amount`. Variations are handled.
+                Ensure your file has a header row. For expenses, expected headers are `Purchase Date`, `Item`, `Amount`, `Category`. For income, expected headers are `Date`, `Income Source` or `Description/Invoice No.`, and `Income Amount`. Variations are handled.
             </p>
         </div>
         <RadioGroup
@@ -197,7 +238,7 @@ export function DataImporter() {
         </RadioGroup>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <Input type="file" accept=".csv,.tsv,.txt" onChange={handleFileChange} className="max-w-xs" />
+          <Input type="file" accept=".csv,.tsv,.txt,.xlsx" onChange={handleFileChange} className="max-w-xs" />
           <Button onClick={handleImport} disabled={isLoading || !file}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
