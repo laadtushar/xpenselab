@@ -7,7 +7,7 @@ import { AddDebtDialog } from '@/components/debts/debt-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, or } from 'firebase/firestore';
+import { collection, query, where, or, and } from 'firebase/firestore';
 import type { Debt } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
@@ -30,10 +30,12 @@ export default function DebtsPage() {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'debts'), 
-      where('settled', '==', true),
-      or(
-        where('fromUserId', '==', user.uid),
-        where('toUserId', '==', user.uid)
+      and(
+        where('settled', '==', true),
+        or(
+          where('fromUserId', '==', user.uid),
+          where('toUserId', '==', user.uid)
+        )
       )
     );
   }, [user, firestore]);
