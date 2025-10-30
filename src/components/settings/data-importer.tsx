@@ -94,7 +94,9 @@ export function DataImporter() {
 
           const values = line.split(separator);
           const row = header.reduce((obj, h, i) => {
-            obj[h] = values[i]?.trim().replace(/"/g, '');
+            if(values[i]) {
+              obj[h] = values[i]?.trim().replace(/"/g, '');
+            }
             return obj;
           }, {} as Record<string, string>);
 
@@ -106,7 +108,7 @@ export function DataImporter() {
           
           const description = row['description/invoice no.'] || row['income source'] || row['item'] || 'Imported Transaction';
 
-          if (isNaN(date.getTime()) || !amountString || isNaN(amount) || !description.trim()) {
+          if (isNaN(date.getTime()) || !amountString || isNaN(amount) || !description?.trim()) {
             console.warn(`Skipping invalid row ${index + 2}:`, line);
             return null;
           }
