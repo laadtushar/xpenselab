@@ -20,19 +20,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const router = useRouter();
   
-  const [isReady, setIsReady] = useState(false);
+  const [isFirestoreCheckComplete, setIsFirestoreCheckComplete] = useState(false);
 
   useEffect(() => {
+    // Wait until Firebase has finished its initial user check.
     if (isUserLoading) {
-      return; // Wait until the initial auth check is complete.
+      return;
     }
 
+    // If no user is found after the initial check, redirect to login.
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // If we have a user, ensure their Firestore document exists.
+    // If there is a user, verify their Firestore document exists.
     const userDocRef = doc(firestore, 'users', user.uid);
     getDoc(userDocRef).then(userDocSnap => {
       if (!userDocSnap.exists()) {
@@ -40,28 +42,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           email: user.email!,
           createdAt: new Date().toISOString(),
         };
-        // Use non-blocking set so UI can render while this happens in the background
+        // Use non-blocking set so UI can render while this happens in the background.
+        // We will still wait for it to complete before removing the loader.
         setDocumentNonBlocking(userDocRef, newUserDoc).then(() => {
-          setIsReady(true);
+          setIsFirestoreCheckComplete(true);
         });
       } else {
-        setIsReady(true); // Ready if doc already exists
+        setIsFirestoreCheckComplete(true); // Doc already exists, check is complete.
       }
     }).catch(error => {
       console.error("Error checking/creating user document:", error);
       // Optional: Handle this error, e.g., by signing out the user.
+      // For now, we'll allow the app to render to avoid getting stuck.
+      setIsFirestoreCheckComplete(true);
     });
+
   }, [user, isUserLoading, firestore, router]);
 
 
   const handleSignOut = () => {
     if (auth) {
       auth.signOut();
+      // The useEffect hook above will detect the user is null and redirect to login.
     }
   };
   
-  // Show a loader until we are certain about the user's auth state and Firestore record.
-  if (!isReady) {
+  // Show a loader until we are certain about the user's auth state AND their Firestore record.
+  if (isUserLoading || !isFirestoreCheckComplete) {
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

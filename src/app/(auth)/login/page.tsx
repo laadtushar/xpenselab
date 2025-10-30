@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,12 +17,6 @@ export default function LoginPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [isUserLoading, user, router]);
-
   const handleGoogleSignIn = async () => {
     if (!auth) {
       toast({
@@ -35,12 +29,14 @@ export default function LoginPage() {
     setIsSigningIn(true);
     try {
       await signInWithGooglePopup(auth);
-      // On successful sign-in, the `useUser` hook will update,
-      // and the `useEffect` above will trigger the redirect to the dashboard.
+      // After successful sign-in, the useUser hook in the layout will detect the change,
+      // and the user will be automatically redirected to the dashboard by the layout component.
       toast({
         title: 'Sign-In Successful',
         description: 'Redirecting you to the dashboard...',
       });
+      // We explicitly push to the dashboard here to ensure navigation starts.
+      router.push('/dashboard');
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
         toast({
@@ -49,32 +45,24 @@ export default function LoginPage() {
           variant: 'destructive',
         });
       }
-    } finally {
       setIsSigningIn(false);
-    }
+    } 
+    // Do not set isSigningIn to false in a `finally` block,
+    // as the component will unmount on successful login and navigation.
   };
 
-  // Show a loader while Firebase is initializing
-  if (isUserLoading) {
+  // The main layout will handle redirects for already logged-in users.
+  // This page will only show a loader if the user state is initially loading,
+  // or if a sign-in process is active.
+  if (isUserLoading || isSigningIn || user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-  
-  // If a user is already logged in, show a message while redirecting.
-  if (user) {
-      return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="ml-2">Authenticated. Redirecting...</p>
-        </div>
-    );
-  }
 
-
-  // Only show the login UI when we are certain there is no user.
+  // Only show the login UI when we are certain there is no user and no sign-in is in progress.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
