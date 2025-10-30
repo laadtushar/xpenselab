@@ -2,29 +2,41 @@
 
 import { useFinancials } from "@/context/financial-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { useMemo } from "react";
 
 export function StatsCards() {
-  const { transactions } = useFinancials();
+  const { incomes, expenses, isLoading } = useFinancials();
 
   const { totalIncome, totalExpenses, savings } = useMemo(() => {
-    const totalIncome = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpenses = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-      
+    const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     const savings = totalIncome - totalExpenses;
-
     return { totalIncome, totalExpenses, savings };
-  }, [transactions]);
+  }, [incomes, expenses]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
+  
+  if (isLoading) {
+    return (
+        <div className="grid gap-4 md:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+                <Card key={i}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-8 flex items-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-3">

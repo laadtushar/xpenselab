@@ -1,5 +1,6 @@
 export type Transaction = {
   id: string;
+  userId: string;
   type: 'income' | 'expense';
   amount: number;
   date: string; // ISO string
@@ -7,8 +8,13 @@ export type Transaction = {
   category?: string;
 };
 
+export type Income = Omit<Transaction, 'type' | 'category'>;
+export type Expense = Omit<Transaction, 'type'>;
+
+
 export type Budget = {
   id: string;
+  userId: string;
   amount: number;
   month: string; // YYYY-MM
 };

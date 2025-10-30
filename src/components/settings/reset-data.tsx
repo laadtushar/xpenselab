@@ -30,8 +30,9 @@ export function ResetData() {
   const handleReset = () => {
     resetData();
     toast({
-      title: "Data Reset",
-      description: "All your financial data has been cleared.",
+      title: "Data Reset Action",
+      description: "A server-side function would be needed for a full data wipe. This action is currently disabled on the client.",
+      variant: "default"
     });
   };
 
@@ -40,13 +41,13 @@ export function ResetData() {
       <CardHeader>
         <CardTitle>Reset Application Data</CardTitle>
         <CardDescription>
-          This will permanently delete all your transactions and budget data. This action cannot be undone.
+          This would permanently delete all your transactions and budget data from Firestore. This feature is disabled on the client for safety.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive">
+            <Button variant="destructive" disabled>
               <Trash className="mr-2 h-4 w-4" />
               Reset All Data
             </Button>
@@ -55,7 +56,7 @@ export function ResetData() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all income, expense, and budget data from this application. This action cannot be undone.
+                This would permanently delete all income, expense, and budget data from Firestore. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

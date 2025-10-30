@@ -4,20 +4,19 @@ import { useMemo } from "react";
 import { useFinancials } from "@/context/financial-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { expenseCategories, ExpenseCategory } from "@/lib/types";
+import { expenseCategories } from "@/lib/types";
 import { CategoryIcon } from "@/components/icons/category-icon";
+import { Loader2 } from "lucide-react";
 
 export function BudgetTracker() {
-  const { transactions, budget } = useFinancials();
+  const { expenses, budget, isLoading } = useFinancials();
 
   const { totalExpenses, expensesByCategory, percentage } = useMemo(() => {
-    const totalExpenses = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
 
     const expensesByCategory = expenseCategories.map(category => {
-      const amount = transactions
-        .filter(t => t.type === 'expense' && t.category === category)
+      const amount = expenses
+        .filter(t => t.category === category)
         .reduce((sum, t) => sum + t.amount, 0);
       return { category, amount };
     }).filter(c => c.amount > 0)
@@ -26,9 +25,22 @@ export function BudgetTracker() {
     const percentage = budget ? Math.min((totalExpenses / budget.amount) * 100, 100) : 0;
 
     return { totalExpenses, expensesByCategory, percentage };
-  }, [transactions, budget]);
+  }, [expenses, budget]);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  
+  if (isLoading) {
+    return (
+      <Card>
+         <CardHeader>
+          <CardTitle>Budget Tracker</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!budget) {
     return (

@@ -4,9 +4,8 @@ import { useFinancials } from "@/context/financial-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,19 +19,21 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export function IncomeTable() {
-  const { transactions, deleteTransaction } = useFinancials();
-
-  const income = useMemo(() => {
-    return transactions
-      .filter(t => t.type === 'income')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions]);
+  const { incomes, deleteTransaction, isLoading } = useFinancials();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
   
-  if (income.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (incomes.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -65,7 +66,7 @@ export function IncomeTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {income.map((income) => (
+            {incomes.map((income) => (
               <TableRow key={income.id}>
                 <TableCell className="font-medium">{income.description}</TableCell>
                 <TableCell className="text-right">{formatCurrency(income.amount)}</TableCell>
@@ -87,7 +88,7 @@ export function IncomeTable() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteTransaction(income.id)}>Continue</AlertDialogAction>
+                        <AlertDialogAction onClick={() => deleteTransaction(income.id, 'income')}>Continue</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

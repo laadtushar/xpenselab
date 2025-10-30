@@ -5,21 +5,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { useMemo } from "react";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 export function RecentTransactions() {
-  const { transactions } = useFinancials();
+  const { transactions, isLoading } = useFinancials();
 
   const recentTransactions = useMemo(() => {
-    return [...transactions]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
+    return transactions.slice(0, 5);
   }, [transactions]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
+  
+  if (isLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Recent Transactions</CardTitle>
+                <CardDescription>Your 5 most recent transactions.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center items-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Card>
@@ -41,7 +53,7 @@ export function RecentTransactions() {
                   <p className="text-sm font-medium leading-none">{t.description}</p>
                   <p className="text-sm text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</p>
                 </div>
-                <div className={`ml-auto font-medium`}>
+                <div className={`ml-auto font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </div>
               </div>

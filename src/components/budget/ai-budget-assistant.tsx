@@ -12,27 +12,21 @@ export function AiBudgetAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<BudgetingAssistanceOutput | null>(null);
   const { toast } = useToast();
-  const { transactions, budget } = useFinancials();
+  const { incomes, expenses, budget } = useFinancials();
 
   const financialData = useMemo(() => {
-    const monthlyExpenses = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    // Assuming a static monthly income for now, can be improved
-    const monthlyIncome = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const monthlyExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+    const monthlyIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
       
-    const spendingCategories = transactions
-      .filter(t => t.type === 'expense' && t.category)
+    const spendingCategories = expenses
+      .filter(t => t.category)
       .reduce((acc, t) => {
         acc[t.category!] = (acc[t.category!] || 0) + t.amount;
         return acc;
       }, {} as Record<string, number>);
 
     return { monthlyIncome, monthlyExpenses, spendingCategories };
-  }, [transactions]);
+  }, [incomes, expenses]);
 
   const handleGetAdvice = async () => {
     if (!budget) {

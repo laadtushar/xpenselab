@@ -8,7 +8,7 @@ import { CategoryIcon } from "@/components/icons/category-icon";
 import { format } from "date-fns";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,17 +22,19 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export function ExpensesTable() {
-  const { transactions, deleteTransaction } = useFinancials();
-
-  const expenses = useMemo(() => {
-    return transactions
-      .filter(t => t.type === 'expense')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions]);
+  const { expenses, deleteTransaction, isLoading } = useFinancials();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
   
   if (expenses.length === 0) {
     return (
@@ -96,7 +98,7 @@ export function ExpensesTable() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteTransaction(expense.id)}>Continue</AlertDialogAction>
+                        <AlertDialogAction onClick={() => deleteTransaction(expense.id, 'expense')}>Continue</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

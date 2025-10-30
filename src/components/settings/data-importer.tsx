@@ -87,7 +87,7 @@ export function DataImporter() {
   const [importType, setImportType] = useState<ImportType>('expense');
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<Log | null>(null);
-  const { addTransactions } = useFinancials();
+  const { addTransaction } = useFinancials();
   const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +131,7 @@ export function DataImporter() {
         const header: string[] = json[0].map((h: any) => String(h || '').trim().toLowerCase());
         const dataRows = json.slice(1);
 
-        const transactions: Omit<Transaction, 'id'>[] = dataRows.map((rowArray: any[], index) => {
+        const transactions: Omit<Transaction, 'id' | 'userId'>[] = dataRows.map((rowArray: any[], index) => {
           const rowIndex = index + 2;
 
           if (!Array.isArray(rowArray) || rowArray.every(cell => cell === null || cell === '')) {
@@ -183,7 +183,6 @@ export function DataImporter() {
               date: date.toISOString(),
               description: String(description),
               amount: amount,
-              category: 'Income',
             };
           } else { // expense
             const category = row['category'] ? normalizeCategory(String(row['category'])) : 'Other';
@@ -195,10 +194,10 @@ export function DataImporter() {
               category: category,
             };
           }
-        }).filter((t): t is Omit<Transaction, 'id'> => t !== null);
+        }).filter((t): t is Omit<Transaction, 'id' | 'userId'> => t !== null);
         
         if (transactions.length > 0) {
-          addTransactions(transactions);
+            transactions.forEach(t => addTransaction(t));
           toast({
             title: "Import Successful",
             description: `Successfully imported ${transactions.length} transactions.`,

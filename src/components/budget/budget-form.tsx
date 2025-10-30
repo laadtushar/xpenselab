@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   amount: z.coerce.number().positive("Budget must be a positive number."),
@@ -27,11 +27,15 @@ export function BudgetForm() {
     },
   });
 
+  useEffect(() => {
+    if (budget) {
+      form.reset({ amount: budget.amount });
+    }
+  }, [budget, form]);
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const currentMonth = format(new Date(), "yyyy-MM");
     setBudget({
       amount: values.amount,
-      month: currentMonth,
     });
     toast({
       title: "Budget Updated",

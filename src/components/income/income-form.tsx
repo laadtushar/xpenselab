@@ -46,7 +46,6 @@ export function IncomeForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     addTransaction({
       type: 'income',
-      category: 'Income',
       ...values,
       date: values.date.toISOString(),
     });
