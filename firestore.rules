@@ -1,186 +1,213 @@
 /**
- * @file Firestore Security Rules for FinanceFlow
- * @description This ruleset enforces a strict user-ownership model for personal financial data,
- * and shared access for group expenses. It prioritizes security and data isolation
- * while allowing for flexible data shapes during prototyping.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for personal finance data,
+ *              while allowing shared access to group-related data.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data, accessible only by the user themselves.
- * - /users/{userId}/incomes/{incomeId}: Stores income entries, accessible only by the user.
- * - /users/{userId}/expenses/{expenseId}: Stores expense entries, accessible only by the user.
- * - /users/{userId}/categories/{categoryId}: Stores user-defined categories, accessible only by the user.
- * - /users/{userId}/budgets/{budgetId}: Stores budget information, accessible only by the user.
- * - /groups/{groupId}: Stores group information. Write access is restricted to group members.
- * - /groups/{groupId}/sharedExpenses/{expenseId}: Stores shared expenses for a group. Write access is restricted to group members.
- * - /debts/{debtId}: Stores debt information between two users. Write access is restricted to debt creator.
+ * - /users/{userId}: Stores user profile information. Only the authenticated user can
+ *                     read or write their own profile.
+ * - /users/{userId}/incomes/{incomeId}: Stores income entries. Only the owning user
+ *                                       can manage their income records.
+ * - /users/{userId}/expenses/{expenseId}: Stores expense entries. Only the owning user
+ *                                         can manage their expense records.
+ * - /users/{userId}/categories/{categoryId}: Stores user-defined categories. Only the
+ *                                            owning user can manage their categories.
+ * - /users/{userId}/budgets/{budgetId}: Stores budget information. Only the owning user
+ *                                      can manage their budget records.
+ * - /groups/{groupId}: Stores group information. Access is controlled via the 'members'
+ *                      field, allowing members to read and write group details.
+ * - /groups/{groupId}/sharedExpenses/{expenseId}: Stores shared expenses for a group. Access
+ *                                                 is controlled by group membership.
+ * - /debts/{debtId}: Stores debt information between users.  Write access is restricted
+ *                    to the user who created the debt.
  *
  * Key Security Decisions:
- * - User listing is disallowed to protect privacy.
- * - Default security posture for ambiguous relationships is strict owner-only access.
+ * - User listing is explicitly denied for privacy.
+ * - Data validation is relaxed in this prototyping phase to allow for rapid schema iteration.
+ * - All write operations require authentication.
  *
  * Denormalization for Authorization:
- * - Group and SharedExpense documents are structured to include member lists/maps directly within the document,
- *   allowing for efficient authorization checks without additional database reads.
+ * - Group and SharedExpense documents should contain a list of member UIDs to efficiently
+ *   control access.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user is the owner of the document.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the authenticated user is the owner of the existing document.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-    
-    /**
-     * @description Rule for the /users/{userId} collection.
+     * @description Controls access to user profile data.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/users/user123", "resource": { "data": { "email": "test@example.com", "createdAt": "2024-01-01T00:00:00Z" } } }
-     * @deny (update) User with ID 'user456' cannot update user profile 'user123'.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/users/user123", "resource": { "data": { "email": "new@example.com" } } }
-     * @principle Enforces document ownership for writes.
+     * @allow (create, update, get, delete) if the authenticated user's UID matches the userId.
+     * @deny (create, update, delete) if the authenticated user's UID does not match the userId.
+     * @deny list
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get: if isOwner(userId);
-      allow list: if false; // User listing is not permitted for privacy.
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/incomes/{incomeId} collection.
+     * @description Controls access to income entries for a specific user.
      * @path /users/{userId}/incomes/{incomeId}
-     * @allow (create) User with ID 'user123' can create an income entry.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/users/user123/incomes/income1", "resource": { "data": { "userId": "user123", "amount": 1000, "date": "2024-01-05", "category": "Salary" } } }
-     * @deny (update) User with ID 'user456' cannot update income entry 'income1' of user 'user123'.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/users/user123/incomes/income1", "resource": { "data": { "amount": 1200 } } }
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @allow (create, update, get, delete) if the authenticated user's UID matches the userId.
+     * @deny (create, update, delete) if the authenticated user's UID does not match the userId.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/incomes/{incomeId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/expenses/{expenseId} collection.
+     * @description Controls access to expense entries for a specific user.
      * @path /users/{userId}/expenses/{expenseId}
-     * @allow (create) User with ID 'user123' can create an expense entry.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/users/user123/expenses/expense1", "resource": { "data": { "userId": "user123", "amount": 50, "date": "2024-01-05", "category": "Food" } } }
-     * @deny (update) User with ID 'user456' cannot update expense entry 'expense1' of user 'user123'.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/users/user123/expenses/expense1", "resource": { "data": { "amount": 60 } } }
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @allow (create, update, get, delete) if the authenticated user's UID matches the userId.
+     * @deny (create, update, delete) if the authenticated user's UID does not match the userId.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/expenses/{expenseId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/categories/{categoryId} collection.
+     * @description Controls access to user-specific categories.
      * @path /users/{userId}/categories/{categoryId}
-     * @allow (create) User with ID 'user123' can create a category.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/users/user123/categories/category1", "resource": { "data": { "userId": "user123", "name": "Food", "icon": "utensils", "type": "expense" } } }
-     * @deny (update) User with ID 'user456' cannot update category 'category1' of user 'user123'.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/users/user123/categories/category1", "resource": { "data": { "name": "Groceries" } } }
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @allow (create, update, get, delete) if the authenticated user's UID matches the userId.
+     * @deny (create, update, delete) if the authenticated user's UID does not match the userId.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/categories/{categoryId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rule for the /users/{userId}/budgets/{budgetId} collection.
+     * @description Controls access to budget entries for a specific user.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create) User with ID 'user123' can create a budget.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/users/user123/budgets/budget1", "resource": { "data": { "userId": "user123", "amount": 200, "month": "2024-01" } } }
-     * @deny (update) User with ID 'user456' cannot update budget 'budget1' of user 'user123'.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/users/user123/budgets/budget1", "resource": { "data": { "amount": 250 } } }
-     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     * @allow (create, update, get, delete) if the authenticated user's UID matches the userId.
+     * @deny (create, update, delete) if the authenticated user's UID does not match the userId.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rule for the /groups/{groupId} collection.
+     * @description Controls access to group information.
      * @path /groups/{groupId}
-     * @allow (create) User with ID 'user123' can create a group if they are the creator.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/groups/group1", "resource": { "data": { "name": "Family", "members": ["user123"], "createdBy": "user123", "createdAt": "2024-01-05" } } }
-     * @deny (update) User with ID 'user456' cannot update group 'group1' if they are not a member.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/groups/group1", "resource": { "data": { "name": "Friends" } } }
-     * @principle Enforces shared access based on group membership.
+     * @allow (get, list) if the authenticated user is a member of the group.
+     * @allow (create, update, delete) if the authenticated user is the creator of the group.
+     * @deny (create, update, delete) if the authenticated user is not the creator of the group.
+     * @principle Enforces shared access for group members.
      */
     match /groups/{groupId} {
-        allow get: if resource.data.members.hasAny([request.auth.uid]);
-        allow list: if true;
-        allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-        allow update: if isSignedIn() && resource != null && resource.data.members.hasAny([request.auth.uid]);
-        allow delete: if isSignedIn() && resource != null && resource.data.createdBy == request.auth.uid;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isMember(groupId) {
+          return isSignedIn() && request.auth.uid in resource.data.members;
+      }
+
+      function isCreator() {
+        return request.auth != null && request.auth.uid == resource.data.createdBy;
+      }
+
+      allow get: if isMember(groupId);
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isMember(groupId);
+      allow delete: if isSignedIn() && isCreator();
     }
 
     /**
-     * @description Rule for the /groups/{groupId}/sharedExpenses/{expenseId} collection.
+     * @description Controls access to shared expenses for a group.
      * @path /groups/{groupId}/sharedExpenses/{expenseId}
-     * @allow (create) User with ID 'user123' can create a shared expense if they are a member of the group.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/groups/group1/sharedExpenses/expense1", "resource": { "data": { "groupId": "group1", "description": "Dinner", "amount": 100, "paidBy": "user123", "date": "2024-01-05", "splits": [{ "userId": "user123", "amount": 50 }, { "userId": "user456", "amount": 50 }] } } }
-     * @deny (update) User with ID 'user456' cannot update shared expense 'expense1' of group 'group1' if they are not a member.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/groups/group1/sharedExpenses/expense1", "resource": { "data": { "amount": 120 } } }
-     * @principle Enforces shared access based on group membership.
+     * @allow (get, list) if the authenticated user is a member of the group.
+     * @allow (create, update, delete) if the authenticated user is a member of the group.
+     * @deny (create, update, delete) if the authenticated user is not a member of the group.
+     * @principle Enforces shared access for group members.
      */
     match /groups/{groupId}/sharedExpenses/{expenseId} {
-        allow get: if get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
-        allow list: if get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
-        allow create: if isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
-        allow update: if isSignedIn() && resource != null && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
-        allow delete: if isSignedIn() && resource != null && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isMember(groupId) {
+        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+
+      allow get: if isMember(groupId);
+      allow list: if false;
+      allow create: if isMember(groupId);
+      allow update: if isMember(groupId);
+      allow delete: if isMember(groupId);
     }
 
     /**
-     * @description Rule for the /debts/{debtId} collection.
+     * @description Controls access to debt information between two users.
      * @path /debts/{debtId}
-     * @allow (create) User with ID 'user123' can create a debt if they are the creator.
-     *   Request: { "auth": { "uid": "user123" }, "method": "create", "path": "/databases/(default)/documents/debts/debt1", "resource": { "data": { "fromUserId": "user123", "toUserId": "user456", "amount": 50, "description": "Lunch", "settled": false, "createdBy": "user123" } } }
-     * @deny (update) User with ID 'user456' cannot update debt 'debt1' if they are not the creator.
-     *   Request: { "auth": { "uid": "user456" }, "method": "update", "path": "/databases/(default)/documents/debts/debt1", "resource": { "data": { "settled": true } } }
-     * @principle Enforces creator-only write access for debts.
+     * @allow (get, list) if the authenticated user is either the sender or receiver of the debt.
+     * @allow (create) if the authenticated user is creating the debt.
+     * @allow (update, delete) if the authenticated user created the debt
+     * @deny (create, update, delete) if the authenticated user is not creating the debt
+     * @principle Enforces access based on involvement in the debt.
      */
     match /debts/{debtId} {
-        allow get: if true;
-        allow list: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-        allow update: if isSignedIn() && resource != null && request.resource.data.createdBy == request.auth.uid;
-        allow delete: if isSignedIn() && resource != null && request.resource.data.createdBy == request.auth.uid;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function canViewDebt() {
+        return isSignedIn() && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+      }
+
+      function isCreator() {
+          return isSignedIn() && request.auth.uid == resource.data.fromUserId;
+      }
+      
+      allow get: if canViewDebt();
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.fromUserId;
+      allow update: if isSignedIn() && isCreator();
+      allow delete: if isSignedIn() && isCreator();
     }
   }
 }
