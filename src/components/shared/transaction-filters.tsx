@@ -65,12 +65,12 @@ export function TransactionFilters({ onFilterChange, type }: TransactionFiltersP
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-sm"
       />
-      <Select value={category} onValueChange={setCategory}>
+      <Select value={category} onValueChange={(value) => setCategory(value === "all" ? "" : value)}>
         <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="All Categories" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Categories</SelectItem>
+          <SelectItem value="all">All Categories</SelectItem>
           {categories.map((cat) => (
             <SelectItem key={cat.id} value={cat.name}>
               {cat.name}
