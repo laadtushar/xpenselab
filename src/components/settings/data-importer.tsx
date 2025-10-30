@@ -67,7 +67,7 @@ export function DataImporter() {
     if (!file) {
       toast({
         title: "No file selected",
-        description: "Please select a CSV file to import.",
+        description: "Please select a CSV or TSV file to import.",
         variant: "destructive",
       });
       return;
@@ -81,24 +81,30 @@ export function DataImporter() {
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const headerLine = lines.shift()?.trim();
         if (!headerLine) {
-          throw new Error("CSV file is empty or has no header.");
+          throw new Error("File is empty or has no header.");
         }
         
-        const header = headerLine.split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        // Detect separator (comma or tab)
+        const separator = headerLine.includes('\t') ? '\t' : ',';
+        
+        const header = headerLine.split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''));
         
         const transactions: Omit<Transaction, 'id'>[] = lines.map(line => {
-          const values = line.split(',');
+          const values = line.split(separator);
           const row = header.reduce((obj, h, i) => {
             obj[h] = values[i]?.trim().replace(/"/g, '');
             return obj;
           }, {} as Record<string, string>);
 
-          const date = new Date(row['date'] || row['purchase date']);
-          const amountString = row['income amount'] || row['amount'];
-          const amount = parseFloat(amountString?.replace('£', ''));
+          const dateString = row['date'] || row['purchase date'];
+          const date = new Date(dateString);
+          
+          const amountString = row['income amount'] || row['amount'] || row['income'];
+          const amount = parseFloat(amountString?.replace(/[^0-9.-]+/g, ''));
+          
           const description = row['description/invoice no.'] || row['income source'] || row['item'] || 'Imported Transaction';
 
-          if (isNaN(date.getTime()) || isNaN(amount)) {
+          if (isNaN(date.getTime()) || isNaN(amount) || !description) {
             console.warn("Skipping invalid row:", row);
             return null;
           }
@@ -141,7 +147,7 @@ export function DataImporter() {
         console.error("Import failed", error);
         toast({
           title: "Import Failed",
-          description: "Please check the file format and try again. Ensure it's a valid CSV.",
+          description: "Please check the file format and try again. Ensure it's a valid CSV or TSV file.",
           variant: "destructive",
         });
       } finally {
@@ -160,14 +166,14 @@ export function DataImporter() {
       <CardHeader>
         <CardTitle>Import Data</CardTitle>
         <CardDescription>
-          Import your income or expense data from a CSV file.
+          Import your income or expense data from a CSV or TSV file.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
             <h3 className="font-medium text-sm">File Format</h3>
             <p className="text-xs text-muted-foreground">
-                Ensure your CSV file has a header row. For expenses, expected headers are `Purchase Date`, `Item`, `Amount`, `Category`. For income, expected headers are `Date`, `Description/Invoice No.`, `Income Amount`. Variations are handled.
+                Ensure your file has a header row. For expenses, expected headers are `Purchase Date`, `Item`, `Amount`, `Category`. For income, expected headers are `Date`, `Description/Invoice No.`, `Income Amount`. Variations are handled.
             </p>
         </div>
         <RadioGroup
@@ -186,7 +192,7 @@ export function DataImporter() {
         </RadioGroup>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <Input type="file" accept=".csv" onChange={handleFileChange} className="max-w-xs" />
+          <Input type="file" accept=".csv,.tsv,.txt" onChange={handleFileChange} className="max-w-xs" />
           <Button onClick={handleImport} disabled={isLoading || !file}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
