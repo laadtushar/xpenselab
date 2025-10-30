@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users } from 'lucide-react';
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { SplitIcon } from '@/components/icons/split-icon';
 
 const navItems = [
@@ -18,6 +18,13 @@ const navItems = [
 
 export function DashboardNav() {
   const pathname = usePathname();
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -27,6 +34,7 @@ export function DashboardNav() {
             asChild
             isActive={href === '/dashboard' ? pathname === href : pathname.startsWith(href)}
             tooltip={{ children: label, side: 'right' }}
+            onClick={handleLinkClick}
           >
             <Link href={href}>
               <Icon />
