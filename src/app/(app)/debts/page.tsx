@@ -7,7 +7,7 @@ import { AddDebtDialog } from '@/components/debts/debt-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, or } from 'firebase/firestore';
 import type { Debt } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
@@ -28,18 +28,20 @@ export default function DebtsPage() {
 
   const settledDebtsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collection(firestore, 'debts'), where('settled', '==', true));
+    return query(
+      collection(firestore, 'debts'), 
+      where('settled', '==', true),
+      or(
+        where('fromUserId', '==', user.uid),
+        where('toUserId', '==', user.uid)
+      )
+    );
   }, [user, firestore]);
 
 
   const { data: debtsToUser, isLoading: isLoadingTo } = useCollection<Debt>(debtsOwedToUserQuery);
   const { data: debtsFromUser, isLoading: isLoadingFrom } = useCollection<Debt>(debtsOwedByUserQuery);
-  const { data: settledDebtsData, isLoading: isLoadingSettled } = useCollection<Debt>(settledDebtsQuery);
-  
-  const settledDebts = useMemo(() => {
-    if (!settledDebtsData || !user) return [];
-    return settledDebtsData.filter(d => d.fromUserId === user.uid || d.toUserId === user.uid);
-  }, [settledDebtsData, user]);
+  const { data: settledDebts, isLoading: isLoadingSettled } = useCollection<Debt>(settledDebtsQuery);
 
   const isLoading = isLoadingTo || isLoadingFrom || isLoadingSettled;
 
@@ -70,7 +72,7 @@ export default function DebtsPage() {
                            <DebtList debts={debtsFromUser || []} type="from" />
                         </TabsContent>
                          <TabsContent value="settled">
-                           <DebtList debts={settledDebts} type="settled" />
+                           <DebtList debts={settledDebts || []} type="settled" />
                         </TabsContent>
                     </>
                 )}
