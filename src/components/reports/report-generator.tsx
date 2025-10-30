@@ -66,7 +66,7 @@ export function ReportGenerator() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <Popover>
               <PopoverTrigger asChild>
                 <Button

@@ -7,14 +7,14 @@ type DashboardHeaderProps = {
 
 export function DashboardHeader({ title, children }: DashboardHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="md:hidden" />
         <h1 className="text-2xl font-bold font-headline tracking-tight sm:text-3xl">
           {title}
         </h1>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 justify-end">
         {children}
       </div>
     </div>
