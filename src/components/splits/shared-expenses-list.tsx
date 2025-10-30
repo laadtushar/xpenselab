@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { Loader2 } from 'lucide-read';
+import { Loader2 } from 'lucide-react';
 
 interface SharedExpensesListProps {
   group: Group;
