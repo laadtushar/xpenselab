@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider,
   signInWithRedirect,
   signInWithPopup,
+  getRedirectResult,
   UserCredential
 } from 'firebase/auth';
 
@@ -26,10 +27,16 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
 }
 
 /** Initiate Google sign-in via redirect. */
-export function initiateGoogleSignIn(authInstance: Auth): void {
+export function initiateGoogleSignInWithRedirect(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
-  signInWithRedirect(authInstance, provider);
+  return signInWithRedirect(authInstance, provider);
 }
+
+/** Handle the result of a Google sign-in redirect. */
+export function getGoogleRedirectResult(authInstance: Auth): Promise<UserCredential | null> {
+    return getRedirectResult(authInstance);
+}
+
 
 /** Initiate Google sign-in via popup. Returns a promise with the UserCredential. */
 export function signInWithGooglePopup(authInstance: Auth): Promise<UserCredential> {

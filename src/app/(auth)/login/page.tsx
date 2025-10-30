@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
-import { signInWithGooglePopup } from '@/firebase/non-blocking-login';
+import { initiateGoogleSignInWithRedirect, getGoogleRedirectResult } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -15,15 +15,41 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // If the user is loaded and exists, redirect to the dashboard.
-    // This is the primary navigation for an authenticated user.
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
+    // This effect runs once on page load to handle the redirect result.
+    const processRedirect = async () => {
+      if (auth) {
+        try {
+          const result = await getGoogleRedirectResult(auth);
+          // If result is not null, a sign-in was successful.
+          // The onAuthStateChanged listener will handle the user object update.
+        } catch (error: any) {
+          if (error.code !== 'auth/popup-closed-by-user') {
+            console.error('Google sign-in redirect error:', error);
+            toast({
+              title: 'Sign-In Failed',
+              description: error.message || 'An unexpected error occurred during sign-in.',
+              variant: 'destructive',
+            });
+          }
+        }
+      }
+      setIsProcessingRedirect(false); // Finished processing redirect
+    };
+    processRedirect();
+  }, [auth, toast]);
+
+  useEffect(() => {
+    // This effect handles navigation *after* auth state is resolved.
+    if (!isUserLoading && !isProcessingRedirect) {
+      if (user) {
+        router.push('/dashboard');
+      }
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, isProcessingRedirect, router]);
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
@@ -34,29 +60,12 @@ export default function LoginPage() {
       });
       return;
     }
-
     setIsSigningIn(true);
-    try {
-      await signInWithGooglePopup(auth);
-      // On successful sign-in, the `useEffect` above will trigger the redirect
-      // once the `user` object becomes available.
-    } catch (error: any) {
-      // Don't show an error toast if the user intentionally closed the popup.
-      if (error.code !== 'auth/popup-closed-by-user') {
-        console.error('Google sign-in error:', error);
-        toast({
-          title: 'Sign-In Failed',
-          description: error.message || 'An unexpected error occurred during sign-in.',
-          variant: 'destructive',
-        });
-      }
-    } finally {
-      setIsSigningIn(false);
-    }
+    await initiateGoogleSignInWithRedirect(auth); // Use redirect
   };
 
-  // While checking the initial auth state or if a user is found (and we are about to redirect).
-  if (isUserLoading || user) {
+  // Show a loading screen while checking auth state or processing the redirect.
+  if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -66,6 +75,16 @@ export default function LoginPage() {
   }
 
   // Only render the login form if we are done loading and there is no user.
+  if (user) {
+    // If a user is found, the effect above will redirect. Return a loader in the meantime.
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="ml-2">Redirecting to dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
@@ -81,7 +100,7 @@ export default function LoginPage() {
             {isSigningIn ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Please wait...
+                Redirecting...
               </>
             ) : (
               <>
