@@ -1,0 +1,35 @@
+"use client";
+
+import { DashboardHeader } from "@/components/shared/dashboard-header";
+import { StatsCards } from "@/components/shared/stats-cards";
+import { OverviewChart } from "@/components/dashboard/overview-chart";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
+
+export default function DashboardPage() {
+  return (
+    <div className="flex flex-col gap-8">
+      <DashboardHeader title="Dashboard">
+        <Link href="/expenses" passHref>
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
+        </Link>
+      </DashboardHeader>
+      
+      <StatsCards />
+      
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <OverviewChart />
+        </div>
+        <div className="lg:col-span-1">
+          <RecentTransactions />
+        </div>
+      </div>
+    </div>
+  );
+}
