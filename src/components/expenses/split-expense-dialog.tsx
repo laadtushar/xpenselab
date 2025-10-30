@@ -56,6 +56,26 @@ interface SplitExpenseDialogProps {
   expense: Expense;
 }
 
+const StepperFooter = () => {
+    const { activeStep, isLastStep, isOptionalStep, isDisabledStep, nextStep, prevStep } = useStepper();
+    
+    return (
+      <div className="flex items-center justify-end gap-2 mt-auto pt-4">
+        {activeStep > 0 && !isLastStep && (
+            <Button onClick={prevStep} size="sm" variant="secondary">
+            Go Back
+            </Button>
+        )}
+        {!isLastStep && (
+            <Button onClick={nextStep} size="sm" disabled={isDisabledStep}>
+                Next
+            </Button>
+        )}
+      </div>
+    );
+};
+
+
 export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
@@ -170,114 +190,97 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-grow flex flex-col">
-        <Stepper initialStep={0} steps={[{label: "Group"}, {label: "Splits"}]}>
-            <Step label="Select Group">
-                <div className="flex flex-col gap-4 my-4">
-                    <p className="text-sm text-muted-foreground">Select the group you want to split this expense with.</p>
-                     <FormField
-                        control={form.control}
-                        name="groupId"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Group</FormLabel>
-                            <Select onValueChange={(value) => { field.onChange(value); handleGroupSelect(value); }} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select a group" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {groups?.map(group => (
-                                <SelectItem key={group.id} value={group.id}>
-                                    {group.name}
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </div>
-            </Step>
-            <Step label="Define Splits">
-                <ScrollArea className="flex-grow my-4" style={{maxHeight: 'calc(90vh - 300px)'}}>
-                <div className="pr-6 space-y-4">
-                     <div>
-                        <div className="flex justify-between items-center mb-2">
-                        <FormLabel>Split Between</FormLabel>
-                        <Button type="button" variant="link" size="sm" onClick={handleEqualSplit}>Split Equally</Button>
-                        </div>
-                        <div className="space-y-2">
-                        {fields.map((field, index) => (
-                            <div key={field.id} className="flex items-center gap-3">
-                                <FormField
-                                    control={form.control}
-                                    name={`splits.${index}.isIncluded`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Checkbox
-                                                    checked={field.value}
-                                                    onCheckedChange={field.onChange}
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormLabel className="flex-1 text-sm font-normal">{getMemberName(form.getValues(`splits.${index}.userId`))}</FormLabel>
-                                <FormField
-                                    control={form.control}
-                                    name={`splits.${index}.amount`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                step="0.01" 
-                                                className="w-24 h-8" {...field} 
-                                                disabled={!form.getValues(`splits.${index}.isIncluded`)}
-                                            />
-                                        </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        ))}
-                        </div>
-                         <FormMessage>{form.formState.errors.splits?.message}</FormMessage>
-                    </div>
-                </div>
-                </ScrollArea>
-                 <div className="pt-4 mt-auto">
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Split Expense
-                    </Button>
-                </div>
-            </Step>
-            <StepperFooter />
-        </form>
+              <Stepper initialStep={0} steps={[{label: "Group"}, {label: "Splits"}]}>
+                  <Step label="Select Group">
+                      <div className="flex flex-col gap-4 my-4">
+                          <p className="text-sm text-muted-foreground">Select the group you want to split this expense with.</p>
+                           <FormField
+                              control={form.control}
+                              name="groupId"
+                              render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Group</FormLabel>
+                                  <Select onValueChange={(value) => { field.onChange(value); handleGroupSelect(value); }} value={field.value}>
+                                  <FormControl>
+                                      <SelectTrigger>
+                                      <SelectValue placeholder="Select a group" />
+                                      </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      {groups?.map(group => (
+                                      <SelectItem key={group.id} value={group.id}>
+                                          {group.name}
+                                      </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                              </FormItem>
+                              )}
+                          />
+                      </div>
+                  </Step>
+                  <Step label="Define Splits">
+                      <ScrollArea className="flex-grow my-4" style={{maxHeight: 'calc(90vh - 300px)'}}>
+                      <div className="pr-6 space-y-4">
+                           <div>
+                              <div className="flex justify-between items-center mb-2">
+                              <FormLabel>Split Between</FormLabel>
+                              <Button type="button" variant="link" size="sm" onClick={handleEqualSplit}>Split Equally</Button>
+                              </div>
+                              <div className="space-y-2">
+                              {fields.map((field, index) => (
+                                  <div key={field.id} className="flex items-center gap-3">
+                                      <FormField
+                                          control={form.control}
+                                          name={`splits.${index}.isIncluded`}
+                                          render={({ field }) => (
+                                              <FormItem>
+                                                  <FormControl>
+                                                      <Checkbox
+                                                          checked={field.value}
+                                                          onCheckedChange={field.onChange}
+                                                      />
+                                                  </FormControl>
+                                              </FormItem>
+                                          )}
+                                      />
+                                      <FormLabel className="flex-1 text-sm font-normal">{getMemberName(form.getValues(`splits.${index}.userId`))}</FormLabel>
+                                      <FormField
+                                          control={form.control}
+                                          name={`splits.${index}.amount`}
+                                          render={({ field }) => (
+                                              <FormItem>
+                                              <FormControl>
+                                                  <Input 
+                                                      type="number" 
+                                                      step="0.01" 
+                                                      className="w-24 h-8" {...field} 
+                                                      disabled={!form.getValues(`splits.${index}.isIncluded`)}
+                                                  />
+                                              </FormControl>
+                                              </FormItem>
+                                          )}
+                                      />
+                                  </div>
+                              ))}
+                              </div>
+                               <FormMessage>{form.formState.errors.splits?.message}</FormMessage>
+                          </div>
+                      </div>
+                      </ScrollArea>
+                       <div className="pt-4 mt-auto">
+                          <Button type="submit" disabled={form.formState.isSubmitting}>
+                          {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Split Expense
+                          </Button>
+                      </div>
+                  </Step>
+              </Stepper>
+              <StepperFooter />
+          </form>
         </Form>
       </DialogContent>
     </Dialog>
   );
 }
-
-const StepperFooter = () => {
-    const { activeStep, isLastStep, isOptionalStep, isDisabledStep, nextStep, prevStep } = useStepper();
-    return (
-        <div className="flex items-center justify-end gap-2 mt-4">
-        {activeStep > 0 && (
-            <Button onClick={prevStep} size="sm" variant="secondary">
-            Go Back
-            </Button>
-        )}
-        {!isLastStep && (
-            <Button onClick={nextStep} size="sm">
-            Next
-            </Button>
-        )}
-        </div>
-    );
-};
