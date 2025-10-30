@@ -2,15 +2,10 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Represents a user of the FinanceFlow application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
         "email": {
           "type": "string",
           "description": "User's email address.",
@@ -23,21 +18,15 @@
         }
       },
       "required": [
-        "id",
         "email",
         "createdAt"
       ]
     },
     "Income": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Income",
       "type": "object",
       "description": "Represents a single income entry for a user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Income entity."
-        },
         "userId": {
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Income)"
@@ -61,7 +50,6 @@
         }
       },
       "required": [
-        "id",
         "userId",
         "amount",
         "date",
@@ -69,15 +57,10 @@
       ]
     },
     "Expense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
       "description": "Represents a single expense entry for a user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Expense entity."
-        },
         "userId": {
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Expense)"
@@ -90,9 +73,9 @@
           "type": "string",
           "description": "Description of the expense."
         },
-        "categoryId": {
+        "category": {
           "type": "string",
-          "description": "Reference to Category. (Relationship: Category 1:N Expense)"
+          "description": "The category of the expense."
         },
         "date": {
           "type": "string",
@@ -101,22 +84,16 @@
         }
       },
       "required": [
-        "id",
         "userId",
         "amount",
         "date"
       ]
     },
     "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
       "description": "Represents a user-defined category for transactions.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this category."
@@ -139,7 +116,6 @@
         }
       },
       "required": [
-        "id",
         "userId",
         "name",
         "icon",
@@ -147,15 +123,10 @@
       ]
     },
     "Budget": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Budget",
       "type": "object",
       "description": "Represents a user's budget for a specific category and time period.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Budget entity."
-        },
         "userId": {
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Budget)"
@@ -170,22 +141,16 @@
         }
       },
       "required": [
-        "id",
         "userId",
         "amount",
         "month"
       ]
     },
     "Group": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Group",
       "type": "object",
       "description": "Represents a group of users for splitting expenses.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Group."
-        },
         "name": {
           "type": "string",
           "description": "Name of the group."
@@ -225,7 +190,6 @@
         }
       },
       "required": [
-        "id",
         "name",
         "members",
         "createdBy",
@@ -233,15 +197,10 @@
       ]
     },
     "SharedExpense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Shared Expense",
       "type": "object",
       "description": "Represents an expense shared among users in a group.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Shared Expense."
-        },
         "groupId": {
           "type": "string",
           "description": "Reference to the Group this expense belongs to."
@@ -284,7 +243,6 @@
         }
       },
       "required": [
-        "id",
         "groupId",
         "description",
         "amount",
@@ -294,15 +252,10 @@
       ]
     },
     "Debt": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Debt",
       "type": "object",
       "description": "Represents a debt between two users.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Debt."
-        },
         "fromUserId": {
           "type": "string",
           "description": "User ID of the user who owes money."
@@ -322,14 +275,18 @@
         "settled": {
           "type": "boolean",
           "description": "Whether the debt has been settled."
+        },
+        "createdBy": {
+            "type": "string",
+            "description": "The user ID of the user who created the debt record."
         }
       },
       "required": [
-        "id",
         "fromUserId",
         "toUserId",
         "amount",
-        "description"
+        "description",
+        "createdBy"
       ]
     }
   },
