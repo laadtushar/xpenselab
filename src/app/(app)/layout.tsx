@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { DashboardNav } from '@/components/dashboard-nav';
@@ -14,12 +14,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
+    if (!isUserLoading) {
+        if (!user) {
+            router.push('/login');
+        } else if (pathname === '/login' || pathname === '/') {
+            router.push('/dashboard');
+        }
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, pathname]);
 
   const handleSignOut = () => {
     if (auth) {
@@ -27,16 +32,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p>Loading...</p>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

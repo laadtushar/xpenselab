@@ -1,19 +1,45 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
 import { initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
+import { getRedirectResult } from 'firebase/auth';
 
 export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
   useEffect(() => {
+    // This effect runs once on page load to check for a redirect result from Google
+    if (auth) {
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result && result.user) {
+            // User has just signed in via redirect.
+            // The onAuthStateChanged listener will handle the user object update.
+            // We just need to wait for isUserLoading to become false.
+          }
+        })
+        .catch((error) => {
+          console.error("Error processing redirect result:", error);
+        })
+        .finally(() => {
+          setIsProcessingRedirect(false);
+        });
+    } else {
+        setIsProcessingRedirect(false);
+    }
+  }, [auth]);
+
+
+  useEffect(() => {
+    // This effect handles redirection once auth state is confirmed
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }
@@ -24,6 +50,14 @@ export default function LoginPage() {
       initiateGoogleSignIn(auth);
     }
   };
+  
+  if (isUserLoading || isProcessingRedirect || user) {
+    return (
+       <div className="flex h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
