@@ -35,6 +35,7 @@ function normalizeCategory(category: string): string {
     'healthcare': 'Healthcare',
     'education': 'Education',
     'personal care': 'Personal Care',
+    'transport': 'Transportation',
   };
 
   const found = Object.keys(mapping).find(key => key === lowerCaseCategory);
@@ -84,12 +85,13 @@ export function DataImporter() {
           throw new Error("File is empty or has no header.");
         }
         
-        // Detect separator (comma or tab)
         const separator = headerLine.includes('\t') ? '\t' : ',';
         
         const header = headerLine.split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''));
         
-        const transactions: Omit<Transaction, 'id'>[] = lines.map(line => {
+        const transactions: Omit<Transaction, 'id'>[] = lines.map((line, index) => {
+          if (!line.trim()) return null;
+
           const values = line.split(separator);
           const row = header.reduce((obj, h, i) => {
             obj[h] = values[i]?.trim().replace(/"/g, '');
@@ -104,8 +106,8 @@ export function DataImporter() {
           
           const description = row['description/invoice no.'] || row['income source'] || row['item'] || 'Imported Transaction';
 
-          if (isNaN(date.getTime()) || isNaN(amount) || !description) {
-            console.warn("Skipping invalid row:", row);
+          if (isNaN(date.getTime()) || !amountString || isNaN(amount) || !description.trim()) {
+            console.warn(`Skipping invalid row ${index + 2}:`, line);
             return null;
           }
 
