@@ -307,49 +307,49 @@
         "description": "Stores user profile data."
       },
       {
-        "path": "/users/{userId}/incomes/{incomeId}",
+        "path": "/users/{userId}/incomes",
         "schema": {
           "$ref": "#/entities/Income"
         },
         "description": "Stores income entries for a specific user."
       },
       {
-        "path": "/users/{userId}/expenses/{expenseId}",
+        "path": "/users/{userId}/expenses",
         "schema": {
           "$ref": "#/entities/Expense"
         },
         "description": "Stores expense entries for a specific user."
       },
       {
-        "path": "/users/{userId}/categories/{categoryId}",
+        "path": "/users/{userId}/categories",
         "schema": {
           "$ref": "#/entities/Category"
         },
         "description": "Stores user-specific expense categories."
       },
       {
-        "path": "/users/{userId}/budgets/{budgetId}",
+        "path": "/users/{userId}/budgets",
         "schema": {
           "$ref": "#/entities/Budget"
         },
         "description": "Stores budget entries for a specific user."
       },
       {
-        "path": "/groups/{groupId}",
+        "path": "/groups",
         "schema": {
           "$ref": "#/entities/Group"
         },
         "description": "Stores group information, including members."
       },
       {
-        "path": "/groups/{groupId}/sharedExpenses/{sharedExpenseId}",
+        "path": "/groups/{groupId}/sharedExpenses",
         "schema": {
           "$ref": "#/entities/SharedExpense"
         },
         "description": "Stores shared expenses for a group."
       },
       {
-        "path": "/debts/{debtId}",
+        "path": "/debts",
         "schema": {
           "$ref": "#/entities/Debt"
         },
