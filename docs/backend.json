@@ -286,7 +286,8 @@
         "toUserId",
         "amount",
         "description",
-        "createdBy"
+        "createdBy",
+        "settled"
       ]
     }
   },

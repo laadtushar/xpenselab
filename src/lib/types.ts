@@ -56,7 +56,9 @@ export type Debt = {
   fromUserId: string;
   toUserId: string;
   amount: number;
-  groupId: string;
+  description: string;
+  settled: boolean;
+  createdBy: string;
 };
 
 export type MemberBalance = {
