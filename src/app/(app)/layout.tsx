@@ -6,18 +6,42 @@ import { Logo } from '@/components/logo';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon, LogOut } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { FinancialProvider } from '@/context/financial-context';
 import { Button } from '@/components/ui/button';
+import { doc, setDoc } from 'firebase/firestore';
+import type { User as UserData } from '@/lib/types';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: userDoc, isLoading: isUserDocLoading } = useDoc<UserData>(userDocRef);
+
   useEffect(() => {
-    if (!isUserLoading) {
+    // This effect handles creating a user document in Firestore the first time they log in.
+    if (user && !isUserDocLoading && !userDoc) {
+      const newUserDoc: Omit<UserData, 'id'> = {
+        email: user.email!,
+        createdAt: new Date().toISOString(),
+      };
+      // Use non-blocking write. No need to await.
+      setDoc(userDocRef!, newUserDoc);
+    }
+  }, [user, userDoc, isUserDocLoading, userDocRef]);
+
+
+  useEffect(() => {
+    // This effect handles routing based on auth state.
+    if (!isUserLoading) { // Only run routing logic once the initial auth check is complete.
         if (!user) {
             router.push('/login');
         } else if (pathname === '/login' || pathname === '/') {
@@ -32,12 +56,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (isUserLoading || !user) {
+  // Show a loading screen while auth state is being determined.
+  if (isUserLoading || (user && isUserDocLoading)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p>Loading...</p>
       </div>
     );
+  }
+
+  // If there's no user after loading, this layout shouldn't render anything,
+  // as the useEffect above will have already started the redirect to /login.
+  if (!user) {
+    return null;
   }
 
   return (
