@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 const formSchema = z.object({
@@ -60,6 +60,8 @@ export function AddDebtDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: '',
+      amount: undefined,
+      otherPartyEmail: '',
     },
   });
 
