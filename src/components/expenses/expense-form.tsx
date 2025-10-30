@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,6 +27,7 @@ import { useFinancials } from "@/context/financial-context";
 import { expenseCategories, ExpenseCategory } from "@/lib/types";
 import { categorizeExpense } from "@/ai/flows/categorize-expenses";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const formSchema = z.object({
   description: z.string().min(1, "Description is required."),
@@ -50,27 +52,32 @@ export function ExpenseForm() {
     },
   });
 
-  const handleDescriptionBlur = async () => {
-    const description = form.getValues("description");
-    if (description && !form.getValues("category")) {
-      setIsCategorizing(true);
-      try {
-        const result = await categorizeExpense({ description });
-        if (result.category && expenseCategories.includes(result.category as ExpenseCategory)) {
-          form.setValue("category", result.category, { shouldValidate: true });
+  const descriptionValue = form.watch("description");
+  const debouncedDescription = useDebounce(descriptionValue, 500);
+
+  useEffect(() => {
+    const autoCategorize = async () => {
+      if (debouncedDescription && debouncedDescription.length >= 3 && !form.getValues("category")) {
+        setIsCategorizing(true);
+        try {
+          const result = await categorizeExpense({ description: debouncedDescription });
+          if (result.category && expenseCategories.includes(result.category as ExpenseCategory)) {
+            form.setValue("category", result.category, { shouldValidate: true });
+          }
+        } catch (error) {
+          console.error("AI categorization failed:", error);
+          toast({
+            title: "AI Categorization Failed",
+            description: "Could not automatically categorize the expense.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsCategorizing(false);
         }
-      } catch (error) {
-        console.error("AI categorization failed:", error);
-        toast({
-          title: "AI Categorization Failed",
-          description: "Could not automatically categorize the expense.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsCategorizing(false);
       }
-    }
-  };
+    };
+    autoCategorize();
+  }, [debouncedDescription, form, toast]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addTransaction({
@@ -110,7 +117,7 @@ export function ExpenseForm() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Weekly groceries" {...field} onBlur={handleDescriptionBlur} />
+                    <Input placeholder="e.g., Weekly groceries" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
