@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -11,8 +12,16 @@ import { Loader2, Upload } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Transaction, expenseCategories, ExpenseCategory } from "@/lib/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 type ImportType = 'income' | 'expense';
+
+type Log = {
+  successful: number;
+  failed: number;
+  errors: { row: any; reason: string; rowIndex: number }[];
+};
 
 function normalizeCategory(category: string): string {
   if (!category) return 'Other';
@@ -77,12 +86,14 @@ export function DataImporter() {
   const [file, setFile] = useState<File | null>(null);
   const [importType, setImportType] = useState<ImportType>('expense');
   const [isLoading, setIsLoading] = useState(false);
+  const [logs, setLogs] = useState<Log | null>(null);
   const { addTransactions } = useFinancials();
   const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setFile(event.target.files[0]);
+      setLogs(null);
     }
   };
 
@@ -97,9 +108,12 @@ export function DataImporter() {
     }
 
     setIsLoading(true);
+    setLogs(null);
     const reader = new FileReader();
     reader.onload = async (e) => {
       const data = e.target?.result;
+      const importLogs: Log = { successful: 0, failed: 0, errors: [] };
+
       try {
         const workbook = XLSX.read(data, {
           type: 'binary',
@@ -108,28 +122,32 @@ export function DataImporter() {
         });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
 
         if (json.length < 2) {
           throw new Error("File is empty or has no data.");
         }
-
-        const header: string[] = json[0].map(h => String(h).trim().toLowerCase());
+        
+        const header: string[] = json[0].map((h: any) => String(h || '').trim().toLowerCase());
         const dataRows = json.slice(1);
 
         const transactions: Omit<Transaction, 'id'>[] = dataRows.map((rowArray: any[], index) => {
-          if (!Array.isArray(rowArray) || rowArray.length === 0 || rowArray.every(cell => cell === null || cell === '')) {
-            return null;
+          const rowIndex = index + 2;
+
+          if (!Array.isArray(rowArray) || rowArray.every(cell => cell === null || cell === '')) {
+             importLogs.errors.push({ row: rowArray, reason: 'Empty row', rowIndex });
+             importLogs.failed++;
+             return null;
           }
           
           const row = header.reduce((obj, h, i) => {
-              if (rowArray[i] !== undefined) {
+              if (rowArray[i] !== null) {
                   obj[h] = rowArray[i];
               }
               return obj;
           }, {} as Record<string, any>);
 
-          const dateString = row['purchase date'] || row['date'];
+          const dateString = row['purchase date'] || row['date'] || row['timestamp'];
           let date;
 
           if (typeof dateString === 'number') { // Excel date serial number
@@ -139,9 +157,10 @@ export function DataImporter() {
           } else if (typeof dateString === 'string') {
             date = new Date(dateString);
           }
-
+          
           if (!date || isNaN(date.getTime())) {
-            console.warn(`Skipping row ${index + 2} due to invalid date:`, row);
+            importLogs.errors.push({ row, reason: `Invalid or missing date: ${dateString}`, rowIndex });
+            importLogs.failed++;
             return null;
           }
           
@@ -151,9 +170,12 @@ export function DataImporter() {
           const description = row['item'] || row['description/invoice no.'] || row['income source'] || 'Imported Transaction';
 
           if (isNaN(amount) || !description || String(description).trim() === '') {
-            console.warn(`Skipping invalid row ${index + 2}:`, row);
+            importLogs.errors.push({ row, reason: `Missing or invalid amount/description. Amount: ${amountString}, Desc: ${description}`, rowIndex });
+            importLogs.failed++;
             return null;
           }
+          
+          importLogs.successful++;
 
           if (importType === 'income') {
             return {
@@ -189,17 +211,17 @@ export function DataImporter() {
           });
         }
 
-      } catch (error) {
+      } catch (error: any) {
         console.error("Import failed", error);
         toast({
           title: "Import Failed",
-          description: "Please check the file format and try again. Ensure it's a valid CSV, TSV or XLSX file.",
+          description: error.message || "Please check the file format and try again.",
           variant: "destructive",
         });
       } finally {
         setIsLoading(false);
+        setLogs(importLogs);
         setFile(null);
-        // Reset file input
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         if(fileInput) fileInput.value = "";
       }
@@ -219,7 +241,7 @@ export function DataImporter() {
         <div className="space-y-2">
             <h3 className="font-medium text-sm">File Format</h3>
             <p className="text-xs text-muted-foreground">
-                Ensure your file has a header row. For expenses, expected headers are `Purchase Date`, `Item`, `Amount`, `Category`. For income, expected headers are `Date`, `Income Source` or `Description/Invoice No.`, and `Income Amount`. Variations are handled.
+                Ensure your file has a header row. For expenses, expected headers are `Purchase Date` or `Date`, `Item` or `Description/Invoice No.`, `Amount`, and `Category`. For income, expected headers are `Date`, `Income Source` or `Description/Invoice No.`, and `Income Amount` or `Income`. Variations are handled. Dates can be in formats like `m/d/yyyy` or parsable strings.
             </p>
         </div>
         <RadioGroup
@@ -238,7 +260,7 @@ export function DataImporter() {
         </RadioGroup>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <Input type="file" accept=".csv,.tsv,.txt,.xlsx" onChange={handleFileChange} className="max-w-xs" />
+          <Input type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={handleFileChange} className="max-w-xs" />
           <Button onClick={handleImport} disabled={isLoading || !file}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -249,7 +271,45 @@ export function DataImporter() {
           </Button>
         </div>
         
+        {logs && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Import Log</CardTitle>
+              <CardDescription>
+                Successfully imported {logs.successful} rows. Failed to import {logs.failed} rows.
+              </CardDescription>
+            </CardHeader>
+            {logs.failed > 0 && (
+              <CardContent>
+                <h3 className="font-semibold mb-2">Rows with Errors</h3>
+                <div className="max-h-60 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Row #</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Row Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logs.errors.map((error, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{error.rowIndex}</TableCell>
+                          <TableCell>
+                            <Badge variant="destructive">{error.reason}</Badge>
+                          </TableCell>
+                          <TableCell className="text-xs font-mono">{JSON.stringify(error.row)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
       </CardContent>
     </Card>
   );
-}
+
+    
