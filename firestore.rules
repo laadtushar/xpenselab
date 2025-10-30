@@ -16,7 +16,7 @@
  * - /debts/{debtId}: Stores debt information between users.
  *
  * Key Security Decisions:
- * - Users cannot list all users (the /users collection itself). This prevents information harvesting.
+ * - Users can query other users by email (limited to 10 results) for debt/group features.
  * - All user-related data is nested under /users/{userId}, enforcing ownership.
  * - Group membership is stored directly on the /groups/{groupId} document for efficient access control.
  *
@@ -28,15 +28,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects the /users collection, allowing only document creation with matching userId. Listing all users is denied.
+     * @description Protects the /users collection, allowing authenticated users to query by email (for debt relationships).
      * @path /databases/{database}/documents/users/{userId}
+     * @allow (get) Any authenticated user can read user profiles (needed for debt relationships).
+     * @allow (list) Authenticated users can query users (limited to 10 results to prevent abuse).
      * @allow (create) User with matching UID can create their own document.
-     * @deny (get, list, update, delete) Any operation other than creating own document.
-     * @principle Enforces user-based authorization
+     * @allow (update) User with matching UID can update their own document.
+     * @allow (delete) User with matching UID can delete their own document.
+     * @principle Enforces user-based authorization with controlled read access
      */
     match /users/{userId} {
-      allow get: if false;
-      allow list: if false; // Prevent listing all users.
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && request.query.limit <= 10;
       allow create: if isSignedIn() && isOwner(userId);
       allow update: if isSignedIn() && isOwner(userId);
       allow delete: if isSignedIn() && isExistingOwner(userId);

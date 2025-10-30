@@ -16,13 +16,11 @@ interface DebtListProps {
   type: 'to' | 'from' | 'settled';
 }
 
-// In a real app, you would fetch user profiles to get names.
-// For this demo, we'll just show the user ID.
 const getParties = (debt: Debt, currentUserId: string) => {
     if (debt.fromUserId === currentUserId) {
-        return { from: "You", to: `user...${debt.toUserId.slice(-4)}`};
+        return { from: debt.fromUserName || "You", to: debt.toUserName || `virtual user`};
     } else {
-        return { from: `user...${debt.fromUserId.slice(-4)}`, to: "You"};
+        return { from: debt.fromUserName || `virtual user`, to: debt.toUserName || "You"};
     }
 }
 
@@ -69,6 +67,7 @@ export function DebtList({ debts, type }: DebtListProps) {
           <TableHead>Description</TableHead>
           {type === 'settled' && <TableHead>From</TableHead>}
           {type === 'settled' && <TableHead>To</TableHead>}
+          <TableHead>Owed {type === 'from' ? 'To' : 'By'}</TableHead>
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="text-center">Status</TableHead>
           {type !== 'settled' && <TableHead><span className="sr-only">Actions</span></TableHead>}
@@ -77,11 +76,13 @@ export function DebtList({ debts, type }: DebtListProps) {
       <TableBody>
         {debts.map(debt => {
           const parties = getParties(debt, user!.uid);
+          const otherPartyName = debt.fromUserId === user!.uid ? debt.toUserName : debt.fromUserName;
           return (
             <TableRow key={debt.id}>
               <TableCell className="font-medium">{debt.description}</TableCell>
               {type === 'settled' && <TableCell>{parties.from}</TableCell>}
               {type === 'settled' && <TableCell>{parties.to}</TableCell>}
+              <TableCell>{otherPartyName}</TableCell>
               <TableCell className="text-right">{formatCurrency(debt.amount)}</TableCell>
               <TableCell className="text-center">
                 <Badge variant={debt.settled ? 'secondary' : 'destructive'}>

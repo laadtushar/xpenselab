@@ -53,12 +53,14 @@ export type SharedExpense = {
 
 export type Debt = {
   id: string;
-  fromUserId: string;
-  toUserId: string;
+  fromUserId: string; // Can be a real UID or a virtual ID
+  toUserId: string; // Can be a real UID or a virtual ID
+  fromUserName?: string;
+  toUserName?: string;
   amount: number;
   description: string;
   settled: boolean;
-  createdBy: string;
+  createdBy: string; // The real UID of the user who created the record
 };
 
 export type MemberBalance = {

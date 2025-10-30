@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, addDocumentNonBlocking, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, getDocs, type Firestore } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,36 +31,12 @@ import { Loader2, UserPlus } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 const formSchema = z.object({
+  otherPartyName: z.string().min(1, 'Please enter a name.'),
   otherPartyEmail: z.string().email('Please enter a valid email.'),
   amount: z.coerce.number().positive('Amount must be positive.'),
   description: z.string().min(1, 'Description is required.'),
   direction: z.enum(['iOwe', 'theyOwe'], { required_error: 'You must select who owes whom.'}),
 });
-
-// A function to find a user by email, now with proper error handling.
-const findUserByEmail = async (firestore: Firestore, email: string) => {
-    const q = query(collection(firestore, 'users'), where('email', '==', email));
-    try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const userDoc = querySnapshot.docs[0];
-            return { id: userDoc.id, ...userDoc.data() };
-        }
-        return null;
-    } catch (e: any) {
-        // This is likely a permission error on the 'users' collection query.
-        // We throw a specific, rich error to be caught by the development overlay.
-        if (e.code === 'permission-denied') {
-            throw new FirestorePermissionError({
-                path: 'users',
-                operation: 'list',
-            });
-        }
-        // Re-throw other errors
-        throw e;
-    }
-}
-
 
 export function AddDebtDialog() {
   const [open, setOpen] = useState(false);
@@ -73,6 +49,7 @@ export function AddDebtDialog() {
     defaultValues: {
       description: '',
       amount: '' as unknown as number,
+      otherPartyName: '',
       otherPartyEmail: '',
       direction: undefined,
     },
@@ -90,43 +67,22 @@ export function AddDebtDialog() {
         return;
     }
     
-    let otherUser;
-    try {
-      otherUser = await findUserByEmail(firestore, values.otherPartyEmail);
-    } catch (error) {
-      // If our custom error was thrown, re-throw it to the overlay.
-      if (error instanceof FirestorePermissionError) {
-        throw error;
-      }
-      // Handle other unexpected errors from findUserByEmail
-      console.error("An unexpected error occurred while finding the user:", error);
-      toast({
-          title: "Error",
-          description: "An unexpected error occurred while searching for the user.",
-          variant: "destructive",
-      });
-      return;
-    }
+    // Virtual user ID based on email
+    const otherPartyVirtualId = `virtual_${values.otherPartyEmail.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
+    const fromUserId = values.direction === 'iOwe' ? user.uid : otherPartyVirtualId;
+    const toUserId = values.direction === 'iOwe' ? otherPartyVirtualId : user.uid;
 
-    if (!otherUser) {
-        toast({
-            title: "User not found",
-            description: `No user found with email ${values.otherPartyEmail}. Please make sure they have signed up.`,
-            variant: "destructive"
-        });
-        form.control.setError('otherPartyEmail', { message: 'User not found.' });
-        return;
-    }
-
-    const fromUserId = values.direction === 'iOwe' ? user.uid : otherUser.id;
-    const toUserId = values.direction === 'iOwe' ? otherUser.id : user.uid;
+    const fromUserName = values.direction === 'iOwe' ? user.displayName || user.email : values.otherPartyName;
+    const toUserName = values.direction === 'iOwe' ? values.otherPartyName : user.displayName || user.email;
 
     try {
       const debtsCol = collection(firestore, 'debts');
       addDocumentNonBlocking(debtsCol, {
         fromUserId,
         toUserId,
+        fromUserName,
+        toUserName,
         amount: values.amount,
         description: values.description,
         settled: false,
@@ -137,12 +93,10 @@ export function AddDebtDialog() {
         title: 'Debt Recorded',
         description: 'The debt has been successfully recorded.',
       });
-      form.reset({ description: '', amount: '' as unknown as number, otherPartyEmail: '' });
+      form.reset({ description: '', amount: '' as unknown as number, otherPartyName: '', otherPartyEmail: '' });
       setOpen(false);
     } catch (error) {
       console.error('Error adding debt:', error);
-      // This catch is for addDocumentNonBlocking, which handles its own permission errors.
-      // This is for other potential issues.
       toast({
         title: 'Error',
         description: 'Failed to record the debt.',
@@ -197,6 +151,20 @@ export function AddDebtDialog() {
                     <FormMessage />
                     </FormItem>
                 )}
+            />
+
+            <FormField
+              control={form.control}
+              name="otherPartyName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Their Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Jane Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField

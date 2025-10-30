@@ -258,11 +258,19 @@
       "properties": {
         "fromUserId": {
           "type": "string",
-          "description": "User ID of the user who owes money."
+          "description": "User ID of the user who owes money. Can be virtual."
         },
         "toUserId": {
           "type": "string",
-          "description": "User ID of the user who is owed money."
+          "description": "User ID of the user who is owed money. Can be virtual."
+        },
+        "fromUserName": {
+            "type": "string",
+            "description": "Name of the user who owes money."
+        },
+        "toUserName": {
+            "type": "string",
+            "description": "Name of the user who is owed money."
         },
         "amount": {
           "type": "number",
@@ -278,7 +286,7 @@
         },
         "createdBy": {
             "type": "string",
-            "description": "The user ID of the user who created the debt record."
+            "description": "The real user ID of the user who created the debt record."
         }
       },
       "required": [
