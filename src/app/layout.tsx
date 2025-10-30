@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { FinancialProvider } from '@/context/financial-context';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
+import { FirebaseClientProvider } from '@/firebase';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -19,9 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased ${inter.variable}`}>
-        <FinancialProvider>
+        <FirebaseClientProvider>
           {children}
-        </FinancialProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
