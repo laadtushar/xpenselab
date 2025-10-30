@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth, useUser, initiateGoogleSignIn } from '@/firebase';
+import { useAuth, useUser } from '@/firebase/provider';
+import { initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
 
 export default function LoginPage() {
