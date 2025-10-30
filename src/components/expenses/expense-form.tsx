@@ -57,7 +57,7 @@ export function ExpenseForm() {
 
   useEffect(() => {
     const autoCategorize = async () => {
-      if (debouncedDescription && debouncedDescription.length >= 3 && !form.getValues("category")) {
+      if (debouncedDescription && debouncedDescription.length >= 3) {
         setIsCategorizing(true);
         try {
           const result = await categorizeExpense({ description: debouncedDescription });
