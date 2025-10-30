@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { Bar, BarChart, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, XAxis, YAxis, Cell } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useFinancials } from "@/context/financial-context"
@@ -55,10 +55,18 @@ export function OverviewChart() {
                 tickMargin={10}
                 tickFormatter={(value) => `$${value}`}
             />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+            <ChartTooltip cursor={{fill: 'hsl(var(--accent))', radius: 'var(--radius)'}} content={<ChartTooltipContent indicator="dot" />} />
             <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="income" fill="var(--color-income)" radius={4} />
-            <Bar dataKey="expenses" fill="var(--color-expenses)" radius={4} />
+            <Bar dataKey="income" radius={4}>
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill="var(--color-income)" className="transition-opacity" opacity={1} />
+              ))}
+            </Bar>
+            <Bar dataKey="expenses" radius={4}>
+                {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill="var(--color-expenses)" className="transition-opacity" opacity={1} />
+                ))}
+            </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>
