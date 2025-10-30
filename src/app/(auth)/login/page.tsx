@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth, useUser } from '@/firebase/provider';
 import { initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
-import { getRedirectResult, User } from 'firebase/auth';
+import { getRedirectResult } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -16,29 +17,31 @@ export default function LoginPage() {
   const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
   useEffect(() => {
+    // This effect runs once to check for a sign-in redirect result.
     if (auth) {
       getRedirectResult(auth)
         .then((result) => {
-          // If result is not null, a sign-in just happened.
-          // The onAuthStateChanged listener will handle the user state update.
-          // We just need to wait for isUserLoading to become false.
+          // If result is not null, a sign-in redirect was just completed.
+          // The onAuthStateChanged listener in useUser will handle the user object update.
+          // We can stop our local "processing" state.
         })
         .catch((error) => {
           console.error("Error processing redirect result:", error);
         })
         .finally(() => {
           // Crucially, we are now done processing the redirect attempt.
+          // The auth state will now be determined by the onAuthStateChanged listener.
           setIsProcessingRedirect(false);
         });
     } else {
-      // If auth isn't ready, we are not processing a redirect.
+      // If auth isn't ready yet, we are not processing a redirect.
       setIsProcessingRedirect(false);
     }
   }, [auth]);
 
 
   useEffect(() => {
-    // This effect handles redirection once auth state is confirmed
+    // This effect handles redirection to the dashboard AFTER auth state is confirmed
     // and we are no longer in the middle of processing a redirect.
     if (!isUserLoading && !isProcessingRedirect && user) {
       router.push('/dashboard');
@@ -47,33 +50,37 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = () => {
     if (auth) {
+      // Set processing to true before initiating redirect to show loader immediately.
+      setIsProcessingRedirect(true);
       initiateGoogleSignIn(auth);
     }
   };
 
   // The loading screen should be active if:
-  // 1. We are still checking the initial auth state (isUserLoading).
-  // 2. We are actively processing a sign-in from a redirect (isProcessingRedirect).
-  // If either is true, we wait.
-  if (isUserLoading || isProcessingRedirect) {
+  // 1. Firebase is still checking the initial auth state (`isUserLoading`).
+  // 2. We are actively processing a potential sign-in from a redirect (`isProcessingRedirect`).
+  // If either is true, we show the loader.
+  const showLoader = isUserLoading || isProcessingRedirect;
+
+  if (showLoader) {
     return (
        <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  // Only show the login page if we are done with all loading states AND there is no user.
+  // If we are done loading and there IS a user, we are about to redirect.
+  // Showing a loader here prevents a flash of the login page.
   if (user) {
-    // If there's a user at this point, the useEffect will handle the redirect.
-    // Showing the loading screen prevents a brief flash of the login page.
-     return (
+    return (
        <div className="flex h-screen items-center justify-center">
-        <p>Redirecting...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-
+  
+  // Only show the login page if we are done with all loading states AND there is no user.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">

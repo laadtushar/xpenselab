@@ -11,6 +11,7 @@ import { FinancialProvider } from '@/context/financial-context';
 import { Button } from '@/components/ui/button';
 import { doc, setDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -28,39 +29,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // This effect handles creating a user document in Firestore the first time they log in.
-    if (user && !isUserDocLoading && !userDoc) {
+    if (user && !isUserDocLoading && !userDoc && userDocRef) {
       const newUserDoc: Omit<UserData, 'id'> = {
         email: user.email!,
         createdAt: new Date().toISOString(),
       };
       // Use non-blocking write. No need to await.
-      setDoc(userDocRef!, newUserDoc);
+      setDoc(userDocRef, newUserDoc);
     }
   }, [user, userDoc, isUserDocLoading, userDocRef]);
 
 
   useEffect(() => {
     // This effect handles routing based on auth state.
-    if (!isUserLoading) { // Only run routing logic once the initial auth check is complete.
-        if (!user) {
-            router.push('/login');
-        } else if (pathname === '/login' || pathname === '/') {
-            router.push('/dashboard');
-        }
+    if (!isUserLoading && !user) {
+      router.push('/login');
     }
-  }, [user, isUserLoading, router, pathname]);
+  }, [user, isUserLoading, router]);
 
   const handleSignOut = () => {
     if (auth) {
       auth.signOut();
     }
   };
-
-  // Show a loading screen while auth state is being determined.
+  
+  // Show a loading screen while auth state is being determined, or if the user doc is still loading for an authenticated user.
   if (isUserLoading || (user && isUserDocLoading)) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
+         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
