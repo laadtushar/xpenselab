@@ -2,11 +2,10 @@
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, ArrowUpDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,14 +19,36 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "../ui/badge";
 import { CategoryIcon } from "../icons/category-icon";
+import type { Income } from "@/lib/types";
 
-export function IncomeTable() {
-  const { incomes, deleteTransaction, isLoading } = useFinancials();
+type SortDescriptor = {
+  column: 'description' | 'amount' | 'date';
+  direction: 'ascending' | 'descending';
+};
+
+interface IncomeTableProps {
+    incomes: Income[];
+    onSortChange: (descriptor: SortDescriptor) => void;
+    sortDescriptor?: SortDescriptor;
+}
+
+export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTableProps) {
+  const { deleteTransaction, isLoading } = useFinancials();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
   
+  const createSortHandler = (column: 'description' | 'amount' | 'date') => () => {
+    if (!sortDescriptor || sortDescriptor.column !== column) {
+      onSortChange({ column, direction: 'ascending' });
+    } else if (sortDescriptor.direction === 'ascending') {
+      onSortChange({ column, direction: 'descending' });
+    } else {
+       onSortChange({ column: 'date', direction: 'descending' }); // default sort
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -36,41 +57,29 @@ export function IncomeTable() {
     )
   }
 
-  if (incomes.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Income</CardTitle>
-          <CardDescription>No income recorded yet.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center text-muted-foreground py-12">
-            Click "Add Income" to get started.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Income History</CardTitle>
-        <CardDescription>A list of your recent income.</CardDescription>
-      </CardHeader>
-      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead className="text-right">
+                 <Button variant="ghost" onClick={createSortHandler('amount')}>
+                  Amount
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={createSortHandler('date')}>
+                    Date
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                 </Button>
+              </TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {incomes.map((income) => (
+            {incomes.length > 0 ? incomes.map((income) => (
               <TableRow key={income.id}>
                 <TableCell className="font-medium">{income.description}</TableCell>
                  <TableCell>
@@ -104,10 +113,14 @@ export function IncomeTable() {
                   </AlertDialog>
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+                 <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                        No income records match your filters.
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
   );
 }
