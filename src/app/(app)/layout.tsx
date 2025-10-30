@@ -7,7 +7,7 @@ import { Logo } from '@/components/logo';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon, LogOut } from 'lucide-react';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { FinancialProvider } from '@/context/financial-context';
 import { Button } from '@/components/ui/button';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -15,7 +15,6 @@ import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  console.log('AppLayout: Component rendered.');
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -24,43 +23,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isUserDocVerified, setIsUserDocVerified] = useState(false);
 
   useEffect(() => {
-    console.log('AppLayout useEffect [user, isUserLoading, firestore, router]: Running...');
-    console.log(`AppLayout useEffect: isUserLoading=${isUserLoading}, user=${!!user}`);
-
+    // This effect handles redirection and user document creation.
     if (isUserLoading) {
-      console.log('AppLayout useEffect: Waiting for Firebase auth state to resolve.');
-      return; // Wait until Firebase auth state is resolved
+      // Still waiting for Firebase to determine the auth state.
+      return; 
     }
 
     if (!user) {
-      console.log('AppLayout useEffect: No user found after auth loaded. Redirecting to /login.');
+      // If auth is loaded and there's no user, redirect to login.
       router.push('/login');
       return;
     }
 
-    // Once we have a user, ensure their Firestore document exists.
+    // If we have a user, we must ensure their Firestore document exists.
     const checkAndCreateUserDoc = async () => {
-      console.log('AppLayout checkAndCreateUserDoc: Starting for user:', user.uid);
       if (firestore && user.uid) {
         const userDocRef = doc(firestore, 'users', user.uid);
         try {
             const userDocSnap = await getDoc(userDocRef);
             if (!userDocSnap.exists()) {
-              console.log('AppLayout checkAndCreateUserDoc: User document does not exist. Creating it...');
               const newUserDoc: Omit<UserData, 'id'> = {
                 email: user.email!,
                 createdAt: new Date().toISOString(),
               };
               await setDoc(userDocRef, newUserDoc);
-              console.log('AppLayout checkAndCreateUserDoc: User document created successfully.');
-            } else {
-              console.log('AppLayout checkAndCreateUserDoc: User document already exists.');
             }
-            // Mark as verified whether it existed or was just created
+            // Mark as verified whether it existed or was just created.
             setIsUserDocVerified(true);
-            console.log('AppLayout checkAndCreateUserDoc: Setting isUserDocVerified to true.');
         } catch (error) {
-            console.error("AppLayout checkAndCreateUserDoc: Error checking/creating user document:", error);
+            console.error("Error checking/creating user document:", error);
             // Optional: handle error, e.g., sign out user
         }
       }
@@ -72,17 +63,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   const handleSignOut = () => {
-    console.log('handleSignOut: Clicked.');
     if (auth) {
       auth.signOut();
     }
   };
   
-  console.log(`AppLayout render: isUserLoading=${isUserLoading}, isUserDocVerified=${isUserDocVerified}`);
-
   // Show a loading screen while auth state is being determined OR we are verifying the user doc.
+  // This is a crucial step to prevent rendering the app before we are sure the user is authenticated and ready.
   if (isUserLoading || !isUserDocVerified) {
-    console.log('AppLayout render: Showing loading screen.');
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -90,9 +78,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // The redirect for a non-existent user is handled in the useEffect hook.
-  // If we reach this point, it means we have a user and their doc is verified.
-  console.log('AppLayout render: All checks passed. Rendering app layout.');
+  // If we reach this point, it means:
+  // 1. Firebase auth check is complete.
+  // 2. We have a valid user object.
+  // 3. The user's Firestore document has been verified or created.
+  // It is now safe to render the full application layout.
   return (
     <FinancialProvider>
       <SidebarProvider>

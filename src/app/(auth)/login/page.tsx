@@ -12,7 +12,6 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
-  console.log('LoginPage: Component rendered.');
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
@@ -20,67 +19,51 @@ export default function LoginPage() {
   const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const { toast } = useToast();
 
+  // Effect to process the redirect result from Google Sign-In
   useEffect(() => {
-    console.log('LoginPage useEffect [auth, toast, isUserLoading]: Running...');
-    console.log(`LoginPage useEffect: isUserLoading is ${isUserLoading}`);
-
-    const processRedirect = async () => {
-      console.log('LoginPage processRedirect: Starting...');
-      if (auth) {
-        console.log('LoginPage processRedirect: auth object is available.');
-        try {
-          const result = await getGoogleRedirectResult(auth);
-          console.log('LoginPage processRedirect: getGoogleRedirectResult returned:', result);
+    // This effect should only run once when the component mounts and auth is ready.
+    if (auth && !isUserLoading) {
+      getGoogleRedirectResult(auth)
+        .then((result) => {
           if (result) {
-            console.log('LoginPage processRedirect: Successfully signed in user:', result.user.email);
-            // If result is not null, a sign-in was successful.
-            // The onAuthStateChanged listener in the main layout will now handle it.
-            // We don't need to do anything else here; the layout will redirect.
-          } else {
-            console.log('LoginPage processRedirect: No redirect result found. This is normal on first load.');
+            // User has successfully signed in via redirect.
+            // The `onAuthStateChanged` listener in the main layout will now
+            // take over and handle the user state, including redirection to the dashboard.
+            // We don't need to navigate here.
           }
-        } catch (error: any) {
-          console.error('LoginPage processRedirect: Google sign-in redirect error:', error);
+        })
+        .catch((error) => {
+          console.error('Login page redirect error:', error);
           if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-            toast({
+             toast({
               title: 'Sign-In Failed',
               description: error.message || 'An unexpected error occurred during sign-in.',
               variant: 'destructive',
             });
           }
-        } finally {
-          console.log('LoginPage processRedirect: Finished processing redirect.');
+        })
+        .finally(() => {
+          // Whether sign-in was successful or not, we are done processing the redirect.
           setIsProcessingRedirect(false);
-        }
-      } else {
-        console.log('LoginPage processRedirect: auth object not yet available.');
-        setIsProcessingRedirect(false); // Auth not ready, stop processing for now.
-      }
-    };
-
-    // Only process redirect if Firebase Auth is not in its initial loading state.
-    if (!isUserLoading) {
-      processRedirect();
-    } else {
-        console.log('LoginPage useEffect: Waiting for isUserLoading to be false before processing redirect.');
+        });
+    } else if (!isUserLoading) {
+        // Auth is not ready, but user loading is finished. We can stop processing.
+        setIsProcessingRedirect(false);
     }
-  }, [auth, toast, isUserLoading]);
+  }, [auth, isUserLoading, toast]);
+
 
   // This effect handles navigation *after* all auth state checks are complete.
   useEffect(() => {
-    console.log('LoginPage useEffect [user, isUserLoading, isProcessingRedirect, router]: Running...');
-    console.log(`LoginPage useEffect: user=${!!user}, isUserLoading=${isUserLoading}, isProcessingRedirect=${isProcessingRedirect}`);
     // If auth is loaded, redirect is processed, and we have a user, go to dashboard.
     if (!isUserLoading && !isProcessingRedirect && user) {
-      console.log('LoginPage useEffect: Conditions met, redirecting to /dashboard');
       router.push('/dashboard');
     }
   }, [user, isUserLoading, isProcessingRedirect, router]);
 
+
   const handleGoogleSignIn = async () => {
-    console.log('handleGoogleSignIn: Clicked.');
     if (!auth) {
-      console.error('handleGoogleSignIn: Auth service not available.');
       toast({
         title: 'Authentication Error',
         description: 'Firebase Auth service is not available. Please try again later.',
@@ -89,24 +72,21 @@ export default function LoginPage() {
       return;
     }
     setIsSigningIn(true);
-    console.log('handleGoogleSignIn: Initiating Google sign-in with redirect.');
+    // initiateGoogleSignInWithRedirect doesn't resolve if redirection is successful
     await initiateGoogleSignInWithRedirect(auth).catch(error => {
-        console.error("handleGoogleSignIn: Redirection failed", error);
+        console.error("Redirection failed", error);
         toast({
             title: "Sign-In Error",
-            description: "Could not redirect to Google for sign-in.",
+            description: "Could not start the sign-in process.",
             variant: "destructive",
         });
         setIsSigningIn(false);
     });
   };
-  
-  console.log(`LoginPage render: isUserLoading=${isUserLoading}, isProcessingRedirect=${isProcessingRedirect}, user=${!!user}`);
 
-  // Show a full-page loader while Firebase determines the initial auth state
-  // or while we are processing a sign-in redirect.
+  // While Firebase is figuring out the user's auth state, or we're processing a redirect,
+  // show a full-page loader. This is the key to preventing the redirect loop.
   if (isUserLoading || isProcessingRedirect) {
-    console.log('LoginPage render: Showing full-page loader.');
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -114,10 +94,9 @@ export default function LoginPage() {
     );
   }
   
-  // If we have a user object, it means we are logged in. The effect above
-  // will redirect to the dashboard. Show a message in the meantime.
-  if (user) {
-     console.log('LoginPage render: User object exists, showing redirecting message.');
+  // If we have a user, it means we are logged in. The effect above will redirect.
+  // Show a message in the meantime.
+   if (user) {
      return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -126,8 +105,8 @@ export default function LoginPage() {
     );
   }
 
-  // Only render the login form if all checks are done and there is no user.
-  console.log('LoginPage render: All checks complete, no user. Showing login form.');
+
+  // Only show the login UI when we are certain there is no user and no pending redirect.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
