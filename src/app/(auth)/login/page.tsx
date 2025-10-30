@@ -30,9 +30,11 @@ export default function LoginPage() {
           console.error("Error processing redirect result:", error);
         })
         .finally(() => {
+          // This is the crucial change: we are done processing the redirect attempt.
           setIsProcessingRedirect(false);
         });
     } else {
+        // If auth is not ready, we are also not processing a redirect.
         setIsProcessingRedirect(false);
     }
   }, [auth]);
@@ -51,6 +53,8 @@ export default function LoginPage() {
     }
   };
   
+  // Show loading screen if we are still checking the auth state,
+  // processing the redirect, OR if the user object is present (which means we are about to redirect).
   if (isUserLoading || isProcessingRedirect || user) {
     return (
        <div className="flex h-screen items-center justify-center">
