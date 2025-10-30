@@ -5,7 +5,7 @@ export type Transaction = {
   amount: number;
   date: string; // ISO string
   description: string;
-  category?: string;
+  category?: string; // name of the category
 };
 
 export type Income = Omit<Transaction, 'type' | 'category'>;
@@ -19,14 +19,12 @@ export type Budget = {
   month: string; // YYYY-MM
 };
 
-export const expenseCategories = [
-  "Groceries", "Rent", "Utilities", "Transportation", "Entertainment", 
-  "Dining Out", "Shopping", "Travel", "Healthcare", "Education", 
-  "Personal Care", "Bills", "Subscriptions", "Food & Drink",
-  "Health & Wellbeing", "Education Loan Repayment", "Gifts", "Other"
-] as const;
-
-export type ExpenseCategory = typeof expenseCategories[number];
+export type Category = {
+  id: string;
+  userId: string;
+  name: string;
+  icon: string; // lucide-react icon name
+}
 
 // Types for Split functionality
 export type Group = {

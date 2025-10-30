@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users } from 'lucide-react';
+import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users, Shapes } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { SplitIcon } from '@/components/icons/split-icon';
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/income', label: 'Income', icon: Wallet },
   { href: '/expenses', label: 'Expenses', icon: ArrowLeftRight },
   { href: '/budget', label: 'Budget', icon: PiggyBank },
+  { href: '/categories', label: 'Categories', icon: Shapes },
   { href: '/splits', label: 'Splits', icon: SplitIcon },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },

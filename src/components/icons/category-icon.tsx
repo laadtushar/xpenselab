@@ -1,53 +1,29 @@
-import type { ExpenseCategory } from "@/lib/types";
-import {
-  ShoppingCart,
-  Home,
-  Zap,
-  Car,
-  Ticket,
-  UtensilsCrossed,
-  ShoppingBag,
-  Plane,
-  Stethoscope,
-  GraduationCap,
-  Smile,
-  MoreHorizontal,
-  Receipt,
-  CreditCard,
-  GlassWater,
-  HeartPulse,
-  Landmark,
-  Gift,
-} from 'lucide-react';
+import { allIcons } from './all-icons';
+import { useFinancials } from '@/context/financial-context';
+import { MoreHorizontal } from 'lucide-react';
 import React from "react";
 
-const iconMap: Record<ExpenseCategory, React.ElementType> = {
-  Groceries: ShoppingCart,
-  Rent: Home,
-  Utilities: Zap,
-  Transportation: Car,
-  Entertainment: Ticket,
-  'Dining Out': UtensilsCrossed,
-  Shopping: ShoppingBag,
-  Travel: Plane,
-  Healthcare: Stethoscope,
-  Education: GraduationCap,
-  'Personal Care': Smile,
-  Bills: Receipt,
-  Subscriptions: CreditCard,
-  'Food & Drink': GlassWater,
-  'Health & Wellbeing': HeartPulse,
-  'Education Loan Repayment': Landmark,
-  Gifts: Gift,
-  Other: MoreHorizontal,
-};
-
 type CategoryIconProps = {
-  category?: string;
+  categoryName?: string;
+  iconName?: string;
   className?: string;
 };
 
-export function CategoryIcon({ category, className }: CategoryIconProps) {
-  const Icon = category && category in iconMap ? iconMap[category as ExpenseCategory] : MoreHorizontal;
+export function CategoryIcon({ categoryName, iconName, className }: CategoryIconProps) {
+  const { categories } = useFinancials();
+  
+  let finalIconName = iconName;
+
+  if (!finalIconName && categoryName) {
+    const category = categories.find(c => c.name === categoryName);
+    if (category) {
+      finalIconName = category.icon;
+    }
+  }
+
+  const Icon = finalIconName && finalIconName in allIcons 
+    ? allIcons[finalIconName as keyof typeof allIcons] 
+    : MoreHorizontal;
+    
   return <Icon className={className || "h-4 w-4"} />;
 }

@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { useFinancials } from "@/context/financial-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { expenseCategories } from "@/lib/types";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { Loader2 } from "lucide-react";
 
@@ -14,17 +13,25 @@ export function BudgetTracker() {
   const { totalExpenses, expensesByCategory, percentage } = useMemo(() => {
     const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
 
-    const expensesByCategory = expenseCategories.map(category => {
-      const amount = expenses
-        .filter(t => t.category === category)
-        .reduce((sum, t) => sum + t.amount, 0);
-      return { category, amount };
-    }).filter(c => c.amount > 0)
-    .sort((a,b) => b.amount - a.amount);
+    const expensesByCategory = expenses
+        .filter(t => t.category)
+        .reduce((acc, t) => {
+            const category = t.category!;
+            if (!acc[category]) {
+                acc[category] = 0;
+            }
+            acc[category] += t.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+    const sortedCategories = Object.entries(expensesByCategory)
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount);
+
 
     const percentage = budget ? Math.min((totalExpenses / budget.amount) * 100, 100) : 0;
 
-    return { totalExpenses, expensesByCategory, percentage };
+    return { totalExpenses, expensesByCategory: sortedCategories, percentage };
   }, [expenses, budget]);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -69,7 +76,7 @@ export function BudgetTracker() {
           <h3 className="text-sm font-medium">Top Spending Categories</h3>
           {expensesByCategory.length > 0 ? expensesByCategory.slice(0, 5).map(({ category, amount }) => (
             <div key={category} className="flex items-center">
-              <CategoryIcon category={category} className="h-4 w-4 mr-2 text-muted-foreground" />
+              <CategoryIcon categoryName={category} className="h-4 w-4 mr-2 text-muted-foreground" />
               <span className="text-sm">{category}</span>
               <span className="ml-auto text-sm font-medium">{formatCurrency(amount)}</span>
             </div>

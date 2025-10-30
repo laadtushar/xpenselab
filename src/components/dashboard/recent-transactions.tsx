@@ -46,7 +46,7 @@ export function RecentTransactions() {
               <div key={t.id} className="flex items-center">
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className={'bg-secondary'}>
-                    {t.type === 'income' ? <TrendingUp className="h-4 w-4 text-primary" /> : <CategoryIcon category={t.category} />}
+                    {t.type === 'income' ? <TrendingUp className="h-4 w-4 text-primary" /> : <CategoryIcon categoryName={t.category} />}
                   </AvatarFallback>
                 </Avatar>
                 <div className="ml-4 space-y-1">

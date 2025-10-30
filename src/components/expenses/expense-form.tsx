@@ -24,10 +24,10 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useFinancials } from "@/context/financial-context";
-import { expenseCategories, ExpenseCategory } from "@/lib/types";
 import { categorizeExpense } from "@/ai/flows/categorize-expenses";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
+import type { Category } from "@/lib/types";
 
 const formSchema = z.object({
   description: z.string().min(1, "Description is required."),
@@ -39,7 +39,7 @@ const formSchema = z.object({
 export function ExpenseForm() {
   const [open, setOpen] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
-  const { addTransaction } = useFinancials();
+  const { addTransaction, categories } = useFinancials();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,7 +61,8 @@ export function ExpenseForm() {
         setIsCategorizing(true);
         try {
           const result = await categorizeExpense({ description: debouncedDescription });
-          if (result.category && expenseCategories.includes(result.category as ExpenseCategory)) {
+          const categoryExists = categories.some(c => c.name === result.category);
+          if (result.category && categoryExists) {
             form.setValue("category", result.category, { shouldValidate: true });
           }
         } catch (error) {
@@ -77,7 +78,7 @@ export function ExpenseForm() {
       }
     };
     autoCategorize();
-  }, [debouncedDescription, form, toast]);
+  }, [debouncedDescription, form, toast, categories]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addTransaction({
@@ -184,9 +185,9 @@ export function ExpenseForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {expenseCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
