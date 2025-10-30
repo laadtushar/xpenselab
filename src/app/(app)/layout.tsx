@@ -18,11 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  const pathname = usePathname();
   
-  console.log('AppLayout Render:', { isUserLoading, user: !!user, pathname });
-
-
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', user.uid);
@@ -33,36 +29,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // This effect handles creating a user document in Firestore the first time they log in.
     if (user && !isUserDocLoading && !userDoc && userDocRef) {
-      console.log(`User document for ${user.uid} not found, creating it...`);
       const newUserDoc: Omit<UserData, 'id'> = {
         email: user.email!,
         createdAt: new Date().toISOString(),
       };
-      // Use non-blocking write. No need to await.
       setDoc(userDocRef, newUserDoc);
     }
   }, [user, userDoc, isUserDocLoading, userDocRef]);
 
 
   useEffect(() => {
-    // This effect handles routing based on auth state.
-    console.log(`Auth effect: isUserLoading=${isUserLoading}, user=${!!user}`);
+    // Redirect to login if auth check is complete and there's no user.
     if (!isUserLoading && !user) {
-        console.log('Redirecting to /login because user is not loaded and not present.');
         router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
   const handleSignOut = () => {
     if (auth) {
-      console.log('Signing out...');
       auth.signOut();
     }
   };
   
-  // Show a loading screen while auth state is being determined, or if the user doc is still loading for an authenticated user.
+  // Show a loading screen while auth state is being determined, or if the user doc is still loading.
   if (isUserLoading || (user && isUserDocLoading)) {
-    console.log('Showing AppLayout loading screen:', {isUserLoading, isUserDocLoading: user && isUserDocLoading});
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -70,10 +60,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If there's no user after loading, this layout shouldn't render anything,
-  // as the useEffect above will have already started the redirect to /login.
+  // If there's no user after loading, the effect above will have started the redirect.
+  // Return null to avoid rendering the layout and flashing content.
   if (!user) {
-    console.log('AppLayout returning null, redirect should be in progress.');
     return null;
   }
 
