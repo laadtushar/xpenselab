@@ -19,15 +19,20 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect runs once on page load to handle the redirect result.
     const processRedirect = async () => {
       if (auth) {
         try {
           const result = await getGoogleRedirectResult(auth);
           // If result is not null, a sign-in was successful.
-          // The onAuthStateChanged listener will handle the user object update.
+          // The onAuthStateChanged listener in the main layout will now handle it.
+          // If the user is new, the layout will create their doc.
+          if (result) {
+            // User is signed in. The layout will redirect them.
+            // We don't need to do anything here.
+          }
         } catch (error: any) {
-          if (error.code !== 'auth/popup-closed-by-user') {
+          // Handle specific errors we want to show the user
+          if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
             console.error('Google sign-in redirect error:', error);
             toast({
               title: 'Sign-In Failed',
@@ -35,19 +40,25 @@ export default function LoginPage() {
               variant: 'destructive',
             });
           }
+        } finally {
+          setIsProcessingRedirect(false); // Finished processing redirect attempt
         }
+      } else {
+        setIsProcessingRedirect(false); // Auth not ready, stop processing
       }
-      setIsProcessingRedirect(false); // Finished processing redirect
     };
-    processRedirect();
-  }, [auth, toast]);
 
+    // Only process redirect if we aren't already loading the user
+    if (!isUserLoading) {
+      processRedirect();
+    }
+  }, [auth, toast, isUserLoading]);
+
+  // This effect handles navigation *after* all auth state checks are complete.
   useEffect(() => {
-    // This effect handles navigation *after* auth state is resolved.
-    if (!isUserLoading && !isProcessingRedirect) {
-      if (user) {
-        router.push('/dashboard');
-      }
+    // If auth is loaded, redirect is processed, and we have a user, go to dashboard.
+    if (!isUserLoading && !isProcessingRedirect && user) {
+      router.push('/dashboard');
     }
   }, [user, isUserLoading, isProcessingRedirect, router]);
 
@@ -61,23 +72,32 @@ export default function LoginPage() {
       return;
     }
     setIsSigningIn(true);
-    await initiateGoogleSignInWithRedirect(auth); // Use redirect
+    // This will redirect the user to Google's sign-in page
+    await initiateGoogleSignInWithRedirect(auth).catch(error => {
+        console.error("Redirection failed", error);
+        toast({
+            title: "Sign-In Error",
+            description: "Could not redirect to Google for sign-in.",
+            variant: "destructive",
+        });
+        setIsSigningIn(false);
+    });
   };
 
-  // Show a loading screen while checking auth state or processing the redirect.
+  // Show a full-page loader while Firebase determines the initial auth state
+  // or while we are processing a sign-in redirect.
   if (isUserLoading || isProcessingRedirect) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="ml-2">Loading...</p>
       </div>
     );
   }
-
-  // Only render the login form if we are done loading and there is no user.
+  
+  // If we have a user object, it means we are logged in. The effect above
+  // will redirect to the dashboard. Show a message in the meantime.
   if (user) {
-    // If a user is found, the effect above will redirect. Return a loader in the meantime.
-    return (
+     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         <p className="ml-2">Redirecting to dashboard...</p>
@@ -85,6 +105,7 @@ export default function LoginPage() {
     );
   }
 
+  // Only render the login form if all checks are done and there is no user.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">

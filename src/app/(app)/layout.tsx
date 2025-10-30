@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { DashboardNav } from '@/components/dashboard-nav';
@@ -9,7 +9,7 @@ import { User as UserIcon, LogOut } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { FinancialProvider } from '@/context/financial-context';
 import { Button } from '@/components/ui/button';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
@@ -19,31 +19,43 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const router = useRouter();
   
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user?.uid]);
-
-  const { data: userDoc, isLoading: isUserDocLoading } = useDoc<UserData>(userDocRef);
+  const [isUserDocVerified, setIsUserDocVerified] = useState(false);
 
   useEffect(() => {
-    // This effect handles creating a user document in Firestore the first time they log in.
-    if (user && !isUserDocLoading && !userDoc && userDocRef) {
-      const newUserDoc: Omit<UserData, 'id'> = {
-        email: user.email!,
-        createdAt: new Date().toISOString(),
-      };
-      setDoc(userDocRef, newUserDoc);
+    if (isUserLoading) {
+      return; // Wait until Firebase auth state is resolved
     }
-  }, [user, userDoc, isUserDocLoading, userDocRef]);
 
-
-  useEffect(() => {
-    // Redirect to login if auth check is complete and there's no user.
-    if (!isUserLoading && !user) {
-        router.push('/login');
+    if (!user) {
+      router.push('/login');
+      return;
     }
-  }, [user, isUserLoading, router]);
+
+    // Once we have a user, ensure their Firestore document exists.
+    const checkAndCreateUserDoc = async () => {
+      if (firestore && user.uid) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+          try {
+            const newUserDoc: Omit<UserData, 'id'> = {
+              email: user.email!,
+              createdAt: new Date().toISOString(),
+            };
+            await setDoc(userDocRef, newUserDoc);
+          } catch (error) {
+            console.error("Error creating user document:", error);
+            // Optional: handle error, e.g., sign out user
+          }
+        }
+        setIsUserDocVerified(true);
+      }
+    };
+
+    checkAndCreateUserDoc();
+
+  }, [user, isUserLoading, firestore, router]);
+
 
   const handleSignOut = () => {
     if (auth) {
@@ -51,21 +63,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
   
-  // Show a loading screen while auth state is being determined, or if the user doc is still loading.
-  if (isUserLoading || (user && isUserDocLoading)) {
+  // Show a loading screen while auth state is being determined OR we are verifying the user doc.
+  if (isUserLoading || !isUserDocVerified) {
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-
-  // If there's no user after loading, the effect above will have started the redirect.
-  // Return null to avoid rendering the layout and flashing content.
-  if (!user) {
-    return null;
-  }
-
+  
+  // If we're done loading and there's a user, render the app layout.
+  // The redirect for no user is handled in the useEffect.
   return (
     <FinancialProvider>
       <SidebarProvider>
