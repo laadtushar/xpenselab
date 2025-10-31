@@ -2,29 +2,36 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
-// IMPORTANT: This function has been modified to directly use the firebaseConfig object.
-export function initializeFirebase() {
-  if (!getApps().length) {
-    // Directly initialize the app with the config object.
-    // This avoids the failed network request to init.json.
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
+// This function ensures Firebase is initialized only once.
+function getFirebaseServices() {
+  let app: FirebaseApp;
+  try {
+    // Attempt to get the already initialized app.
+    // This will succeed on subsequent renders and during the auth redirect flow.
+    app = getApp();
+  } catch (e) {
+    // If getApp() throws, it means the app hasn't been initialized yet.
+    // This will happen on the very first load of the application.
+    app = initializeApp(firebaseConfig);
   }
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
-}
-
-export function getSdks(firebaseApp: FirebaseApp) {
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    firebaseApp: app,
+    auth: getAuth(app),
+    firestore: getFirestore(app),
   };
 }
+
+
+// IMPORTANT: This is the function that should be used to get the services.
+// It is a stable function that will always return the same initialized services.
+export function initializeFirebase() {
+    return getFirebaseServices();
+}
+
 
 export * from './provider';
 export * from './client-provider';
