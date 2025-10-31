@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,27 +15,30 @@ export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [isSigningIn, setIsSigningIn] = useState(true); // Start true to handle redirect
+  // This state is crucial to know if we are waiting for a redirect result from Google.
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
+    // This effect handles the result of a sign-in redirect.
+    // It runs once when the component mounts and the auth service is ready.
     if (!auth) {
-        toast({ title: 'Auth service not ready', variant: 'destructive' });
-        setIsSigningIn(false);
-        return;
+      // If auth is not ready, we can't process the redirect.
+      setIsProcessingRedirect(false);
+      return;
     }
     
-    // This is the key: process the redirect result as soon as auth is ready.
     getGoogleRedirectResult(auth)
       .then((result) => {
         if (result) {
-          // User signed in via redirect.
-          // The useUser hook in the layout will detect the user and handle navigation.
-          // We can just keep showing the loader here until the layout takes over.
-          // No need to call router.push here.
+          // If we get a result, it means the user has just signed in.
+          // The `useUser` hook will soon update with the new user.
+          // We don't need to do anything here except wait.
+          // The navigation to the dashboard will be handled by the other useEffect.
         }
       })
       .catch((error) => {
+        // This is where Firebase errors like 'auth/internal-error' will be caught.
         console.error('Login page redirect result error:', error);
         toast({
           title: 'Sign-In Failed',
@@ -43,20 +47,21 @@ export default function LoginPage() {
         });
       })
       .finally(() => {
-        // This is important: once the redirect is processed (or if there was none),
-        // we can stop the "signing in" state.
-        setIsSigningIn(false);
+        // Crucially, we set this to false *after* the async operation is complete.
+        // Now the component knows it's no longer waiting for a potential redirect.
+        setIsProcessingRedirect(false);
       });
 
   }, [auth, toast]);
 
-  // This effect handles redirecting an already-logged-in user
+  // This effect handles navigating an already-logged-in user to the dashboard.
   useEffect(() => {
-    if (!isUserLoading && user) {
+    // We wait for both the initial user loading AND the redirect processing to be finished.
+    // And, of course, we need a user object to exist.
+    if (!isUserLoading && !isProcessingRedirect && user) {
       router.push('/dashboard');
     }
-  }, [isUserLoading, user, router]);
-
+  }, [isUserLoading, isProcessingRedirect, user, router]);
 
   const handleGoogleSignIn = () => {
     if (!auth) {
@@ -67,9 +72,8 @@ export default function LoginPage() {
       });
       return;
     }
-    setIsSigningIn(true); // Show loader before redirecting
+    // We don't need to set any loading state here because the page will redirect away.
     initiateGoogleSignInWithRedirect(auth).catch((error) => {
-        setIsSigningIn(false);
         toast({
           title: 'Sign-In Failed',
           description: error.message || 'Could not start sign-in process.',
@@ -78,10 +82,20 @@ export default function LoginPage() {
     });
   };
 
-  // Show a loader if Firebase is still checking the user, or if we're processing a redirect.
-  // Also, if the user is logged in, the layout will handle the redirect, but we can show a loader here
-  // to prevent the login UI from flashing.
-  if (isUserLoading || isSigningIn || user) {
+  // The main loader. Show this if we are still waiting for Firebase's initial check
+  // OR if we are actively processing a potential redirect result. This prevents the
+  // login form from flashing on screen after a successful sign-in.
+  if (isUserLoading || isProcessingRedirect) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  
+  // If we've finished all loading/processing and there's still a user, it means
+  // the navigation effect is about to fire. Show a loader to prevent UI flash.
+  if (user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -89,6 +103,7 @@ export default function LoginPage() {
     );
   }
 
+  // Only show the login UI if we are done with all checks and there is no user.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
