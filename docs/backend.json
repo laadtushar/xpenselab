@@ -19,6 +19,15 @@
         "currency": {
             "type": "string",
             "description": "The user's preferred currency code (e.g., 'USD', 'EUR')."
+        },
+        "monzoTokens": {
+            "type": "object",
+            "description": "Stores Monzo OAuth tokens.",
+            "properties": {
+                "accessToken": { "type": "string" },
+                "refreshToken": { "type": "string" },
+                "expiresAt": { "type": "string", "format": "date-time" }
+            }
         }
       },
       "required": [
