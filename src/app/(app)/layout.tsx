@@ -20,17 +20,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   
   const [isFirestoreCheckComplete, setIsFirestoreCheckComplete] = useState(false);
+  // This new state tracks whether a redirect is expected.
+  const [isAuthRedirecting, setIsAuthRedirecting] = useState(true);
 
   useEffect(() => {
     console.log('AppLayout: State update. isUserLoading:', isUserLoading, 'User:', !!user);
+    
+    // Check session storage to see if a redirect was just initiated.
+    const redirectInProgress = sessionStorage.getItem('auth_redirect_in_progress');
+    if (redirectInProgress === 'true') {
+        console.log('AppLayout: Auth redirect is in progress, waiting...');
+        // We don't clear the flag here, the login page will do that.
+        // We just need to wait and not redirect prematurely.
+    } else {
+        // If no redirect is in progress, we can stop waiting.
+        setIsAuthRedirecting(false);
+    }
 
-    // Wait until Firebase has finished its initial user check.
-    if (isUserLoading) {
-      console.log('AppLayout: User state is loading. Waiting.');
+    // Wait until Firebase has finished its initial user check AND we are not in an auth redirect.
+    if (isUserLoading || isAuthRedirecting) {
+      console.log('AppLayout: User state is loading or redirecting. Waiting.');
       return;
     }
 
-    // If no user is found after the initial check, it's safe to redirect.
+    // If no user is found after all checks, it's safe to redirect.
     if (!user) {
       console.log('AppLayout: No user found after loading. Redirecting to /login.');
       router.push('/login');
@@ -38,7 +51,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     // If there is a user, verify their Firestore document exists.
-    // This part is less critical for the redirect logic but important for data integrity.
     console.log('AppLayout: User found. Checking for Firestore document.');
     const userDocRef = doc(firestore, 'users', user.uid);
     getDoc(userDocRef).then(userDocSnap => {
@@ -49,35 +61,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           createdAt: new Date().toISOString(),
           currency: 'USD',
         };
-        // Use non-blocking set so UI can render while this happens in the background.
         setDocumentNonBlocking(userDocRef, newUserDoc).finally(() => {
           console.log('AppLayout: Firestore document creation finished.');
           setIsFirestoreCheckComplete(true);
         });
       } else {
         console.log('AppLayout: Firestore document exists.');
-        setIsFirestoreCheckComplete(true); // Doc already exists, check is complete.
+        setIsFirestoreCheckComplete(true);
       }
     }).catch(error => {
       console.error("AppLayout: Error checking/creating user document:", error);
-      // Allow the app to render to avoid getting stuck.
       setIsFirestoreCheckComplete(true);
     });
 
-  }, [user, isUserLoading, firestore, router]);
-
+  }, [user, isUserLoading, firestore, router, isAuthRedirecting]);
 
   const handleSignOut = () => {
     if (auth) {
       console.log('AppLayout: Signing out.');
       auth.signOut();
-      // The useEffect hook above will detect the user is null and redirect to login.
     }
   };
   
-  // Show a loader until we are certain about the user's auth state AND their Firestore record.
-  if (isUserLoading || !isFirestoreCheckComplete) {
-    console.log('AppLayout: Rendering loading screen. isUserLoading:', isUserLoading, 'isFirestoreCheckComplete:', isFirestoreCheckComplete);
+  // Show a loader while we are loading the user, waiting for a potential redirect, or checking Firestore.
+  if (isUserLoading || isAuthRedirecting || !isFirestoreCheckComplete) {
+    console.log('AppLayout: Rendering loading screen. isUserLoading:', isUserLoading, 'isAuthRedirecting:', isAuthRedirecting, 'isFirestoreCheckComplete:', isFirestoreCheckComplete);
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -9,7 +9,6 @@ import { initiateGoogleSignInWithRedirect, getRedirectResult, initiateGitHubSign
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -23,19 +22,18 @@ export default function LoginPage() {
 
     if (!auth) {
       console.log('LoginPage: Auth service not available yet. Waiting.');
-      // Keep processing until auth is available.
       return;
     }
     
-    // Only process redirect result once.
+    // Only process redirect result once on initial load.
     if (isProcessingRedirect) {
       console.log('LoginPage: Starting to process redirect result.');
       getRedirectResult(auth)
         .then((result) => {
           if (result) {
             console.log('LoginPage: getRedirectResult SUCCESS. User:', result.user?.email);
-            // The user object will be updated by the global onAuthStateChanged listener,
-            // so we don't need to set it here. The effect below will handle the redirect.
+            // The user object will now be available globally.
+            // The effect below will handle the redirect to the dashboard.
           } else {
             console.log('LoginPage: getRedirectResult returned null (no redirect operation to process).');
           }
@@ -50,17 +48,21 @@ export default function LoginPage() {
         })
         .finally(() => {
           console.log('LoginPage: Finished processing redirect result.');
-          setIsProcessingRedirect(false);
+          setIsProcessingRedirect(false); // Signal that processing is done.
         });
     }
 
-  }, [auth, isProcessingRedirect, toast]);
+  }, [auth, toast]); // isProcessingRedirect is intentionally omitted to run only once.
 
   useEffect(() => {
     console.log('LoginPage: User state check. isUserLoading:', isUserLoading, 'isProcessingRedirect:', isProcessingRedirect, 'User:', !!user);
-    // Only redirect when we are certain about the auth state AND the redirect has been processed.
+    
+    // This is the crucial check. Only redirect when:
+    // 1. Firebase auth state is no longer loading.
+    // 2. The redirect processing is complete.
+    // 3. A user object actually exists.
     if (!isUserLoading && !isProcessingRedirect && user) {
-      console.log('LoginPage: User is loaded and redirect is processed. Redirecting to /dashboard.');
+      console.log('LoginPage: All checks passed. Redirecting to /dashboard.');
       router.push('/dashboard');
     }
   }, [isUserLoading, isProcessingRedirect, user, router]);
@@ -75,8 +77,12 @@ export default function LoginPage() {
       return;
     }
     console.log('LoginPage: Initiating Google Sign-In.');
+    // Set a flag in session storage to indicate a redirect is in progress.
+    // This helps the app layout know to wait.
+    sessionStorage.setItem('auth_redirect_in_progress', 'true');
     initiateGoogleSignInWithRedirect(auth).catch((error) => {
         console.error('LoginPage: Google Sign-In initiation failed:', error);
+        sessionStorage.removeItem('auth_redirect_in_progress'); // Clear flag on error
         toast({
           title: 'Sign-In Failed',
           description: error.message || 'Could not start sign-in process.',
@@ -95,8 +101,10 @@ export default function LoginPage() {
       return;
     }
     console.log('LoginPage: Initiating GitHub Sign-In.');
+    sessionStorage.setItem('auth_redirect_in_progress', 'true');
     initiateGitHubSignInWithRedirect(auth).catch((error) => {
         console.error('LoginPage: GitHub Sign-In initiation failed:', error);
+        sessionStorage.removeItem('auth_redirect_in_progress'); // Clear flag on error
         toast({
           title: 'Sign-In Failed',
           description: error.message || 'Could not start sign-in process.',
@@ -105,8 +113,7 @@ export default function LoginPage() {
     });
   };
 
-  // Show a comprehensive loading screen while Firebase is initializing,
-  // the redirect is being processed, or the user object is loading post-redirect.
+  // Show a loading spinner if Firebase is checking auth state OR if we are processing a redirect.
   if (isUserLoading || isProcessingRedirect) {
     console.log('LoginPage: Rendering loading screen. isUserLoading:', isUserLoading, 'isProcessingRedirect:', isProcessingRedirect);
     return (
@@ -116,7 +123,8 @@ export default function LoginPage() {
     );
   }
   
-  // This helps prevent a flash of the login page if the redirect to dashboard is imminent.
+  // This check prevents a brief flash of the login form if the user is already
+  // logged in and the redirect to dashboard is about to happen.
   if (user) {
     console.log('LoginPage: User exists, but waiting for redirect effect. Rendering loader.');
     return (
