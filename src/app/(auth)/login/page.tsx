@@ -19,31 +19,46 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('LoginPage: Mount/Auth changed. isUserLoading:', isUserLoading);
+
     if (!auth) {
-      setIsProcessingRedirect(false);
+      console.log('LoginPage: Auth service not available yet. Waiting.');
+      // Keep processing until auth is available.
       return;
     }
     
-    getRedirectResult(auth)
-      .then((result) => {
-        // User is available in the useUser hook after this completes.
-      })
-      .catch((error) => {
-        console.error('Login page redirect result error:', error);
-        toast({
-          title: 'Sign-In Failed',
-          description: error.message || 'Could not complete sign-in.',
-          variant: 'destructive',
+    // Only process redirect result once.
+    if (isProcessingRedirect) {
+      console.log('LoginPage: Starting to process redirect result.');
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result) {
+            console.log('LoginPage: getRedirectResult SUCCESS. User:', result.user?.email);
+          } else {
+            console.log('LoginPage: getRedirectResult returned null (no redirect operation to process).');
+          }
+        })
+        .catch((error) => {
+          console.error('LoginPage: getRedirectResult ERROR:', error);
+          toast({
+            title: 'Sign-In Failed',
+            description: error.message || 'Could not complete sign-in from redirect.',
+            variant: 'destructive',
+          });
+        })
+        .finally(() => {
+          console.log('LoginPage: Finished processing redirect result.');
+          setIsProcessingRedirect(false);
         });
-      })
-      .finally(() => {
-        setIsProcessingRedirect(false);
-      });
+    }
 
-  }, [auth, toast]);
+  }, [auth, isProcessingRedirect, toast]);
 
   useEffect(() => {
+    console.log('LoginPage: User state check. isUserLoading:', isUserLoading, 'isProcessingRedirect:', isProcessingRedirect, 'User:', !!user);
+    // Only redirect when we are certain about the auth state AND the redirect has been processed.
     if (!isUserLoading && !isProcessingRedirect && user) {
+      console.log('LoginPage: User is loaded and redirect is processed. Redirecting to /dashboard.');
       router.push('/dashboard');
     }
   }, [isUserLoading, isProcessingRedirect, user, router]);
@@ -57,7 +72,9 @@ export default function LoginPage() {
       });
       return;
     }
+    console.log('LoginPage: Initiating Google Sign-In.');
     initiateGoogleSignInWithRedirect(auth).catch((error) => {
+        console.error('LoginPage: Google Sign-In initiation failed:', error);
         toast({
           title: 'Sign-In Failed',
           description: error.message || 'Could not start sign-in process.',
@@ -75,7 +92,9 @@ export default function LoginPage() {
       });
       return;
     }
+    console.log('LoginPage: Initiating GitHub Sign-In.');
     initiateGitHubSignInWithRedirect(auth).catch((error) => {
+        console.error('LoginPage: GitHub Sign-In initiation failed:', error);
         toast({
           title: 'Sign-In Failed',
           description: error.message || 'Could not start sign-in process.',
@@ -84,7 +103,10 @@ export default function LoginPage() {
     });
   };
 
+  // Show a comprehensive loading screen while Firebase is initializing,
+  // the redirect is being processed, or the user object is loading post-redirect.
   if (isUserLoading || isProcessingRedirect) {
+    console.log('LoginPage: Rendering loading screen. isUserLoading:', isUserLoading, 'isProcessingRedirect:', isProcessingRedirect);
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -92,9 +114,9 @@ export default function LoginPage() {
     );
   }
   
+  // This helps prevent a flash of the login page if the redirect to dashboard is imminent.
   if (user) {
-    // If there's a user but we haven't redirected yet, show a loader
-    // to prevent a flash of the login page.
+    console.log('LoginPage: User exists, but waiting for redirect effect. Rendering loader.');
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -102,6 +124,7 @@ export default function LoginPage() {
     );
   }
 
+  console.log('LoginPage: Rendering login form.');
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">

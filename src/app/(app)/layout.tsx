@@ -22,38 +22,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isFirestoreCheckComplete, setIsFirestoreCheckComplete] = useState(false);
 
   useEffect(() => {
+    console.log('AppLayout: State update. isUserLoading:', isUserLoading, 'User:', !!user);
+
     // Wait until Firebase has finished its initial user check.
     if (isUserLoading) {
+      console.log('AppLayout: User state is loading. Waiting.');
       return;
     }
 
-    // If no user is found after the initial check, redirect to login.
+    // If no user is found after the initial check, it's safe to redirect.
     if (!user) {
+      console.log('AppLayout: No user found after loading. Redirecting to /login.');
       router.push('/login');
       return;
     }
 
     // If there is a user, verify their Firestore document exists.
+    // This part is less critical for the redirect logic but important for data integrity.
+    console.log('AppLayout: User found. Checking for Firestore document.');
     const userDocRef = doc(firestore, 'users', user.uid);
     getDoc(userDocRef).then(userDocSnap => {
       if (!userDocSnap.exists()) {
+        console.log('AppLayout: Firestore doc not found. Creating new user document.');
         const newUserDoc: Omit<UserData, 'id'> = {
           email: user.email!,
           createdAt: new Date().toISOString(),
           currency: 'USD',
         };
         // Use non-blocking set so UI can render while this happens in the background.
-        // We will still wait for it to complete before removing the loader.
         setDocumentNonBlocking(userDocRef, newUserDoc).finally(() => {
+          console.log('AppLayout: Firestore document creation finished.');
           setIsFirestoreCheckComplete(true);
         });
       } else {
+        console.log('AppLayout: Firestore document exists.');
         setIsFirestoreCheckComplete(true); // Doc already exists, check is complete.
       }
     }).catch(error => {
-      console.error("Error checking/creating user document:", error);
-      // Optional: Handle this error, e.g., by signing out the user.
-      // For now, we'll allow the app to render to avoid getting stuck.
+      console.error("AppLayout: Error checking/creating user document:", error);
+      // Allow the app to render to avoid getting stuck.
       setIsFirestoreCheckComplete(true);
     });
 
@@ -62,6 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = () => {
     if (auth) {
+      console.log('AppLayout: Signing out.');
       auth.signOut();
       // The useEffect hook above will detect the user is null and redirect to login.
     }
@@ -69,6 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   // Show a loader until we are certain about the user's auth state AND their Firestore record.
   if (isUserLoading || !isFirestoreCheckComplete) {
+    console.log('AppLayout: Rendering loading screen. isUserLoading:', isUserLoading, 'isFirestoreCheckComplete:', isFirestoreCheckComplete);
     return (
       <div className="flex h-screen items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -76,6 +85,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
+  console.log('AppLayout: Rendering main application layout.');
   return (
     <FinancialProvider>
       <SidebarProvider>
