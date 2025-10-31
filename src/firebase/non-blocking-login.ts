@@ -5,9 +5,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
+  GithubAuthProvider,
   signInWithRedirect,
-  signInWithPopup,
-  getRedirectResult,
+  getRedirectResult as firebaseGetRedirectResult,
   UserCredential
 } from 'firebase/auth';
 
@@ -32,7 +32,13 @@ export function initiateGoogleSignInWithRedirect(authInstance: Auth): Promise<vo
   return signInWithRedirect(authInstance, provider);
 }
 
-/** Handle the result of a Google sign-in redirect. */
-export function getGoogleRedirectResult(authInstance: Auth): Promise<UserCredential | null> {
-    return getRedirectResult(authInstance);
+/** Initiate GitHub sign-in via redirect. */
+export function initiateGitHubSignInWithRedirect(authInstance: Auth): Promise<void> {
+  const provider = new GithubAuthProvider();
+  return signInWithRedirect(authInstance, provider);
+}
+
+/** Handle the result of a sign-in redirect. */
+export function getRedirectResult(authInstance: Auth): Promise<UserCredential | null> {
+    return firebaseGetRedirectResult(authInstance);
 }
