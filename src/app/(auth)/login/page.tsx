@@ -108,8 +108,8 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center">
             <Logo />
           </div>
-          <CardTitle className="text-2xl">Welcome to FinanceFlow</CardTitle>
-          <CardDescription>Sign in to manage your finances</CardDescription>
+          <CardTitle className="text-2xl">Welcome to XpenseLab</CardTitle>
+          <CardDescription>Sign in to manage your expenses</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button onClick={handleGoogleSignIn} className="w-full">
@@ -129,5 +129,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

@@ -7,8 +7,8 @@ import { FirebaseClientProvider } from '@/firebase';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'FinanceFlow',
-  description: 'Manage your finances with ease.',
+  title: 'XpenseLab',
+  description: 'Manage your expenses with ease.',
 };
 
 export default function RootLayout({

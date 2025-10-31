@@ -11,16 +11,21 @@ export function Logo() {
       className="text-primary"
     >
       <path
-        d="M8 8C8 8 16 12 24 8V24C24 24 16 20 8 24V8Z"
+        d="M11 12H7L16 3L25 12H21"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="currentColor"
-        fillOpacity="0.1"
       />
       <path
-        d="M16 4V28"
+        d="M21 12V25C21 27.2091 19.2091 29 17 29H15C12.7909 29 11 27.2091 11 25V12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13 24V21H19V24"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"

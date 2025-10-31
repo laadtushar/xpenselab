@@ -50,7 +50,7 @@ export function ReportGenerator() {
     const a = document.createElement('a');
     a.setAttribute('hidden', '');
     a.setAttribute('href', url);
-    a.setAttribute('download', `financeflow_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    a.setAttribute('download', `xpenselab_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
