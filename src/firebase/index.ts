@@ -4,18 +4,27 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // This function ensures Firebase is initialized only once.
 function getFirebaseServices() {
   let app: FirebaseApp;
   try {
     // Attempt to get the already initialized app.
-    // This will succeed on subsequent renders and during the auth redirect flow.
     app = getApp();
   } catch (e) {
     // If getApp() throws, it means the app hasn't been initialized yet.
-    // This will happen on the very first load of the application.
     app = initializeApp(firebaseConfig);
+    
+    // Initialize App Check right after the app is initialized.
+    // This should only run once.
+    if (typeof window !== 'undefined') {
+       initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!),
+        // Optional: set to true to allow App Check to refresh tokens automatically.
+        isTokenAutoRefreshEnabled: true
+      });
+    }
   }
 
   return {
