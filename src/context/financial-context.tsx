@@ -1,8 +1,9 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo, useEffect } from 'react';
-import type { Transaction, Budget, Income, Expense, Category } from '@/lib/types';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import type { Transaction, Budget, Income, Expense, Category, User as UserData } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, writeBatch, getDocs, query } from 'firebase/firestore';
 import {
   addDocumentNonBlocking,
@@ -30,6 +31,9 @@ interface FinancialContextType {
   updateCategory: (category: Category) => void;
   deleteCategory: (id: string) => void;
   
+  userData: UserData | null;
+  updateUser: (data: Partial<UserData>) => void;
+  
   resetData: () => void;
   isLoading: boolean;
   isLoadingCategories: boolean;
@@ -42,13 +46,15 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const userId = user?.uid;
 
-  // Firestore collection references
+  // Firestore document and collection references
+  const userDocRef = useMemoFirebase(() => userId && firestore ? doc(firestore, 'users', userId) : null, [userId, firestore]);
   const incomesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'incomes') : null, [userId, firestore]);
   const expensesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'expenses') : null, [userId, firestore]);
   const budgetsRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'budgets') : null, [userId, firestore]);
   const categoriesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'categories') : null, [userId, firestore]);
 
   // Fetching data from Firestore
+  const { data: userData } = useDoc<UserData>(userDocRef);
   const { data: incomesData, isLoading: loadingIncomes } = useCollection<Income>(incomesRef);
   const { data: expensesData, isLoading: loadingExpenses } = useCollection<Expense>(expensesRef);
   const { data: budgetsData, isLoading: loadingBudgets } = useCollection<Budget>(budgetsRef);
@@ -83,8 +89,6 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const budget = useMemo(() => {
     if (!budgetsData) return null;
     const currentMonth = format(new Date(), 'yyyy-MM');
-    // In a real app, budgets might be more complex, e.g., per category.
-    // For now, we find the first budget for the current month.
     return budgetsData.find(b => b.month === currentMonth) || null;
   }, [budgetsData]);
 
@@ -157,18 +161,17 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
   const deleteCategory = (id: string) => {
     if (!userId || !firestore) return;
-    // TODO: Add warning about expenses with this category
     const docRef = doc(firestore, 'users', userId, 'categories', id);
     deleteDocumentNonBlocking(docRef);
   };
   
+  const updateUser = (data: Partial<UserData>) => {
+    if (!userDocRef) return;
+    setDocumentNonBlocking(userDocRef, data, { merge: true });
+  };
+  
   const resetData = () => {
     console.warn("Resetting all user data from Firestore is a destructive operation and should be implemented server-side for safety.");
-    // For a client-side only demo, you could implement this, but it's risky.
-    // Example:
-    // clearTransactions('income');
-    // clearTransactions('expense');
-    // And clear budgets, categories etc.
   };
 
   const value = useMemo(() => ({
@@ -186,10 +189,12 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     addCategory,
     updateCategory,
     deleteCategory,
+    userData: userData || null,
+    updateUser,
     resetData,
     isLoading: loadingIncomes || loadingExpenses || loadingBudgets,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, budget, categories, incomeCategories, expenseCategories, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
+  }), [transactions, incomes, expenses, budget, categories, incomeCategories, expenseCategories, userData, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
 
   return (
     <FinancialContext.Provider value={value}>

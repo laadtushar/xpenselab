@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User as UserIcon, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { useFinancials } from '@/context/financial-context';
 
 interface MemberBalancesProps {
   group: Group;
@@ -16,6 +18,7 @@ interface MemberBalancesProps {
 export function MemberBalances({ group }: MemberBalancesProps) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { userData } = useFinancials();
 
   const expensesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -76,7 +79,7 @@ export function MemberBalances({ group }: MemberBalancesProps) {
                   <p className="text-sm text-muted-foreground">{member.email}</p>
                 </div>
                 <div className={`ml-auto font-medium ${member.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(member.balance)}
+                  {formatCurrency(member.balance, userData?.currency)}
                 </div>
               </div>
             ))}

@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/utils";
 export function StatsCards() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { incomes, expenses, isLoading: isLoadingFinancials } = useFinancials();
+  const { incomes, expenses, isLoading: isLoadingFinancials, userData } = useFinancials();
 
   const groupsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
@@ -60,7 +60,7 @@ export function StatsCards() {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalIncome)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(totalIncome, userData?.currency)}</div>
           <p className="text-xs text-muted-foreground">All time personal</p>
         </CardContent>
       </Card>
@@ -70,7 +70,7 @@ export function StatsCards() {
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(totalExpenses, userData?.currency)}</div>
           <p className="text-xs text-muted-foreground">All time personal</p>
         </CardContent>
       </Card>
@@ -80,7 +80,7 @@ export function StatsCards() {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(savings)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(savings, userData?.currency)}</div>
           <p className="text-xs text-muted-foreground">All time personal</p>
         </CardContent>
       </Card>
@@ -90,7 +90,7 @@ export function StatsCards() {
           <HandCoins className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(youAreOwed)}</div>
+          <div className="text-2xl font-bold text-green-600">{formatCurrency(youAreOwed, userData?.currency)}</div>
            <p className="text-xs text-muted-foreground">From splits & debts</p>
         </CardContent>
       </Card>
@@ -100,7 +100,7 @@ export function StatsCards() {
           <Landmark className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{formatCurrency(youOwe)}</div>
+          <div className="text-2xl font-bold text-red-600">{formatCurrency(youOwe, userData?.currency)}</div>
           <p className="text-xs text-muted-foreground">From splits & debts</p>
         </CardContent>
       </Card>

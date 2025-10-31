@@ -15,6 +15,10 @@
           "type": "string",
           "description": "Timestamp indicating when the user account was created.",
           "format": "date-time"
+        },
+        "currency": {
+            "type": "string",
+            "description": "The user's preferred currency code (e.g., 'USD', 'EUR')."
         }
       },
       "required": [
@@ -342,5 +346,3 @@
     }
   }
 }
-
-    

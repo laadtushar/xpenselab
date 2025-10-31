@@ -1,8 +1,10 @@
 
+
 export type User = {
     id: string;
     email: string;
     createdAt: string; // ISO string
+    currency?: string;
 };
 
 export type Transaction = {

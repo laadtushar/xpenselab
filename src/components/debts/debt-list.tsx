@@ -10,6 +10,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
+import { useFinancials } from '@/context/financial-context';
 
 interface DebtListProps {
   debts: Debt[];
@@ -28,6 +29,7 @@ export function DebtList({ debts, type }: DebtListProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { userData } = useFinancials();
 
   const handleSettleDebt = (debtId: string) => {
     if (!firestore || !user) return;
@@ -83,7 +85,7 @@ export function DebtList({ debts, type }: DebtListProps) {
               {type === 'settled' && <TableCell>{parties.from}</TableCell>}
               {type === 'settled' && <TableCell>{parties.to}</TableCell>}
               <TableCell>{otherPartyName}</TableCell>
-              <TableCell className="text-right">{formatCurrency(debt.amount)}</TableCell>
+              <TableCell className="text-right">{formatCurrency(debt.amount, userData?.currency)}</TableCell>
               <TableCell className="text-center">
                 <Badge variant={debt.settled ? 'secondary' : 'destructive'}>
                   {debt.settled ? 'Settled' : 'Pending'}

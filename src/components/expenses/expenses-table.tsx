@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SplitExpenseDialog } from "./split-expense-dialog";
 import type { Expense } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -34,11 +35,7 @@ interface ExpensesTableProps {
 }
 
 export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: ExpensesTableProps) {
-  const { deleteTransaction, isLoading } = useFinancials();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
+  const { deleteTransaction, isLoading, userData } = useFinancials();
   
   const createSortHandler = (column: 'description' | 'amount' | 'date') => () => {
     if (!sortDescriptor || sortDescriptor.column !== column) {
@@ -92,7 +89,7 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(expense.amount, userData?.currency)}</TableCell>
                 <TableCell>{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
                 <TableCell className="text-right">
                    <SplitExpenseDialog expense={expense} />

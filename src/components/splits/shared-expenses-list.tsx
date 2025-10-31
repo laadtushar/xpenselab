@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -8,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { useFinancials } from '@/context/financial-context';
 
 interface SharedExpensesListProps {
   group: Group;
@@ -16,6 +18,7 @@ interface SharedExpensesListProps {
 export function SharedExpensesList({ group }: SharedExpensesListProps) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { userData } = useFinancials();
 
   const expensesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -73,11 +76,11 @@ export function SharedExpensesList({ group }: SharedExpensesListProps) {
               return (
                 <TableRow key={expense.id}>
                   <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell>{formatCurrency(expense.amount)}</TableCell>
+                  <TableCell>{formatCurrency(expense.amount, userData?.currency)}</TableCell>
                   <TableCell>{getMemberName(expense.paidBy)}</TableCell>
                   <TableCell>{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
                   <TableCell>
-                    {yourSplit ? formatCurrency(yourSplit.amount) : formatCurrency(0)}
+                    {yourSplit ? formatCurrency(yourSplit.amount, userData?.currency) : formatCurrency(0, userData?.currency)}
                   </TableCell>
                 </TableRow>
               )

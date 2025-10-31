@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -6,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export function BudgetTracker() {
-  const { expenses, budget, isLoading } = useFinancials();
+  const { expenses, budget, isLoading, userData } = useFinancials();
 
   const { totalExpenses, expensesByCategory, percentage } = useMemo(() => {
     const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
@@ -33,8 +35,6 @@ export function BudgetTracker() {
 
     return { totalExpenses, expensesByCategory: sortedCategories, percentage };
   }, [expenses, budget]);
-
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (isLoading) {
     return (
@@ -67,7 +67,7 @@ export function BudgetTracker() {
       <CardHeader>
         <CardTitle>Budget Progress</CardTitle>
         <CardDescription>
-          You've spent {formatCurrency(totalExpenses)} of your {formatCurrency(budget.amount)} budget.
+          You've spent {formatCurrency(totalExpenses, userData?.currency)} of your {formatCurrency(budget.amount, userData?.currency)} budget.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -78,7 +78,7 @@ export function BudgetTracker() {
             <div key={category} className="flex items-center">
               <CategoryIcon categoryName={category} className="h-4 w-4 mr-2 text-muted-foreground" />
               <span className="text-sm">{category}</span>
-              <span className="ml-auto text-sm font-medium">{formatCurrency(amount)}</span>
+              <span className="ml-auto text-sm font-medium">{formatCurrency(amount, userData?.currency)}</span>
             </div>
           )) : (
             <p className="text-sm text-muted-foreground">No expenses yet for this month.</p>

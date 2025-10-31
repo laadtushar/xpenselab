@@ -41,6 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         const newUserDoc: Omit<UserData, 'id'> = {
           email: user.email!,
           createdAt: new Date().toISOString(),
+          currency: 'USD',
         };
         // Use non-blocking set so UI can render while this happens in the background.
         // We will still wait for it to complete before removing the loader.

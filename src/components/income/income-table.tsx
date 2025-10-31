@@ -20,6 +20,7 @@ import {
 import { Badge } from "../ui/badge";
 import { CategoryIcon } from "../icons/category-icon";
 import type { Income } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -33,11 +34,7 @@ interface IncomeTableProps {
 }
 
 export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTableProps) {
-  const { deleteTransaction, isLoading } = useFinancials();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
+  const { deleteTransaction, isLoading, userData } = useFinancials();
   
   const createSortHandler = (column: 'description' | 'amount' | 'date') => () => {
     if (!sortDescriptor || sortDescriptor.column !== column) {
@@ -88,7 +85,7 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
                     {income.category}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">{formatCurrency(income.amount)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(income.amount, userData?.currency)}</TableCell>
                 <TableCell>{format(new Date(income.date), 'MMM d, yyyy')}</TableCell>
                  <TableCell className="text-right">
                   <AlertDialog>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
@@ -7,17 +8,14 @@ import { CategoryIcon } from "@/components/icons/category-icon";
 import { useMemo } from "react";
 import { TrendingUp, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export function RecentTransactions() {
-  const { transactions, isLoading } = useFinancials();
+  const { transactions, isLoading, userData } = useFinancials();
 
   const recentTransactions = useMemo(() => {
     return transactions.slice(0, 5);
   }, [transactions]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
   
   if (isLoading) {
     return (
@@ -54,7 +52,7 @@ export function RecentTransactions() {
                   <p className="text-sm text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</p>
                 </div>
                 <div className={`ml-auto font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                  {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                  {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount, userData?.currency)}
                 </div>
               </div>
             ))
