@@ -34,6 +34,8 @@ export default function LoginPage() {
         .then((result) => {
           if (result) {
             console.log('LoginPage: getRedirectResult SUCCESS. User:', result.user?.email);
+            // The user object will be updated by the global onAuthStateChanged listener,
+            // so we don't need to set it here. The effect below will handle the redirect.
           } else {
             console.log('LoginPage: getRedirectResult returned null (no redirect operation to process).');
           }
