@@ -36,10 +36,3 @@ export function initiateGoogleSignInWithRedirect(authInstance: Auth): Promise<vo
 export function getGoogleRedirectResult(authInstance: Auth): Promise<UserCredential | null> {
     return getRedirectResult(authInstance);
 }
-
-
-/** Initiate Google sign-in via popup. Returns a promise with the UserCredential. */
-export function signInWithGooglePopup(authInstance: Auth): Promise<UserCredential> {
-  const provider = new GoogleAuthProvider();
-  return signInWithPopup(authInstance, provider);
-}
