@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -94,6 +93,8 @@ export default function LoginPage() {
   }
   
   if (user) {
+    // If there's a user but we haven't redirected yet, show a loader
+    // to prevent a flash of the login page.
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
