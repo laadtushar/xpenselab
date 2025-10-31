@@ -29,32 +29,26 @@ export default function LoginPage() {
     setIsSigningIn(true);
     try {
       await signInWithGooglePopup(auth);
-      // After successful sign-in, the useUser hook in the layout will detect the change,
-      // and the user will be automatically redirected to the dashboard by the layout component.
-      toast({
-        title: 'Sign-In Successful',
-        description: 'Redirecting you to the dashboard...',
-      });
-      // We explicitly push to the dashboard here to ensure navigation starts.
+      // The layout's useUser hook will detect the new user.
+      // It will handle the Firestore document check and rendering the dashboard.
+      // We can optimistically start navigation.
       router.push('/dashboard');
     } catch (error: any) {
-      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-        toast({
-          title: 'Sign-In Failed',
-          description: error.message || 'An unexpected error occurred during sign-in.',
-          variant: 'destructive',
-        });
+      // Don't show an error toast if the user closes the popup.
+      if (error.code !== 'auth/popup-closed-by-user') {
+          toast({
+            title: 'Sign-In Failed',
+            description: error.message || 'An unexpected error occurred during sign-in.',
+            variant: 'destructive',
+          });
       }
       setIsSigningIn(false);
-    } 
-    // Do not set isSigningIn to false in a `finally` block,
-    // as the component will unmount on successful login and navigation.
+    }
   };
 
-  // The main layout will handle redirects for already logged-in users.
-  // This page will only show a loader if the user state is initially loading,
-  // or if a sign-in process is active.
-  if (isUserLoading || isSigningIn || user) {
+  // If the user is already authenticated, the layout will redirect them.
+  // We show a loader here to prevent the login UI from flashing.
+  if (isUserLoading || user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -62,7 +56,6 @@ export default function LoginPage() {
     );
   }
 
-  // Only show the login UI when we are certain there is no user and no sign-in is in progress.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">

@@ -44,7 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         };
         // Use non-blocking set so UI can render while this happens in the background.
         // We will still wait for it to complete before removing the loader.
-        setDocumentNonBlocking(userDocRef, newUserDoc).then(() => {
+        setDocumentNonBlocking(userDocRef, newUserDoc).finally(() => {
           setIsFirestoreCheckComplete(true);
         });
       } else {
