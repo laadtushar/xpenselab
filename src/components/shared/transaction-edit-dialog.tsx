@@ -43,20 +43,11 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
   const { updateTransaction, incomeCategories, expenseCategories } = useFinancials();
   const { toast } = useToast();
 
-  const categories = useMemo(() => {
-    return transaction.type === 'income' ? incomeCategories : expenseCategories;
-  }, [transaction.type, incomeCategories, expenseCategories]);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      description: transaction.description,
-      amount: transaction.amount,
-      date: new Date(transaction.date),
-      category: transaction.category,
-    },
   });
 
+  // Effect to reset the form whenever the dialog is opened or the transaction changes
   useEffect(() => {
     if (open) {
       form.reset({
@@ -68,6 +59,7 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
     }
   }, [open, transaction, form]);
 
+  const categories = transaction.type === 'income' ? incomeCategories : expenseCategories;
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     updateTransaction(transaction.id, transaction.type, {
