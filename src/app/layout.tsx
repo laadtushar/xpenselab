@@ -4,10 +4,17 @@ import { Toaster } from '@/components/ui/toaster';
 import { GeistSans } from 'geist/font/sans';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
+import { siteConfig } from '@/config/site';
 
 export const metadata: Metadata = {
-  title: 'XpenseLab',
-  description: 'Manage your expenses with ease.',
+  title: {
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  keywords: ["Next.js", "React", "Tailwind CSS", "Firebase", "Genkit", "Finance App", "Expense Tracker"],
+  authors: [{ name: "XpenseLab" }],
+  creator: "XpenseLab",
 };
 
 export default function RootLayout({
