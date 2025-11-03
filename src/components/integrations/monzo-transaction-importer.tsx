@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { listMonzoAccounts, listMonzoTransactions } from '@/ai/flows/monzo-list-accounts';
+import { listMonzoAccounts } from '@/ai/flows/monzo-list-accounts';
+import { listMonzoTransactions } from '@/ai/flows/monzo-list-transactions';
 import {
   Select,
   SelectContent,
