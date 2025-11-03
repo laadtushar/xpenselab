@@ -85,7 +85,7 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
             <span className="sr-only">Edit Transaction</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" key={`${transaction.id}-${transaction.type}`}>
         <DialogHeader>
           <DialogTitle>Edit {transaction.type === 'income' ? 'Income' : 'Expense'}</DialogTitle>
         </DialogHeader>
@@ -162,7 +162,6 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
                         <Select
                             onValueChange={field.onChange}
                             value={field.value}
-                            key={`${transaction.id}-${transaction.type}`}
                         >
                         <FormControl>
                             <SelectTrigger>
