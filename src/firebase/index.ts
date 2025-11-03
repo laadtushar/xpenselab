@@ -17,13 +17,15 @@ function getFirebaseServices() {
     app = initializeApp(firebaseConfig);
     
     // Initialize App Check right after the app is initialized.
-    // This should only run once.
     if (typeof window !== 'undefined') {
-       initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!),
-        // Optional: set to true to allow App Check to refresh tokens automatically.
-        isTokenAutoRefreshEnabled: true
-      });
+       if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+          isTokenAutoRefreshEnabled: true
+        });
+      } else {
+        console.error("Firebase App Check: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be initialized. Please add it to your .env file.");
+      }
     }
   }
 
