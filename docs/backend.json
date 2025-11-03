@@ -41,6 +41,10 @@
         "lastAiRequestDate": {
             "type": "string",
             "description": "The date of the last AI request in YYYY-MM-DD format."
+        },
+        "hasCreatedDefaultCategories": {
+            "type": "boolean",
+            "description": "Flag to check if default categories have been created for the user."
         }
       },
       "required": [
@@ -404,5 +408,3 @@
     }
   }
 }
-
-    

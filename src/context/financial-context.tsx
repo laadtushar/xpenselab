@@ -78,6 +78,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   
   const categories = useMemo(() => {
     if (!categoriesData) return [];
+    // Ensure uniqueness using a Map, which is more robust than Set for this case
     const uniqueCategories = new Map<string, Category>();
     categoriesData.forEach(cat => {
         if (!uniqueCategories.has(cat.id)) {
@@ -86,6 +87,35 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     });
     return Array.from(uniqueCategories.values());
   }, [categoriesData]);
+
+  // Create default categories if the flag is not set for the user
+  useEffect(() => {
+    const createDefaults = async () => {
+      if (user && userData && !userData.hasCreatedDefaultCategories && firestore) {
+        console.log("Creating default categories for user:", user.uid);
+        const userRef = doc(firestore, "users", user.uid);
+        const categoriesColRef = collection(userRef, "categories");
+
+        const batch = writeBatch(firestore);
+
+        defaultCategories.forEach(category => {
+          const newCatRef = doc(categoriesColRef);
+          batch.set(newCatRef, { ...category, userId: user.uid });
+        });
+
+        // Set the flag to true in the same batch
+        batch.update(userRef, { hasCreatedDefaultCategories: true });
+
+        try {
+          await batch.commit();
+          console.log("Successfully created default categories and set flag.");
+        } catch (err) {
+          console.error("Failed to create default categories:", err);
+        }
+      }
+    };
+    createDefaults();
+  }, [user, userData, firestore]);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'userId'>) => {
     if (!userId) return;
@@ -160,25 +190,27 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   }, [expenses, budgetsData]);
   
   const incomeCategories = useMemo(() => {
-    return categories.filter(c => c.type === 'income');
+    const uniqueIds = new Set();
+    return categories.filter(c => {
+        if (c.type === 'income' && !uniqueIds.has(c.id)) {
+            uniqueIds.add(c.id);
+            return true;
+        }
+        return false;
+    });
   }, [categories]);
 
   const expenseCategories = useMemo(() => {
-    return categories.filter(c => c.type === 'expense');
+     const uniqueIds = new Set();
+    return categories.filter(c => {
+        if (c.type === 'expense' && !uniqueIds.has(c.id)) {
+            uniqueIds.add(c.id);
+            return true;
+        }
+        return false;
+    });
   }, [categories]);
   
-  // Create default categories if none exist
-  useEffect(() => {
-    if (!loadingCategories && categories.length === 0 && userId && firestore) {
-      const batch = writeBatch(firestore);
-      defaultCategories.forEach(category => {
-        const newCatRef = doc(collection(firestore, 'users', userId, 'categories'));
-        batch.set(newCatRef, { ...category, userId });
-      });
-      batch.commit().catch(err => console.error("Failed to create default categories:", err));
-    }
-  }, [loadingCategories, categories.length, userId, firestore]);
-
   // Actions
   const updateTransaction = (id: string, type: 'income' | 'expense', data: Partial<Omit<Transaction, 'id' | 'userId'>>) => {
     if (!userId || !firestore) return;
