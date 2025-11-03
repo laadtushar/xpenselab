@@ -50,9 +50,9 @@ export function MonzoTransactionList({ transactions }: MonzoTransactionListProps
                         const credit = tx.amount > 0;
                         return (
                             <TableRow key={tx.id}>
-                                <TableCell>{format(new Date(tx.created), 'MMM d, yyyy')}</TableCell>
-                                <TableCell className="font-medium">{tx.description}</TableCell>
-                                <TableCell className={`text-right ${credit ? 'text-green-600' : ''}`}>
+                                <TableCell className="whitespace-nowrap">{format(new Date(tx.created), 'MMM d, yyyy')}</TableCell>
+                                <TableCell className="font-medium whitespace-nowrap">{tx.description}</TableCell>
+                                <TableCell className={`text-right whitespace-nowrap ${credit ? 'text-green-600' : ''}`}>
                                     {formatCurrency(Math.abs(tx.amount) / 100, tx.currency)}
                                 </TableCell>
                                 <TableCell>

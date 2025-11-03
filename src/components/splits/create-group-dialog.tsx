@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -121,9 +122,9 @@ export function CreateGroupDialog() {
             Add members to your group to start splitting expenses.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className='flex-grow'>
+        <div className="flex-grow overflow-y-auto pr-2">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pr-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pr-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -194,14 +195,14 @@ export function CreateGroupDialog() {
                 Add Member
               </Button>
 
-              <DialogFooter className='pt-4 !mt-8'>
+              <DialogFooter className='pt-4 mt-auto'>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? 'Creating...' : 'Create Group'}
                 </Button>
               </DialogFooter>
             </form>
           </Form>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

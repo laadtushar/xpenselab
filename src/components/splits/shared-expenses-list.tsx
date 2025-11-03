@@ -60,6 +60,7 @@ export function SharedExpensesList({ group }: SharedExpensesListProps) {
         <CardDescription>A list of shared expenses for this group.</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="w-full overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -75,11 +76,11 @@ export function SharedExpensesList({ group }: SharedExpensesListProps) {
               const yourSplit = expense.splits.find(s => s.userId === user?.uid);
               return (
                 <TableRow key={expense.id}>
-                  <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell>{formatCurrency(expense.amount, userData?.currency)}</TableCell>
-                  <TableCell>{getMemberName(expense.paidBy)}</TableCell>
-                  <TableCell>{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{expense.description}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatCurrency(expense.amount, userData?.currency)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{getMemberName(expense.paidBy)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {yourSplit ? formatCurrency(yourSplit.amount, userData?.currency) : formatCurrency(0, userData?.currency)}
                   </TableCell>
                 </TableRow>
@@ -87,6 +88,7 @@ export function SharedExpensesList({ group }: SharedExpensesListProps) {
             })}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );

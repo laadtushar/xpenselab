@@ -63,6 +63,7 @@ export function DebtList({ debts, type }: DebtListProps) {
 
 
   return (
+    <div className="w-full overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
@@ -81,11 +82,11 @@ export function DebtList({ debts, type }: DebtListProps) {
           const otherPartyName = debt.fromUserId === user!.uid ? debt.toUserName : debt.fromUserName;
           return (
             <TableRow key={debt.id}>
-              <TableCell className="font-medium">{debt.description}</TableCell>
-              {type === 'settled' && <TableCell>{parties.from}</TableCell>}
-              {type === 'settled' && <TableCell>{parties.to}</TableCell>}
-              <TableCell>{otherPartyName}</TableCell>
-              <TableCell className="text-right">{formatCurrency(debt.amount, userData?.currency)}</TableCell>
+              <TableCell className="font-medium whitespace-nowrap">{debt.description}</TableCell>
+              {type === 'settled' && <TableCell className="whitespace-nowrap">{parties.from}</TableCell>}
+              {type === 'settled' && <TableCell className="whitespace-nowrap">{parties.to}</TableCell>}
+              <TableCell className="whitespace-nowrap">{otherPartyName}</TableCell>
+              <TableCell className="text-right whitespace-nowrap">{formatCurrency(debt.amount, userData?.currency)}</TableCell>
               <TableCell className="text-center">
                 <Badge variant={debt.settled ? 'secondary' : 'destructive'}>
                   {debt.settled ? 'Settled' : 'Pending'}
@@ -106,5 +107,6 @@ export function DebtList({ debts, type }: DebtListProps) {
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }

@@ -58,7 +58,7 @@ export function TransactionFilters({ onFilterChange, type }: TransactionFiltersP
   const hasActiveFilters = search || category || dateRange;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
+    <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
       <Input
         placeholder="Filter by description..."
         value={search}

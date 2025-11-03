@@ -99,7 +99,7 @@ export function ReportGenerator() {
                 />
               </PopoverContent>
             </Popover>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button onClick={handleDownloadCsv}>
               <Download className="mr-2 h-4 w-4" />
               Download CSV
