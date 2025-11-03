@@ -55,13 +55,7 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
       return { success: false, message: "Server configuration error: Monzo client ID or secret is not set." };
     }
 
-    const body = new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirect_uri,
-        code: code,
-    });
+    const body = `grant_type=authorization_code&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${encodeURIComponent(code)}`;
 
     try {
       const response = await fetch('https://api.monzo.com/oauth2/token', {
@@ -69,14 +63,14 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: body.toString(),
+        body: body,
       });
 
       const tokenData = await response.json();
 
       if (!response.ok) {
         console.error("Failed to exchange token. Status:", response.status, "Body:", tokenData);
-        const errorMessage = tokenData.error_description || tokenData.message || tokenData.error || 'Failed to exchange token.';
+        const errorMessage = tokenData.error_description || tokenData.message || tokenData.error || `Request failed with status code ${response.status}`;
         return { success: false, message: `API Error: ${errorMessage}` };
       }
       
