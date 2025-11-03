@@ -28,7 +28,8 @@ export function MonzoConnectButton() {
         authUrl.searchParams.append('response_type', 'code');
         authUrl.searchParams.append('state', state);
 
-        window.location.href = authUrl.toString();
+        // Open the URL in a new tab to escape the iframe
+        window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
     };
 
     return (
