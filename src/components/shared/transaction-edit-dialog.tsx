@@ -46,12 +46,16 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+  
+  // This is the key fix: We determine the correct category list based on the transaction prop
+  // and ensure this list is re-calculated whenever the transaction changes.
+  const categories = useMemo(() => {
+    return transaction.type === 'income' ? incomeCategories : expenseCategories;
+  }, [transaction, incomeCategories, expenseCategories]);
 
-  const categories = transaction.type === 'income' ? incomeCategories : expenseCategories;
-
-  // Effect to reset the form whenever the dialog is opened or the transaction changes
+  // This effect ensures the form is reset with the correct data whenever the dialog opens or the specific transaction changes.
   useEffect(() => {
-    if (open && transaction) {
+    if (transaction && open) {
       form.reset({
         description: transaction.description,
         amount: transaction.amount,
@@ -59,7 +63,7 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
         category: transaction.category,
       });
     }
-  }, [open, transaction, form]);
+  }, [transaction, open, form]);
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -164,9 +168,9 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
                         </FormControl>
                         <SelectContent>
                             {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.name}>
+                              <SelectItem key={cat.id} value={cat.name}>
                                 {cat.name}
-                            </SelectItem>
+                              </SelectItem>
                             ))}
                         </SelectContent>
                         </Select>
@@ -188,4 +192,3 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
     </Dialog>
   );
 }
-
