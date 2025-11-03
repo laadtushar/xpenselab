@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
@@ -92,7 +91,7 @@ export function RecurringTransactionList() {
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>This will delete the scheduled transaction. It will no longer be automatically added.</AlertDialogHeader>
+                            <AlertDialogDescription>This will delete the scheduled transaction. It will no longer be automatically added.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
