@@ -43,28 +43,6 @@ export function RecurringTransactionList() {
     deleteDocumentNonBlocking(docRef);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!recurringTxs || recurringTxs.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recurring Transactions</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center text-muted-foreground py-12">
-          <p>You haven't scheduled any recurring transactions yet.</p>
-          <p className="text-sm">Click "Add Recurring" to get started.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -72,52 +50,63 @@ export function RecurringTransactionList() {
         <CardDescription>These transactions will be automatically added on their next due date.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="w-full overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Next Due Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recurringTxs.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="font-medium whitespace-nowrap">{tx.description}</TableCell>
-                  <TableCell>
-                    <Badge variant={tx.type === 'income' ? 'secondary' : 'outline'}>{tx.type}</Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">{formatCurrency(tx.amount, userData?.currency)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{tx.category}</TableCell>
-                  <TableCell className="whitespace-nowrap capitalize">{tx.frequency}</TableCell>
-                  <TableCell className="whitespace-nowrap">{format(new Date(tx.nextDueDate), 'MMM d, yyyy')}</TableCell>
-                  <TableCell className="text-right">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4" /></Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>This will delete the scheduled transaction. It will no longer be automatically added.</AlertDialogHeader>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(tx.id)}>Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : !recurringTxs || recurringTxs.length === 0 ? (
+          <div className="text-center text-muted-foreground py-12">
+            <p>You haven't scheduled any recurring transactions yet.</p>
+            <p className="text-sm">Click "Add Recurring" to get started.</p>
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Frequency</TableHead>
+                  <TableHead>Next Due Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {recurringTxs.map((tx) => (
+                  <TableRow key={tx.id}>
+                    <TableCell className="font-medium whitespace-nowrap">{tx.description}</TableCell>
+                    <TableCell>
+                      <Badge variant={tx.type === 'income' ? 'secondary' : 'outline'}>{tx.type}</Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{formatCurrency(tx.amount, userData?.currency)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{tx.category}</TableCell>
+                    <TableCell className="whitespace-nowrap capitalize">{tx.frequency}</TableCell>
+                    <TableCell className="whitespace-nowrap">{format(new Date(tx.nextDueDate), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="text-right">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This will delete the scheduled transaction. It will no longer be automatically added.</AlertDialogHeader>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(tx.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
