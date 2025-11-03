@@ -10,13 +10,14 @@ import {
   deleteDocumentNonBlocking,
   setDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { defaultCategories } from '@/lib/default-categories';
 
 interface FinancialContextType {
   transactions: Transaction[];
   incomes: Income[];
   expenses: Expense[];
+  currentMonthExpenses: Expense[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'userId'>) => void;
   deleteTransaction: (id: string, type: 'income' | 'expense') => void;
   clearTransactions: (type: 'income' | 'expense') => Promise<void>;
@@ -85,6 +86,14 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     ];
     return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [incomes, expenses]);
+  
+  const currentMonthExpenses = useMemo(() => {
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+    const monthEnd = endOfMonth(today);
+    return expenses.filter(expense => isWithinInterval(new Date(expense.date), { start: monthStart, end: monthEnd }));
+  }, [expenses]);
+
 
   const budget = useMemo(() => {
     if (!budgetsData) return null;
@@ -178,6 +187,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     transactions,
     incomes,
     expenses,
+    currentMonthExpenses,
     addTransaction,
     deleteTransaction,
     clearTransactions,
@@ -194,7 +204,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     resetData,
     isLoading: loadingIncomes || loadingExpenses || loadingBudgets,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, budget, categories, incomeCategories, expenseCategories, userData, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, budget, categories, incomeCategories, expenseCategories, userData, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
 
   return (
     <FinancialContext.Provider value={value}>

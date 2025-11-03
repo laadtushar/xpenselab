@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -7,18 +8,25 @@ import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials } from "@/context/financial-context";
 import { budgetingAssistance, BudgetingAssistanceOutput } from "@/ai/flows/budgeting-assistance";
+import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 export function AiBudgetAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<BudgetingAssistanceOutput | null>(null);
   const { toast } = useToast();
-  const { incomes, expenses, budget } = useFinancials();
+  const { incomes, currentMonthExpenses, budget } = useFinancials();
 
   const financialData = useMemo(() => {
-    const monthlyExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
-    const monthlyIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+    const monthEnd = endOfMonth(today);
+    
+    const monthlyExpenses = currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+    const monthlyIncome = incomes
+      .filter(income => isWithinInterval(new Date(income.date), { start: monthStart, end: monthEnd }))
+      .reduce((sum, t) => sum + t.amount, 0);
       
-    const spendingCategories = expenses
+    const spendingCategories = currentMonthExpenses
       .filter(t => t.category)
       .reduce((acc, t) => {
         acc[t.category!] = (acc[t.category!] || 0) + t.amount;
@@ -26,7 +34,7 @@ export function AiBudgetAssistant() {
       }, {} as Record<string, number>);
 
     return { monthlyIncome, monthlyExpenses, spendingCategories };
-  }, [incomes, expenses]);
+  }, [incomes, currentMonthExpenses]);
 
   const handleGetAdvice = async () => {
     if (!budget) {
@@ -69,7 +77,7 @@ export function AiBudgetAssistant() {
           AI Budget Assistant
         </CardTitle>
         <CardDescription>
-          Get personalized advice on your spending habits and budget.
+          Get personalized advice on your spending habits and budget for the current month.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

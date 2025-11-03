@@ -10,12 +10,12 @@ import { Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export function BudgetTracker() {
-  const { expenses, budget, isLoading, userData } = useFinancials();
+  const { currentMonthExpenses, budget, isLoading, userData } = useFinancials();
 
   const { totalExpenses, expensesByCategory, percentage } = useMemo(() => {
-    const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
 
-    const expensesByCategory = expenses
+    const expensesByCategory = currentMonthExpenses
         .filter(t => t.category)
         .reduce((acc, t) => {
             const category = t.category!;
@@ -34,7 +34,7 @@ export function BudgetTracker() {
     const percentage = budget ? Math.min((totalExpenses / budget.amount) * 100, 100) : 0;
 
     return { totalExpenses, expensesByCategory: sortedCategories, percentage };
-  }, [expenses, budget]);
+  }, [currentMonthExpenses, budget]);
   
   if (isLoading) {
     return (
