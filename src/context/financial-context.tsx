@@ -149,8 +149,31 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     return { budget: currentBudget, currentMonthExpenses };
   }, [expenses, budgetsData]);
   
-  const incomeCategories = useMemo(() => categories.filter(c => c.type === 'income'), [categories]);
-  const expenseCategories = useMemo(() => categories.filter(c => c.type === 'expense'), [categories]);
+  const incomeCategories = useMemo(() => {
+    const seen = new Set();
+    return categories.filter(c => {
+        if (c.type !== 'income') return false;
+        if (seen.has(c.id)) {
+            return false;
+        } else {
+            seen.add(c.id);
+            return true;
+        }
+    });
+  }, [categories]);
+
+  const expenseCategories = useMemo(() => {
+    const seen = new Set();
+    return categories.filter(c => {
+        if (c.type !== 'expense') return false;
+        if (seen.has(c.id)) {
+            return false;
+        } else {
+            seen.add(c.id);
+            return true;
+        }
+    });
+  }, [categories]);
   
   // Create default categories if none exist
   useEffect(() => {
