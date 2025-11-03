@@ -47,13 +47,12 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
     resolver: zodResolver(formSchema),
   });
   
-  // This is the key fix: We determine the correct category list based on the transaction prop
-  // and ensure this list is re-calculated whenever the transaction changes.
+  // Determine the correct category list based on the transaction type
   const categories = useMemo(() => {
     return transaction.type === 'income' ? incomeCategories : expenseCategories;
-  }, [transaction, incomeCategories, expenseCategories]);
+  }, [transaction.type, incomeCategories, expenseCategories]);
 
-  // This effect ensures the form is reset with the correct data whenever the dialog opens or the specific transaction changes.
+  // Reset form with correct data when dialog opens or transaction changes
   useEffect(() => {
     if (transaction && open) {
       form.reset({
