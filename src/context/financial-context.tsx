@@ -4,11 +4,12 @@
 import React, { createContext, useContext, useMemo, useEffect } from 'react';
 import type { Transaction, Budget, Income, Expense, Category, User as UserData } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch, getDocs, query } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, FieldValue, updateDoc, deleteField } from 'firebase/firestore';
 import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
   setDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { defaultCategories } from '@/lib/default-categories';
@@ -18,7 +19,7 @@ interface FinancialContextType {
   incomes: Income[];
   expenses: Expense[];
   currentMonthExpenses: Expense[];
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'userId'>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'userId'>) => void;
   deleteTransaction: (id: string, type: 'income' | 'expense') => void;
   clearTransactions: (type: 'income' | 'expense') => Promise<void>;
   
@@ -33,7 +34,7 @@ interface FinancialContextType {
   deleteCategory: (id: string) => void;
   
   userData: UserData | null;
-  updateUser: (data: Partial<UserData>) => void;
+  updateUser: (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => void;
   
   resetData: () => void;
   isLoading: boolean;
@@ -55,7 +56,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const categoriesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'categories') : null, [userId, firestore]);
 
   // Fetching data from Firestore
-  const { data: userData } = useDoc<UserData>(userDocRef);
+  const { data: userData, isLoading: loadingUser } = useDoc<UserData>(userDocRef);
   const { data: incomesData, isLoading: loadingIncomes } = useCollection<Income>(incomesRef);
   const { data: expensesData, isLoading: loadingExpenses } = useCollection<Expense>(expensesRef);
   const { data: budgetsData, isLoading: loadingBudgets } = useCollection<Budget>(budgetsRef);
@@ -101,16 +102,21 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     return budgetsData.find(b => b.month === currentMonth) || null;
   }, [budgetsData]);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'userId'>) => {
+  const addTransaction = (transaction: Omit<Transaction, 'userId'>) => {
     if (!userId || !firestore) return;
     const ref = transaction.type === 'income' ? incomesRef : expensesRef;
     if (!ref) return;
     
-    const data = { ...transaction, userId, amount: Number(transaction.amount) };
-    // @ts-ignore
-    delete data.type;
+    // If an ID is provided (e.g. from Monzo), use it to create a doc ref
+    const docRef = transaction.id ? doc(ref, transaction.id) : doc(ref);
 
-    addDocumentNonBlocking(ref, data);
+    const data = { ...transaction, userId, amount: Number(transaction.amount) };
+    if (!transaction.id) { // if it's a new transaction, it won't have an ID
+        // @ts-ignore
+        delete data.id;
+    }
+
+    setDocumentNonBlocking(docRef, data);
   };
   
   const deleteTransaction = (id: string, type: 'income' | 'expense') => {
@@ -174,9 +180,16 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     deleteDocumentNonBlocking(docRef);
   };
   
-  const updateUser = (data: Partial<UserData>) => {
-    if (!userDocRef) return;
-    setDocumentNonBlocking(userDocRef, data, { merge: true });
+  const updateUser = (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => {
+    if (!userDocRef || !firestore || !userId) return;
+
+    if (data.monzoTokens === undefined) {
+      // Correctly delete the field using updateDoc and deleteField
+      const userRef = doc(firestore, "users", userId);
+      updateDocumentNonBlocking(userRef, { monzoTokens: deleteField() });
+    } else {
+      setDocumentNonBlocking(userDocRef, data, { merge: true });
+    }
   };
   
   const resetData = () => {
@@ -202,9 +215,9 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     userData: userData || null,
     updateUser,
     resetData,
-    isLoading: loadingIncomes || loadingExpenses || loadingBudgets,
+    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, currentMonthExpenses, budget, categories, incomeCategories, expenseCategories, userData, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
 
   return (
     <FinancialContext.Provider value={value}>

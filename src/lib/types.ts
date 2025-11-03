@@ -82,3 +82,28 @@ export type MemberBalance = {
   email: string;
   balance: number;
 };
+
+// Monzo Types
+export interface MonzoAccount {
+  id: string;
+  description: string;
+  type: 'uk_retail' | 'uk_retail_joint' | 'uk_business';
+  created: string;
+}
+
+export interface MonzoTransaction {
+  id: string;
+  created: string;
+  description: string;
+  amount: number; // in pennies
+  currency: string;
+  merchant: {
+    id: string;
+    name: string;
+    logo: string;
+    category: string;
+  } | null;
+  notes: string;
+  settled: string;
+  category: string;
+}

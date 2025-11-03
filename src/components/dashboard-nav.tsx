@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -52,6 +51,19 @@ export function DashboardNav() {
       ))}
     </SidebarMenu>
      <SidebarMenu className="mt-auto">
+        <SidebarMenuItem>
+             <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/integrations')}
+                tooltip={{ children: 'Integrations', side: 'right' }}
+                onClick={handleLinkClick}
+            >
+                <Link href="/integrations">
+                    <Link2 />
+                    <span>Integrations</span>
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
         <SidebarMenuItem>
             <SidebarMenuButton
                 asChild
