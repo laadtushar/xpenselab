@@ -19,7 +19,7 @@ export type ScanReceiptInput = z.infer<typeof ScanReceiptInputSchema>;
 const ScanReceiptOutputSchema = z.object({
   description: z.string().optional().describe('The name of the merchant or a brief description of the purchase.'),
   amount: z.number().optional().describe('The total amount of the transaction.'),
-  date: z.string().format('date-time').optional().describe('The date of the transaction in ISO 8601 format.'),
+  date: z.string().datetime().optional().describe('The date of the transaction in ISO 8601 format.'),
   category: z.string().optional().describe('A suggested expense category.'),
 });
 export type ScanReceiptOutput = z.infer<typeof ScanReceiptOutputSchema>;
