@@ -1,9 +1,9 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeApp, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // This function ensures Firebase is initialized only once.
@@ -16,9 +16,9 @@ function getFirebaseServices() {
     // If getApp() throws, it means the app hasn't been initialized yet.
     app = initializeApp(firebaseConfig);
     
-    // Initialize App Check right after the app is initialized.
+    // Initialize App Check right after the app is initialized, ONLY on the client.
     if (typeof window !== 'undefined') {
-       if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
         initializeAppCheck(app, {
           provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
           isTokenAutoRefreshEnabled: true
@@ -36,13 +36,11 @@ function getFirebaseServices() {
   };
 }
 
-
 // IMPORTANT: This is the function that should be used to get the services.
 // It is a stable function that will always return the same initialized services.
-export function initializeFirebase() {
+export function initializeFirebase(): { firebaseApp: FirebaseApp, auth: Auth, firestore: Firestore } {
     return getFirebaseServices();
 }
-
 
 export * from './provider';
 export * from './client-provider';
