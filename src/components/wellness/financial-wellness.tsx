@@ -7,19 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, CheckCircle, TrendingUp, Star, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials, useAiRequest } from "@/context/financial-context";
-import { checkFinancialWellness } from "@/ai/flows/financial-wellness";
+import { checkFinancialWellness, FinancialWellnessOutput } from "@/ai/flows/financial-wellness";
 import { Progress } from "../ui/progress";
-import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { startOfMonth, endOfMonth, isWithinInterval, differenceInDays } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-type WellnessResult = {
-  wellnessScore: number;
-  analysis: string;
-  recommendations: string[];
-};
 
 export function FinancialWellness() {
-  const [result, setResult] = useState<WellnessResult | null>(null);
+  const [result, setResult] = useState<FinancialWellnessOutput | null>(null);
   const { toast } = useToast();
   const { transactions, incomes, expenses, budget, userData, canMakeAiRequest } = useFinancials();
   const { makeRequest: makeWellnessRequest, isLoading } = useAiRequest(checkFinancialWellness);
@@ -43,18 +38,19 @@ export function FinancialWellness() {
 
     setResult(null);
 
-    const monthStart = startOfMonth(new Date());
-    const monthEnd = endOfMonth(new Date());
-    const currentMonthTransactions = transactions.filter(t => isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd }));
-
     const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
     const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+    
+    const financialSummary = `
+        Total Income: ${totalIncome.toFixed(2)}
+        Total Expenses: ${totalExpenses.toFixed(2)}
+        Savings Rate: ${savingsRate.toFixed(2)}%
+        Monthly Budget: ${budget?.amount ? budget.amount.toFixed(2) : 'Not set'}
+    `;
 
     const response = await makeWellnessRequest({
-      transactionsJson: JSON.stringify(currentMonthTransactions, null, 2),
-      totalIncome,
-      totalExpenses,
-      monthlyBudget: budget?.amount,
+      financialSummary,
     });
     
     if (response) {
@@ -149,5 +145,3 @@ export function FinancialWellness() {
     </Card>
   );
 }
-
-    

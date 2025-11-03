@@ -9,11 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useFinancials, useAiRequest } from "@/context/financial-context";
 import { generateInsights, GenerateInsightsOutput } from "@/ai/flows/generate-insights";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { formatCurrency } from "@/lib/utils";
 
 export function InsightsGenerator() {
   const [result, setResult] = useState<GenerateInsightsOutput | null>(null);
   const { toast } = useToast();
-  const { transactions, userData, canMakeAiRequest } = useFinancials();
+  const { transactions, incomes, expenses, userData, canMakeAiRequest } = useFinancials();
   const { makeRequest: makeInsightsRequest, isLoading } = useAiRequest(generateInsights);
   const isPremium = userData?.tier === 'premium';
 
@@ -33,7 +34,31 @@ export function InsightsGenerator() {
     }
     
     setResult(null);
-    const response = await makeInsightsRequest({ transactions });
+
+    const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+    
+    const spendingByCategory = expenses
+      .reduce((acc, t) => {
+        const category = t.category || 'Uncategorized';
+        acc[category] = (acc[category] || 0) + t.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+    const topCategories = Object.entries(spendingByCategory)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([name, amount]) => `${name}: ${formatCurrency(amount, userData?.currency)}`)
+      .join(', ');
+
+    const summary = `
+      Total Income: ${formatCurrency(totalIncome, userData?.currency)}
+      Total Expenses: ${formatCurrency(totalExpenses, userData?.currency)}
+      Top Spending Categories: ${topCategories}
+    `;
+
+    const response = await makeInsightsRequest({ financialSummary: summary });
+
     if (response) {
       setResult(response);
     }
@@ -117,5 +142,3 @@ export function InsightsGenerator() {
     </Card>
   );
 }
-
-    

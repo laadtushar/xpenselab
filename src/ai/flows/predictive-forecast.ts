@@ -7,46 +7,44 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { Transaction } from '@/lib/types';
 
 const PredictiveForecastInputSchema = z.object({
-  transactionsJson: z.string().describe("A JSON string of the user's financial transactions."),
-  currentBalance: z.number().describe("The user's current total balance across accounts."),
-  scenario: z.string().describe('The "what-if" scenario provided by the user (e.g., "add a $50 monthly subscription").'),
-  forecastPeriodDays: z.number().default(90).describe('The number of days into the future to forecast.'),
+  financialSummary: z.string().describe("A summary of the user's financial data, including current balance, average income/expenses, and recurring transactions."),
+  userScenario: z.string().describe('The "what-if" scenario provided by the user (e.g., "add a $50 monthly subscription").'),
 });
 export type PredictiveForecastInput = z.infer<typeof PredictiveForecastInputSchema>;
 
+const ForecastDataPointSchema = z.object({
+    date: z.string().describe('The date for the forecast point in YYYY-MM-DD format.'),
+    balance: z.number().describe('The projected balance for that date.'),
+});
+
 const PredictiveForecastOutputSchema = z.object({
-  forecastJson: z.string().describe('A JSON string representing an array of objects, where each object has a "date" (YYYY-MM-DD) and a "balance" (number).'),
+  forecast: z.array(ForecastDataPointSchema).describe('An array of objects, where each object has a "date" and a "balance".'),
   summary: z.string().describe('A human-readable summary of the forecast and the impact of the what-if scenario.'),
 });
 export type PredictiveForecastOutput = z.infer<typeof PredictiveForecastOutputSchema>;
 
-export async function predictiveForecast(input: PredictiveForecastInput): Promise<{ forecast: { date: string; balance: number }[]; summary: string; }> {
-  const result = await predictiveForecastFlow(input);
-  return {
-    ...result,
-    forecast: JSON.parse(result.forecastJson),
-  };
+export async function predictiveForecast(input: PredictiveForecastInput): Promise<PredictiveForecastOutput> {
+  return predictiveForecastFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'predictiveForecastPrompt',
   input: {schema: PredictiveForecastInputSchema },
   output: {schema: PredictiveForecastOutputSchema},
-  prompt: `You are a financial analyst AI. Your task is to create a predictive forecast of a user's bank balance over the next {{forecastPeriodDays}} days based on their past transactions and a "what-if" scenario.
+  prompt: `You are a financial analyst AI. Your task is to create a predictive forecast of a user's bank balance over the next 90 days based on their financial summary and a "what-if" scenario.
 
-1.  Analyze the user's historical transaction data to identify recurring income and expenses (frequency and amount).
-2.  Incorporate the user's "what-if" scenario: "{{scenario}}".
-3.  Project the user's balance starting from their current balance of {{currentBalance}}.
-4.  Generate a series of forecast data points (date and balance) for the next {{forecastPeriodDays}} days.
+1.  Analyze the user's historical financial summary to understand their cash flow.
+2.  Incorporate the user's "what-if" scenario: "{{userScenario}}".
+3.  Project the user's balance.
+4.  Generate a series of forecast data points (date and balance) for the next 90 days.
 5.  Provide a concise summary explaining the forecast and how the scenario impacts their financial future.
-6.  Return the forecast data as a JSON string in the 'forecastJson' field.
+6.  Return the forecast data as an array of objects in the 'forecast' field.
 
-User's Historical Transaction Data:
-\`\`\`json
-{{{transactionsJson}}}
+User's Financial Summary:
+\`\`\`
+{{{financialSummary}}}
 \`\`\`
 
 Provide your response in the required JSON format.
