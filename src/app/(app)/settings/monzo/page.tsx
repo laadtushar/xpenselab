@@ -9,8 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { exchangeMonzoToken } from '@/ai/flows/monzo-exchange-token';
 
-const MONZO_REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/settings/monzo` : '';
-
 export default function MonzoCallbackPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -19,6 +17,13 @@ export default function MonzoCallbackPage() {
   const [message, setMessage] = useState("Processing Monzo authentication...");
 
   useEffect(() => {
+    if (!user) {
+        // Wait until the user object is available
+        return;
+    }
+
+    const MONZO_REDIRECT_URI = `${window.location.origin}/settings/monzo`;
+
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const storedState = localStorage.getItem('monzo_oauth_state');
@@ -35,7 +40,7 @@ export default function MonzoCallbackPage() {
       return;
     }
     
-    if (code && state && state === storedState && user) {
+    if (code && state && state === storedState) {
         localStorage.removeItem('monzo_oauth_state');
 
         exchangeMonzoToken({ code, redirect_uri: MONZO_REDIRECT_URI, userId: user.uid })
