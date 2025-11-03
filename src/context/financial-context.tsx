@@ -75,7 +75,17 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   
   const incomes = useMemo(() => incomesData || [], [incomesData]);
   const expenses = useMemo(() => expensesData || [], [expensesData]);
-  const categories = useMemo(() => categoriesData || [], [categoriesData]);
+  
+  const categories = useMemo(() => {
+    if (!categoriesData) return [];
+    const uniqueCategories = new Map<string, Category>();
+    categoriesData.forEach(cat => {
+        if (!uniqueCategories.has(cat.id)) {
+            uniqueCategories.set(cat.id, cat);
+        }
+    });
+    return Array.from(uniqueCategories.values());
+  }, [categoriesData]);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'userId'>) => {
     if (!userId) return;
@@ -150,29 +160,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   }, [expenses, budgetsData]);
   
   const incomeCategories = useMemo(() => {
-    const seen = new Set();
-    return categories.filter(c => {
-        if (c.type !== 'income') return false;
-        if (seen.has(c.id)) {
-            return false;
-        } else {
-            seen.add(c.id);
-            return true;
-        }
-    });
+    return categories.filter(c => c.type === 'income');
   }, [categories]);
 
   const expenseCategories = useMemo(() => {
-    const seen = new Set();
-    return categories.filter(c => {
-        if (c.type !== 'expense') return false;
-        if (seen.has(c.id)) {
-            return false;
-        } else {
-            seen.add(c.id);
-            return true;
-        }
-    });
+    return categories.filter(c => c.type === 'expense');
   }, [categories]);
   
   // Create default categories if none exist
