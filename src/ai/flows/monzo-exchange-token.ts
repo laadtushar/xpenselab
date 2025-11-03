@@ -52,8 +52,16 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
 
     if (!clientId || !clientSecret) {
       console.error("Monzo client ID or secret is not configured.");
-      return { success: false, message: "Server configuration error." };
+      return { success: false, message: "Server configuration error: Monzo client ID or secret is not set." };
     }
+
+    const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirect_uri,
+        code: code,
+    });
 
     try {
       const response = await fetch('https://api.monzo.com/oauth2/token', {
@@ -61,23 +69,17 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirect_uri,
-          code: code,
-        }),
+        body: body.toString(),
       });
 
       const tokenData = await response.json();
 
       if (!response.ok) {
-        console.error("Failed to exchange token:", tokenData);
-        return { success: false, message: tokenData.error_description || 'Failed to exchange token.' };
+        console.error("Failed to exchange token. Status:", response.status, "Body:", tokenData);
+        const errorMessage = tokenData.error_description || tokenData.error || 'Failed to exchange token.';
+        return { success: false, message: `API Error: ${errorMessage}` };
       }
       
-      // Securely store the token data in Firestore, associated with the user
       const userDocRef = db.collection('users').doc(userId);
       await userDocRef.set({
         monzoTokens: {
@@ -88,9 +90,9 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
       }, { merge: true });
 
       return { success: true, message: 'Monzo account connected successfully!' };
-    } catch (error) {
-      console.error('Error during token exchange:', error);
-      return { success: false, message: 'An unexpected error occurred.' };
+    } catch (error: any) {
+      console.error('Error during token exchange flow:', error);
+      return { success: false, message: `An unexpected error occurred: ${error.message}` };
     }
   }
 );
