@@ -44,7 +44,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           setIsFirestoreCheckComplete(true);
         });
       } else {
-        setIsFirestoreCheckComplete(true);
+        const userData = userDocSnap.data() as UserData;
+        // If user exists but has no tier, update them to basic.
+        if (!userData.tier) {
+          setDocumentNonBlocking(userDocRef, { tier: 'basic' }, { merge: true }).finally(() => {
+            setIsFirestoreCheckComplete(true);
+          });
+        } else {
+          setIsFirestoreCheckComplete(true);
+        }
       }
     }).catch(error => {
       console.error("AppLayout: Error checking/creating user document:", error);
