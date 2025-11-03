@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
     id: string;
     email: string;
@@ -16,6 +17,7 @@ export type User = {
     aiRequestCount?: number;
     lastAiRequestDate?: string; // YYYY-MM-DD
     hasCreatedDefaultCategories?: boolean;
+    hasRunCategoryCleanup?: boolean;
 };
 
 export type Transaction = {

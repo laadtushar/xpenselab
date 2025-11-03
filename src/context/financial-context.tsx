@@ -116,6 +116,66 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     };
     createDefaults();
   }, [user, userData, firestore]);
+  
+  // ONE-TIME: Clean up duplicate categories
+  useEffect(() => {
+    const cleanupDuplicateCategories = async () => {
+        if (!firestore || !userId || !categoriesData || userData?.hasRunCategoryCleanup) {
+            return;
+        }
+
+        console.log("Running one-time category cleanup...");
+
+        const categoriesByName = new Map<string, Category[]>();
+        categoriesData.forEach(cat => {
+            const key = `${cat.name}_${cat.type}`;
+            if (!categoriesByName.has(key)) {
+                categoriesByName.set(key, []);
+            }
+            categoriesByName.get(key)!.push(cat);
+        });
+
+        const batch = writeBatch(firestore);
+        let duplicatesFound = false;
+
+        categoriesByName.forEach((cats, key) => {
+            if (cats.length > 1) {
+                duplicatesFound = true;
+                // Keep the first one, delete the rest
+                const [first, ...duplicates] = cats;
+                duplicates.forEach(dup => {
+                    const docRef = doc(firestore, 'users', userId, 'categories', dup.id);
+                    batch.delete(docRef);
+                });
+            }
+        });
+
+        if (duplicatesFound) {
+            try {
+                // Also set a flag to not run this again
+                batch.update(doc(firestore, 'users', userId), { hasRunCategoryCleanup: true });
+                await batch.commit();
+                toast({
+                    title: "Database Cleanup",
+                    description: "Successfully removed duplicate categories."
+                });
+            } catch (error) {
+                console.error("Error cleaning up duplicate categories:", error);
+                toast({
+                    title: "Cleanup Failed",
+                    description: "Could not remove duplicate categories.",
+                    variant: "destructive"
+                });
+            }
+        } else {
+            // No duplicates found, just set the flag so we don't run this check again
+            await updateDocumentNonBlocking(doc(firestore, 'users', userId), { hasRunCategoryCleanup: true });
+        }
+    };
+
+    cleanupDuplicateCategories();
+  }, [firestore, userId, categoriesData, userData]);
+
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'userId'>) => {
     if (!userId) return;
