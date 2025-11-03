@@ -20,12 +20,16 @@ export type FinancialWellnessInput = z.infer<typeof FinancialWellnessInputSchema
 const FinancialWellnessOutputSchema = z.object({
   wellnessScore: z.number().min(0).max(100).describe('A holistic score from 0-100 representing the user\'s financial health.'),
   analysis: z.string().describe('A brief analysis explaining the score, highlighting strengths and weaknesses.'),
-  recommendations: z.array(z.string()).describe('A list of 2-3 actionable recommendations for improving the score.'),
+  recommendationsJson: z.string().describe('A JSON string representing an array of 2-3 actionable recommendations for improving the score.'),
 });
 export type FinancialWellnessOutput = z.infer<typeof FinancialWellnessOutputSchema>;
 
-export async function checkFinancialWellness(input: FinancialWellnessInput): Promise<FinancialWellnessOutput> {
-  return financialWellnessFlow(input);
+export async function checkFinancialWellness(input: FinancialWellnessInput): Promise<{ wellnessScore: number; analysis: string; recommendations: string[] }> {
+    const result = await financialWellnessFlow(input);
+    return {
+        ...result,
+        recommendations: JSON.parse(result.recommendationsJson),
+    };
 }
 
 const prompt = ai.definePrompt({
@@ -40,7 +44,7 @@ Consider the following factors in your analysis:
 - Income vs. Expenses: Is there a healthy positive cash flow?
 - Spending Habits: Analyze the categories in the transactions for potential areas of improvement.
 
-Based on the provided data, generate a response in the required JSON format. The score should be a reflection of their overall financial health. The analysis should be encouraging but honest. Recommendations should be specific and actionable.
+Based on the provided data, generate a response in the required JSON format. The score should be a reflection of their overall financial health. The analysis should be encouraging but honest. The recommendations should be returned as a JSON string array in the 'recommendationsJson' field.
 
 User's Financial Data:
 - Total Income: {{totalIncome}}

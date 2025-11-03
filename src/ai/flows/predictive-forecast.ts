@@ -18,16 +18,17 @@ const PredictiveForecastInputSchema = z.object({
 export type PredictiveForecastInput = z.infer<typeof PredictiveForecastInputSchema>;
 
 const PredictiveForecastOutputSchema = z.object({
-  forecast: z.array(z.object({
-    date: z.string().describe('The date for the forecast point (YYYY-MM-DD).'),
-    balance: z.number().describe('The projected balance on that date.'),
-  })).describe('An array of projected balances over the forecast period.'),
+  forecastJson: z.string().describe('A JSON string representing an array of objects, where each object has a "date" (YYYY-MM-DD) and a "balance" (number).'),
   summary: z.string().describe('A human-readable summary of the forecast and the impact of the what-if scenario.'),
 });
 export type PredictiveForecastOutput = z.infer<typeof PredictiveForecastOutputSchema>;
 
-export async function predictiveForecast(input: PredictiveForecastInput): Promise<PredictiveForecastOutput> {
-  return predictiveForecastFlow(input);
+export async function predictiveForecast(input: PredictiveForecastInput): Promise<{ forecast: { date: string; balance: number }[]; summary: string; }> {
+  const result = await predictiveForecastFlow(input);
+  return {
+    ...result,
+    forecast: JSON.parse(result.forecastJson),
+  };
 }
 
 const prompt = ai.definePrompt({
@@ -41,6 +42,7 @@ const prompt = ai.definePrompt({
 3.  Project the user's balance starting from their current balance of {{currentBalance}}.
 4.  Generate a series of forecast data points (date and balance) for the next {{forecastPeriodDays}} days.
 5.  Provide a concise summary explaining the forecast and how the scenario impacts their financial future.
+6.  Return the forecast data as a JSON string in the 'forecastJson' field.
 
 User's Historical Transaction Data:
 \`\`\`json

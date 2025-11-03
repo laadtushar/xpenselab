@@ -7,13 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, CheckCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials } from "@/context/financial-context";
-import { checkFinancialWellness, FinancialWellnessOutput } from "@/ai/flows/financial-wellness";
+import { checkFinancialWellness } from "@/ai/flows/financial-wellness";
 import { Progress } from "../ui/progress";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
+type WellnessResult = {
+  wellnessScore: number;
+  analysis: string;
+  recommendations: string[];
+};
+
 export function FinancialWellness() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<FinancialWellnessOutput | null>(null);
+  const [result, setResult] = useState<WellnessResult | null>(null);
   const { toast } = useToast();
   const { transactions, incomes, expenses, budget } = useFinancials();
 

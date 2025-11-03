@@ -9,13 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials } from "@/context/financial-context";
-import { predictiveForecast, PredictiveForecastOutput } from "@/ai/flows/predictive-forecast";
+import { predictiveForecast } from "@/ai/flows/predictive-forecast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { ForecastChart } from "./forecast-chart";
 
+type ForecastResult = {
+  forecast: { date: string; balance: number }[];
+  summary: string;
+};
+
+
 export function ForecastGenerator() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<PredictiveForecastOutput | null>(null);
+  const [result, setResult] = useState<ForecastResult | null>(null);
   const [scenario, setScenario] = useState("Add a $50 monthly subscription for a gym.");
   const { toast } = useToast();
   const { transactions, incomes, expenses } = useFinancials();
