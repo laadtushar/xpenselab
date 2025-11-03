@@ -102,6 +102,34 @@
         "date"
       ]
     },
+    "RecurringTransaction": {
+      "title": "Recurring Transaction",
+      "type": "object",
+      "description": "Represents a scheduled income or expense.",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly", "yearly"] },
+        "startDate": { "type": "string", "format": "date-time" },
+        "nextDueDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "amount", "description", "category", "frequency", "startDate", "nextDueDate"]
+    },
+    "FinancialInsight": {
+        "title": "Financial Insight",
+        "type": "object",
+        "description": "AI-generated insight about a user's finances.",
+        "properties": {
+            "userId": { "type": "string" },
+            "generatedAt": { "type": "string", "format": "date-time" },
+            "summary": { "type": "string" },
+            "suggestions": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["userId", "generatedAt", "summary"]
+    },
     "Category": {
       "title": "Category",
       "type": "object",
@@ -336,6 +364,14 @@
     "/users/{userId}/categories/{categoryId}": {
         "schema": { "$ref": "#/entities/Category" },
         "description": "Stores user-specific expense categories."
+    },
+    "/users/{userId}/recurringTransactions/{recurringTransactionId}": {
+        "schema": { "$ref": "#/entities/RecurringTransaction" },
+        "description": "Stores a user's recurring transactions."
+    },
+    "/users/{userId}/financialInsights/{insightId}": {
+        "schema": { "$ref": "#/entities/FinancialInsight" },
+        "description": "Stores AI-generated financial insights for a user."
     },
     "/users/{userId}/budgets/{budgetId}": {
         "schema": { "$ref": "#/entities/Budget" },

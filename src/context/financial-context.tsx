@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { createContext, useContext, useMemo, useEffect } from 'react';
-import type { Transaction, Budget, Income, Expense, Category, User as UserData } from '@/lib/types';
+import React, { createContext, useContext, useMemo, useEffect, useCallback } from 'react';
+import type { Transaction, Budget, Income, Expense, Category, User as UserData, RecurringTransaction } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, writeBatch, getDocs, query, FieldValue, updateDoc, deleteField } from 'firebase/firestore';
 import {
@@ -11,7 +11,7 @@ import {
   setDocumentNonBlocking,
   updateDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, addDays, addWeeks, addMonths, addYears } from 'date-fns';
 import { defaultCategories } from '@/lib/default-categories';
 
 interface FinancialContextType {
@@ -44,110 +44,38 @@ interface FinancialContextType {
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 export function FinancialProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const userId = user?.uid;
+  const { user } } from "@/firebase";
+import { collection, doc, writeBatch, getDocs, query, FieldValue, updateDoc, deleteField } from "firebase/firestore";
+import {
+  addDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+  setDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from "@/firebase/non-blocking-updates";
+import { format, startOfMonth, endOfMonth, isWithinInterval, addDays, addWeeks, addMonths, addYears } from "date-fns";
+import { defaultCategories } from "@/lib/default-categories";
 
-  // Firestore document and collection references
-  const userDocRef = useMemoFirebase(() => userId && firestore ? doc(firestore, 'users', userId) : null, [userId, firestore]);
-  const incomesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'incomes') : null, [userId, firestore]);
-  const expensesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'expenses') : null, [userId, firestore]);
-  const budgetsRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'budgets') : null, [userId, firestore]);
-  const categoriesRef = useMemoFirebase(() => userId && firestore ? collection(firestore, 'users', userId, 'categories') : null, [userId, firestore]);
+interface FinancialContextType {
+  transactions: Transaction[];
+  incomes: Income[];
+  expenses: Expense[];
+  currentMonthExpenses: Expense[];
+  addTransaction: (transaction: Omit>, updateCategory: (category: Category) => void;
+  deleteCategory: (id: string) => void;
 
-  // Fetching data from Firestore
-  const { data: userData, isLoading: loadingUser } = useDoc<UserData>(userDocRef);
-  const { data: incomesData, isLoading: loadingIncomes } = useCollection<Income>(incomesRef);
-  const { data: expensesData, isLoading: loadingExpenses } = useCollection<Expense>(expensesRef);
-  const { data: budgetsData, isLoading: loadingBudgets } = useCollection<Budget>(budgetsRef);
-  const { data: categoriesData, isLoading: loadingCategories } = useCollection<Category>(categoriesRef);
-
-  // Seed default categories for new users
-  useEffect(() => {
-    if (firestore && userId && !loadingCategories && categoriesData?.length === 0) {
-      const batch = writeBatch(firestore);
-      defaultCategories.forEach(category => {
-        const docRef = doc(collection(firestore, 'users', userId, 'categories'));
-        batch.set(docRef, { ...category, userId });
-      });
-      batch.commit();
-    }
-  }, [firestore, userId, categoriesData, loadingCategories]);
-
-  const incomes = useMemo(() => incomesData || [], [incomesData]);
-  const expenses = useMemo(() => expensesData || [], [expensesData]);
-  const categories = useMemo(() => categoriesData || [], [categoriesData]);
-  const incomeCategories = useMemo(() => categories.filter(c => c.type === 'income'), [categories]);
-  const expenseCategories = useMemo(() => categories.filter(c => c.type === 'expense'), [categories]);
-
-  const transactions: Transaction[] = useMemo(() => {
-    const combined: Transaction[] = [
-      ...incomes.map(i => ({ ...i, type: 'income' } as Transaction)),
-      ...expenses.map(e => ({ ...e, type: 'expense' } as Transaction)),
-    ];
-    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [incomes, expenses]);
-  
-  const currentMonthExpenses = useMemo(() => {
-    const today = new Date();
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
-    return expenses.filter(expense => isWithinInterval(new Date(expense.date), { start: monthStart, end: monthEnd }));
-  }, [expenses]);
-
-
-  const budget = useMemo(() => {
-    if (!budgetsData) return null;
-    const currentMonth = format(new Date(), 'yyyy-MM');
-    return budgetsData.find(b => b.month === currentMonth) || null;
-  }, [budgetsData]);
-
-  const addTransaction = (transaction: Omit<Transaction, 'userId'>) => {
-    if (!userId || !firestore) return;
-    const ref = transaction.type === 'income' ? incomesRef : expensesRef;
-    if (!ref) return;
-    
-    // If an ID is provided (e.g. from Monzo), use it to create a doc ref
-    const docRef = transaction.id ? doc(ref, transaction.id) : doc(ref);
-
-    const data = { ...transaction, userId, amount: Number(transaction.amount) };
-    if (!transaction.id) { // if it's a new transaction, it won't have an ID
-        // @ts-ignore
-        delete data.id;
-    }
-
-    setDocumentNonBlocking(docRef, data);
-  };
-  
-  const deleteTransaction = (id: string, type: 'income' | 'expense') => {
-    if (!userId || !firestore) return;
-    const docRef = doc(firestore, 'users', userId, type === 'income' ? 'incomes' : 'expenses', id);
-    deleteDocumentNonBlocking(docRef);
-  };
-
-  const clearTransactions = async (type: 'income' | 'expense') => {
-    if (!userId || !firestore) return;
-    const ref = type === 'income' ? incomesRef : expensesRef;
-    if (!ref) return;
-
-    const q = query(ref);
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) return;
-
-    const batch = writeBatch(firestore);
-    querySnapshot.forEach(doc => {
+  userData: UserData | null;
+  updateUser: (data: Partial> {
       batch.delete(doc.ref);
     });
-    
+
     await batch.commit();
-  }
-  
+  };
+
   const setBudget = (newBudget: { amount: number }) => {
     if (!userId || !firestore || !budgetsRef) return;
-    const currentMonth = format(new Date(), 'yyyy-MM');
+    const currentMonth = format(new Date(), "yyyy-MM");
     const existingBudget = budgetsData?.find(b => b.month === currentMonth);
-    
+
     const budgetData = {
       userId,
       month: currentMonth,
@@ -155,32 +83,27 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     };
 
     if (existingBudget) {
-      const docRef = doc(firestore, 'users', userId, 'budgets', existingBudget.id);
+      const docRef = doc(firestore, "users", userId, "budgets", existingBudget.id);
       setDocumentNonBlocking(docRef, budgetData, { merge: true });
     } else {
       addDocumentNonBlocking(budgetsRef, budgetData);
     }
   };
 
-  const addCategory = async (category: Omit<Category, 'id' | 'userId'>) => {
-    if (!userId || !categoriesRef) return;
-    await addDocumentNonBlocking(categoriesRef, { ...category, userId });
-  };
-
-  const updateCategory = (category: Category) => {
+  const addCategory = async (category: Omit => {
     if (!userId || !firestore) return;
-    const docRef = doc(firestore, 'users', userId, 'categories', category.id);
+    const docRef = doc(firestore, "users", userId, "categories", category.id);
     const { id, ...categoryData } = category;
     setDocumentNonBlocking(docRef, categoryData, { merge: true });
   };
 
   const deleteCategory = (id: string) => {
     if (!userId || !firestore) return;
-    const docRef = doc(firestore, 'users', userId, 'categories', id);
+    const docRef = doc(firestore, "users", userId, "categories", id);
     deleteDocumentNonBlocking(docRef);
   };
-  
-  const updateUser = (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => {
+
+  const updateUser = (data: Partial) => {
     if (!userDocRef || !firestore || !userId) return;
 
     if (data.monzoTokens === undefined) {
@@ -191,7 +114,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
       setDocumentNonBlocking(userDocRef, data, { merge: true });
     }
   };
-  
+
   const resetData = () => {
     console.warn("Resetting all user data from Firestore is a destructive operation and should be implemented server-side for safety.");
   };
@@ -215,13 +138,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     userData: userData || null,
     updateUser,
     resetData,
-    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets,
+    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets || loadingRecurring,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, currentMonthExpenses, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring]);
 
   return (
-    <FinancialContext.Provider value={value}>
-      {children}
     </FinancialContext.Provider>
   );
 }
@@ -229,7 +150,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 export function useFinancials() {
   const context = useContext(FinancialContext);
   if (context === undefined) {
-    throw new Error('useFinancials must be used within a FinancialProvider');
+    throw new Error("useFinancials must be used within a FinancialProvider");
   }
   return context;
 }

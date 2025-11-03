@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Firestore Security Rules for FinanceFlow.
  *
@@ -14,6 +15,8 @@
  * - /users/{userId}/expenses/{expenseId}: Stores expense entries for a specific user.
  * - /users/{userId}/categories/{categoryId}: Stores categories for a specific user.
  * - /users/{userId}/budgets/{budgetId}: Stores budget entries for a specific user.
+ * - /users/{userId}/recurringTransactions/{recurringTransactionId}: Stores recurring transactions.
+ * - /users/{userId}/financialInsights/{insightId}: Stores AI-generated insights.
  * - /groups/{groupId}: Stores group information for shared expenses.
  * - /groups/{groupId}/sharedExpenses/{expenseId}: Stores individual shared expenses.
  * - /debts/{debtId}: Stores debt information between users.
@@ -101,6 +104,29 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
     }
+    
+    /**
+     * @description Controls access to recurring transactions for a specific user.
+     */
+    match /users/{userId}/recurringTransactions/{recurringTransactionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to financial insights for a specific user.
+     */
+    match /users/{userId}/financialInsights/{insightId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isExistingOwner(userId);
+    }
+
 
     /**
      * @description Controls access to budget entries for a specific user.

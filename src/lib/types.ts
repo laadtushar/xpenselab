@@ -41,6 +41,26 @@ export type Category = {
   type: 'income' | 'expense';
 }
 
+export type RecurringTransaction = {
+    id: string;
+    userId: string;
+    type: 'income' | 'expense';
+    amount: number;
+    description: string;
+    category: string;
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    startDate: string; // ISO string
+    nextDueDate: string; // ISO string
+};
+
+export type FinancialInsight = {
+    id: string;
+    userId: string;
+    generatedAt: string; // ISO string
+    summary: string;
+    suggestions: string[];
+};
+
 // Types for Split functionality
 export type Group = {
   id: string;
