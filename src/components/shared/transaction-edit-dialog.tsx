@@ -87,7 +87,7 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Transaction</DialogTitle>
+          <DialogTitle>Edit {transaction.type === 'income' ? 'Income' : 'Expense'}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] p-4">
             <Form {...form}>
@@ -159,7 +159,11 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
                     <FormItem>
                     <FormLabel>Category</FormLabel>
                     <div className="relative">
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            key={`${transaction.id}-${transaction.type}`}
+                        >
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
