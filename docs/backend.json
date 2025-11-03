@@ -33,6 +33,14 @@
                 "refreshToken": { "type": "string" },
                 "expiresAt": { "type": "string", "format": "date-time" }
             }
+        },
+        "aiRequestCount": {
+          "type": "number",
+          "description": "The number of AI requests made by the user today."
+        },
+        "lastAiRequestDate": {
+            "type": "string",
+            "description": "The date of the last AI request in YYYY-MM-DD format."
         }
       },
       "required": [
@@ -396,3 +404,5 @@
     }
   }
 }
+
+    

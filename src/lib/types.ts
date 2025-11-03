@@ -1,5 +1,6 @@
 
 
+
 export type User = {
     id: string;
     email: string;
@@ -10,7 +11,9 @@ export type User = {
         accessToken: string;
         refreshToken: string;
         expiresAt: string;
-    }
+    };
+    aiRequestCount?: number;
+    lastAiRequestDate?: string; // YYYY-MM-DD
 };
 
 export type Transaction = {
@@ -128,3 +131,5 @@ export interface MonzoTransaction {
   settled: string;
   category: string;
 }
+
+    

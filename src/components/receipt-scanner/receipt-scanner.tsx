@@ -1,16 +1,16 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Camera, Zap, AlertTriangle, Star } from 'lucide-react';
+import { Loader2, Camera, Zap, AlertTriangle, Star, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { scanReceipt } from '@/ai/flows/scan-receipt';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ExpenseFormFromReceipt } from './expense-form-from-receipt';
 import type { Expense } from '@/lib/types';
-import { useFinancials } from '@/context/financial-context';
+import { useFinancials, useAiRequest } from '@/context/financial-context';
 
 export function ReceiptScanner() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,8 +19,13 @@ export function ReceiptScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
-  const { userData } = useFinancials();
+  const { userData, canMakeAiRequest, incrementAiRequestCount } = useFinancials();
   const isPremium = userData?.tier === 'premium';
+  
+  const { remainingRequests } = useMemo(() => {
+    const { remaining } = canMakeAiRequest();
+    return { remainingRequests: remaining };
+  }, [canMakeAiRequest, userData]);
 
   useEffect(() => {
     if (!isPremium) return;
@@ -53,6 +58,16 @@ export function ReceiptScanner() {
   }, [toast, isPremium]);
 
   const handleScanReceipt = async () => {
+    const { canRequest, reason } = canMakeAiRequest();
+    if (!canRequest) {
+      toast({
+        title: "Cannot perform AI request",
+        description: reason,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -70,6 +85,7 @@ export function ReceiptScanner() {
 
     try {
       const result = await scanReceipt({ photoDataUri });
+      incrementAiRequestCount();
       if (!result.description || !result.amount) {
         throw new Error("AI could not extract necessary details. Please try again.");
       }
@@ -117,7 +133,17 @@ export function ReceiptScanner() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI-Powered Receipt Scanner</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                AI-Powered Receipt Scanner
+            </div>
+            {isPremium && remainingRequests !== undefined && (
+                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    {remainingRequests} requests left today
+                </div>
+            )}
+        </CardTitle>
         <CardDescription>Point your camera at a receipt and let AI extract the details automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -152,3 +178,5 @@ export function ReceiptScanner() {
     </Card>
   );
 }
+
+    

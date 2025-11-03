@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
-import { useFinancials } from "@/context/financial-context";
+import { useFinancials, useAiRequest } from "@/context/financial-context";
 import { categorizeExpense } from "@/ai/flows/categorize-expenses";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -37,8 +37,8 @@ const formSchema = z.object({
 
 export function ExpenseForm() {
   const [open, setOpen] = useState(false);
-  const [isCategorizing, setIsCategorizing] = useState(false);
   const { addTransaction, expenseCategories, userData } = useFinancials();
+  const { makeRequest: makeCategorizationRequest, isLoading: isCategorizing } = useAiRequest(categorizeExpense);
   const { toast } = useToast();
   const isPremium = userData?.tier === 'premium';
 
@@ -55,26 +55,22 @@ export function ExpenseForm() {
   const descriptionValue = form.watch("description");
   const debouncedDescription = useDebounce(descriptionValue, 500);
 
-  useEffect(() => {
-    const autoCategorize = async () => {
-      if (isPremium && debouncedDescription && debouncedDescription.length >= 3) {
-        setIsCategorizing(true);
-        try {
-          const result = await categorizeExpense({ description: debouncedDescription });
-          const categoryExists = expenseCategories.some(c => c.name === result.category);
-          if (result.category && categoryExists) {
-            form.setValue("category", result.category, { shouldValidate: true });
-          }
-        } catch (error) {
-          console.error("AI categorization failed:", error);
-          // Do not show toast for this, as it can be annoying
-        } finally {
-          setIsCategorizing(false);
+  const autoCategorize = useCallback(async () => {
+    if (isPremium && debouncedDescription && debouncedDescription.length >= 3) {
+      const result = await makeCategorizationRequest({ description: debouncedDescription });
+      if (result) {
+        const categoryExists = expenseCategories.some(c => c.name === result.category);
+        if (result.category && categoryExists) {
+          form.setValue("category", result.category, { shouldValidate: true });
         }
       }
-    };
+    }
+  }, [debouncedDescription, isPremium, makeCategorizationRequest, expenseCategories, form]);
+
+
+  useEffect(() => {
     autoCategorize();
-  }, [debouncedDescription, form, expenseCategories, isPremium]);
+  }, [autoCategorize]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addTransaction({
@@ -206,3 +202,5 @@ export function ExpenseForm() {
     </Dialog>
   );
 }
+
+    

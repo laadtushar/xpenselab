@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wand2, Star } from "lucide-react";
+import { Loader2, Wand2, Star, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFinancials } from "@/context/financial-context";
+import { useFinancials, useAiRequest } from "@/context/financial-context";
 import { predictiveForecast } from "@/ai/flows/predictive-forecast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { ForecastChart } from "./forecast-chart";
@@ -20,12 +20,19 @@ type ForecastResult = {
 
 
 export function ForecastGenerator() {
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ForecastResult | null>(null);
   const [scenario, setScenario] = useState("Add a $50 monthly subscription for a gym.");
   const { toast } = useToast();
-  const { transactions, incomes, expenses, userData } = useFinancials();
+  const { transactions, incomes, expenses, userData, canMakeAiRequest } = useFinancials();
+  const { makeRequest: makeForecastRequest, isLoading } = useAiRequest(predictiveForecast);
+
   const isPremium = userData?.tier === 'premium';
+  
+  const { remainingRequests } = useMemo(() => {
+    const { remaining } = canMakeAiRequest();
+    return { remainingRequests: remaining };
+  }, [canMakeAiRequest, userData]);
+
 
   const handleGenerateForecast = async () => {
     if (transactions.length < 5) {
@@ -37,30 +44,20 @@ export function ForecastGenerator() {
       return;
     }
 
-    setIsLoading(true);
     setResult(null);
+    const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
+    const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
+    const currentBalance = totalIncome - totalExpenses;
 
-    try {
-      const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
-      const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
-      const currentBalance = totalIncome - totalExpenses;
-
-      const response = await predictiveForecast({
-        transactionsJson: JSON.stringify(transactions, null, 2),
-        currentBalance,
-        scenario,
-        forecastPeriodDays: 90,
-      });
+    const response = await makeForecastRequest({
+      transactionsJson: JSON.stringify(transactions, null, 2),
+      currentBalance,
+      scenario,
+      forecastPeriodDays: 90,
+    });
+    
+    if (response) {
       setResult(response);
-    } catch (error) {
-      console.error("AI forecast generation failed:", error);
-      toast({
-        title: "AI Assistant Error",
-        description: "Could not generate financial forecast at this time.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -86,7 +83,17 @@ export function ForecastGenerator() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>90-Day Financial Forecast</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            90-Day Financial Forecast
+          </div>
+           {isPremium && remainingRequests !== undefined && (
+                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    {remainingRequests} requests left today
+                </div>
+            )}
+        </CardTitle>
         <CardDescription>
           Enter a "what-if" scenario to see how it might impact your future finances.
         </CardDescription>
@@ -126,3 +133,5 @@ export function ForecastGenerator() {
     </Card>
   );
 }
+
+    

@@ -1,21 +1,26 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, CheckCircle, Star } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle, Star, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFinancials } from "@/context/financial-context";
+import { useFinancials, useAiRequest } from "@/context/financial-context";
 import { generateInsights, GenerateInsightsOutput } from "@/ai/flows/generate-insights";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export function InsightsGenerator() {
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<GenerateInsightsOutput | null>(null);
   const { toast } = useToast();
-  const { transactions, userData } = useFinancials();
+  const { transactions, userData, canMakeAiRequest } = useFinancials();
+  const { makeRequest: makeInsightsRequest, isLoading } = useAiRequest(generateInsights);
   const isPremium = userData?.tier === 'premium';
+
+  const { remainingRequests } = useMemo(() => {
+    const { remaining } = canMakeAiRequest();
+    return { remainingRequests: remaining };
+  }, [canMakeAiRequest, userData]);
 
   const handleGetInsights = async () => {
     if (transactions.length < 5) {
@@ -27,21 +32,10 @@ export function InsightsGenerator() {
         return;
     }
     
-    setIsLoading(true);
     setResult(null);
-
-    try {
-      const response = await generateInsights({ transactions });
+    const response = await makeInsightsRequest({ transactions });
+    if (response) {
       setResult(response);
-    } catch (error) {
-      console.error("AI insights generation failed:", error);
-      toast({
-        title: "AI Assistant Error",
-        description: "Could not generate financial insights at this time.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -70,9 +64,17 @@ export function InsightsGenerator() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          Generate Financial Report
+        <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Generate Financial Report
+            </div>
+             {isPremium && remainingRequests !== undefined && (
+                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    {remainingRequests} requests left today
+                </div>
+            )}
         </CardTitle>
         <CardDescription>
           Let AI analyze your spending and income to provide a summary and actionable suggestions.
@@ -115,3 +117,5 @@ export function InsightsGenerator() {
     </Card>
   );
 }
+
+    

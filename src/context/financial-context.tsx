@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { createContext, useContext, useMemo, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useMemo, useEffect, useCallback, useState } from 'react';
 import type { Transaction, Budget, Income, Expense, Category, User as UserData, RecurringTransaction } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch, getDocs, query, FieldValue, updateDoc, deleteField } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, FieldValue, updateDoc, deleteField, increment } from 'firebase/firestore';
 import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -13,6 +13,8 @@ import {
 } from '@/firebase/non-blocking-updates';
 import { format, startOfMonth, endOfMonth, isWithinInterval, addDays, addWeeks, addMonths, addYears, isPast } from 'date-fns';
 import { defaultCategories } from '@/lib/default-categories';
+
+const AI_REQUEST_LIMIT = 10;
 
 interface FinancialContextType {
   transactions: Transaction[];
@@ -40,6 +42,9 @@ interface FinancialContextType {
   resetData: () => void;
   isLoading: boolean;
   isLoadingCategories: boolean;
+
+  canMakeAiRequest: () => { canRequest: boolean; reason: string; remaining?: number; };
+  incrementAiRequestCount: () => void;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -58,7 +63,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const recurringRef = useMemoFirebase(() => userId ? collection(firestore, 'users', userId, 'recurringTransactions') : null, [firestore, userId]);
 
   // Data Fetching
-  const { data: userData } = useDoc<UserData>(userDocRef);
+  const { data: userData, isLoading: isLoadingUser } = useDoc<UserData>(userDocRef);
   const { data: incomesData, isLoading: loadingIncomes } = useCollection<Income>(incomesRef);
   const { data: expensesData, isLoading: loadingExpenses } = useCollection<Expense>(expensesRef);
   const { data: categoriesData, isLoading: loadingCategories } = useCollection<Category>(categoriesRef);
@@ -233,6 +238,41 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const canMakeAiRequest = useCallback(() => {
+    if (isLoadingUser || !userData) {
+      return { canRequest: false, reason: 'User data not loaded.' };
+    }
+    if (userData.tier !== 'premium') {
+      return { canRequest: false, reason: 'Upgrade to premium to use AI features.' };
+    }
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const requestCount = userData.lastAiRequestDate === today ? (userData.aiRequestCount || 0) : 0;
+    
+    if (requestCount >= AI_REQUEST_LIMIT) {
+      return { canRequest: false, reason: `You have reached your daily limit of ${AI_REQUEST_LIMIT} AI requests.` };
+    }
+
+    return { canRequest: true, reason: '', remaining: AI_REQUEST_LIMIT - requestCount };
+  }, [userData, isLoadingUser]);
+
+
+  const incrementAiRequestCount = useCallback(() => {
+    if (!userDocRef || !userData) return;
+    
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (userData.lastAiRequestDate === today) {
+        updateDocumentNonBlocking(userDocRef, {
+            aiRequestCount: increment(1)
+        });
+    } else {
+        updateDocumentNonBlocking(userDocRef, {
+            aiRequestCount: 1,
+            lastAiRequestDate: today
+        });
+    }
+  }, [userDocRef, userData]);
+
+
   const resetData = () => {
     console.warn("Resetting all user data from Firestore is a destructive operation and should be implemented server-side for safety.");
   };
@@ -257,9 +297,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     userData: userData || null,
     updateUser,
     resetData,
-    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets || loadingRecurring,
+    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets || loadingRecurring || isLoadingUser,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, updateTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring]);
+    canMakeAiRequest,
+    incrementAiRequestCount,
+  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount]);
 
   return (
     <FinancialContext.Provider value={value}>
@@ -275,3 +317,45 @@ export function useFinancials() {
   }
   return context;
 }
+
+// Custom hook to manage AI request logic
+export const useAiRequest = <T, U>(
+  aiFlow: (input: T) => Promise<U>
+) => {
+  const { canMakeAiRequest, incrementAiRequestCount } = useFinancials();
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const makeRequest = useCallback(async (input: T): Promise<U | null> => {
+    const { canRequest, reason } = canMakeAiRequest();
+    if (!canRequest) {
+      toast({
+        title: "Cannot perform AI request",
+        description: reason,
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await aiFlow(input);
+      incrementAiRequestCount();
+      return result;
+    } catch (error: any) {
+      console.error("AI flow failed:", error);
+      toast({
+        title: "AI Assistant Error",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [aiFlow, canMakeAiRequest, incrementAiRequestCount, toast]);
+
+  return { makeRequest, isLoading };
+};
+
+    

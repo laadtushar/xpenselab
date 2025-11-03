@@ -4,9 +4,9 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, CheckCircle, TrendingUp, Star } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle, TrendingUp, Star, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFinancials } from "@/context/financial-context";
+import { useFinancials, useAiRequest } from "@/context/financial-context";
 import { checkFinancialWellness } from "@/ai/flows/financial-wellness";
 import { Progress } from "../ui/progress";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -19,11 +19,17 @@ type WellnessResult = {
 };
 
 export function FinancialWellness() {
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WellnessResult | null>(null);
   const { toast } = useToast();
-  const { transactions, incomes, expenses, budget, userData } = useFinancials();
+  const { transactions, incomes, expenses, budget, userData, canMakeAiRequest } = useFinancials();
+  const { makeRequest: makeWellnessRequest, isLoading } = useAiRequest(checkFinancialWellness);
   const isPremium = userData?.tier === 'premium';
+  
+  const { remainingRequests } = useMemo(() => {
+    const { remaining } = canMakeAiRequest();
+    return { remainingRequests: remaining };
+  }, [canMakeAiRequest, userData]);
+
 
   const handleGetWellnessCheck = async () => {
     if (transactions.length < 10) {
@@ -35,33 +41,24 @@ export function FinancialWellness() {
       return;
     }
 
-    setIsLoading(true);
     setResult(null);
 
-    try {
-      const monthStart = startOfMonth(new Date());
-      const monthEnd = endOfMonth(new Date());
-      const currentMonthTransactions = transactions.filter(t => isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd }));
+    const monthStart = startOfMonth(new Date());
+    const monthEnd = endOfMonth(new Date());
+    const currentMonthTransactions = transactions.filter(t => isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd }));
 
-      const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
-      const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
+    const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
+    const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
 
-      const response = await checkFinancialWellness({
-        transactionsJson: JSON.stringify(currentMonthTransactions, null, 2),
-        totalIncome,
-        totalExpenses,
-        monthlyBudget: budget?.amount,
-      });
+    const response = await makeWellnessRequest({
+      transactionsJson: JSON.stringify(currentMonthTransactions, null, 2),
+      totalIncome,
+      totalExpenses,
+      monthlyBudget: budget?.amount,
+    });
+    
+    if (response) {
       setResult(response);
-    } catch (error) {
-      console.error("AI wellness check failed:", error);
-      toast({
-        title: "AI Assistant Error",
-        description: "Could not perform financial wellness check at this time.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -87,7 +84,17 @@ export function FinancialWellness() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Financial Wellness Check</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              AI Financial Wellness Check
+            </div>
+            {isPremium && remainingRequests !== undefined && (
+                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    {remainingRequests} requests left today
+                </div>
+            )}
+        </CardTitle>
         <CardDescription>
           Get a score and personalized advice on your financial health based on your recent activity.
         </CardDescription>
@@ -142,3 +149,5 @@ export function FinancialWellness() {
     </Card>
   );
 }
+
+    

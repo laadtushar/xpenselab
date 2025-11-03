@@ -4,19 +4,26 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Star } from "lucide-react";
+import { Loader2, Sparkles, Star, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useFinancials } from "@/context/financial-context";
+import { useFinancials, useAiRequest } from "@/context/financial-context";
 import { budgetingAssistance, BudgetingAssistanceOutput } from "@/ai/flows/budgeting-assistance";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export function AiBudgetAssistant() {
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<BudgetingAssistanceOutput | null>(null);
   const { toast } = useToast();
-  const { incomes, currentMonthExpenses, budget, userData } = useFinancials();
+  const { incomes, currentMonthExpenses, budget, userData, canMakeAiRequest } = useFinancials();
   const isPremium = userData?.tier === 'premium';
+  
+  const { makeRequest: makeBudgetingRequest, isLoading } = useAiRequest(budgetingAssistance);
+
+  const { remainingRequests } = useMemo(() => {
+    const { remaining } = canMakeAiRequest();
+    return { remainingRequests: remaining };
+  }, [canMakeAiRequest, userData]);
+
 
   const financialData = useMemo(() => {
     const today = new Date();
@@ -48,35 +55,34 @@ export function AiBudgetAssistant() {
       return;
     }
 
-    setIsLoading(true);
     setResult(null);
 
-    try {
-      const response = await budgetingAssistance({
+    const response = await makeBudgetingRequest({
         monthlyIncome: financialData.monthlyIncome,
         monthlyExpenses: financialData.monthlyExpenses,
         budgetGoal: budget.amount,
         spendingCategories: financialData.spendingCategories,
-      });
-      setResult(response);
-    } catch (error) {
-      console.error("AI budgeting assistance failed:", error);
-      toast({
-        title: "AI Assistant Error",
-        description: "Could not get budgeting advice at this time.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    });
+
+    if (response) {
+        setResult(response);
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          AI Budget Assistant
+        <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                AI Budget Assistant
+            </div>
+             {isPremium && remainingRequests !== undefined && (
+                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    {remainingRequests} requests left today
+                </div>
+            )}
         </CardTitle>
         <CardDescription>
           Get personalized advice on your spending habits and budget for the current month.
@@ -123,3 +129,5 @@ export function AiBudgetAssistant() {
     </Card>
   );
 }
+
+    
