@@ -11,13 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
-
-if (!getApps().length) {
-  initializeApp();
-}
-
-const db = getFirestore();
+import { initializeApp, getApps, getApp } from 'firebase-admin/app';
 
 const ExchangeTokenInputSchema = z.object({
   code: z.string().describe("The authorization code received from Monzo."),
@@ -45,6 +39,12 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
     outputSchema: ExchangeTokenOutputSchema,
   },
   async (input) => {
+    // Initialize Firebase Admin SDK inside the flow for reliability
+    if (!getApps().length) {
+        initializeApp();
+    }
+    const db = getFirestore();
+
     const { code, redirect_uri, userId } = input;
 
     const clientId = process.env.NEXT_PUBLIC_MONZO_CLIENT_ID;
