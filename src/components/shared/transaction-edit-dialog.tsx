@@ -43,27 +43,21 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
   const { updateTransaction, incomeCategories, expenseCategories } = useFinancials();
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-  });
-  
-  // Determine the correct category list based on the transaction type
   const categories = useMemo(() => {
     return transaction.type === 'income' ? incomeCategories : expenseCategories;
   }, [transaction.type, incomeCategories, expenseCategories]);
-
-  // Reset form with correct data when dialog opens or transaction changes
-  useEffect(() => {
-    if (transaction && open) {
-      form.reset({
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    // Using 'values' makes the form controlled and will react to prop changes.
+    // This is the key fix to ensure the form always has the correct data.
+    values: {
         description: transaction.description,
         amount: transaction.amount,
         date: new Date(transaction.date),
-        category: transaction.category,
-      });
+        category: transaction.category || "",
     }
-  }, [transaction, open, form]);
-
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     updateTransaction(transaction.id, transaction.type, {
@@ -85,7 +79,7 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
             <span className="sr-only">Edit Transaction</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]" key={`${transaction.id}-${transaction.type}`}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit {transaction.type === 'income' ? 'Income' : 'Expense'}</DialogTitle>
         </DialogHeader>
