@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { DashboardHeader } from '@/components/shared/dashboard-header';
@@ -25,19 +25,13 @@ export default function SplitsPage() {
 
   const selectedGroup = groups?.find(g => g.id === selectedGroupId) || null;
 
-  // Automatically select the first group if none is selected
-  useState(() => {
-    if (!selectedGroupId && groups && groups.length > 0) {
-      setSelectedGroupId(groups[0].id);
-    }
-  });
-  
-  // Effect to select the first group when groups load
-  useState(() => {
+  // Effect to select the first group when groups load and no group is selected yet
+  useEffect(() => {
     if (!isLoadingGroups && groups && groups.length > 0 && !selectedGroupId) {
       setSelectedGroupId(groups[0].id);
     }
-  });
+  }, [isLoadingGroups, groups, selectedGroupId]);
+
 
   return (
     <div className="flex flex-col gap-8">
