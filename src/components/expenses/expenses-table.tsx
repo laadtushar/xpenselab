@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Loader2, Trash2 } from "lucide-react";
+import { ArrowUpDown, Edit, Loader2, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +20,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SplitExpenseDialog } from "./split-expense-dialog";
-import type { Expense } from "@/lib/types";
+import type { Expense, Transaction } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import { TransactionEditDialog } from "../shared/transaction-edit-dialog";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -91,8 +93,9 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
                 </TableCell>
                 <TableCell className="text-right">{formatCurrency(expense.amount, userData?.currency)}</TableCell>
                 <TableCell>{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
-                <TableCell className="text-right">
-                   <SplitExpenseDialog expense={expense} />
+                <TableCell className="text-right space-x-0">
+                  <TransactionEditDialog transaction={expense as Transaction} />
+                  <SplitExpenseDialog expense={expense} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">

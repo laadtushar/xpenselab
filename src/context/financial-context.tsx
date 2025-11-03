@@ -20,6 +20,7 @@ interface FinancialContextType {
   expenses: Expense[];
   currentMonthExpenses: Expense[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'userId'>) => void;
+  updateTransaction: (id: string, type: 'income' | 'expense', data: Partial<Omit<Transaction, 'id' | 'userId'>>) => void;
   deleteTransaction: (id: string, type: 'income' | 'expense') => void;
   clearTransactions: (type: 'income' | 'expense') => Promise<void>;
   
@@ -68,7 +69,6 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const expenses = useMemo(() => expensesData || [], [expensesData]);
   const categories = useMemo(() => categoriesData || [], [categoriesData]);
 
-  // Handle Recurring Transactions
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'userId'>) => {
     if (!userId) return;
     const ref = transaction.type === 'income' ? incomesRef : expensesRef;
@@ -76,7 +76,8 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
       addDocumentNonBlocking(ref, { ...transaction, userId });
     }
   }, [userId, incomesRef, expensesRef]);
-
+  
+  // Handle Recurring Transactions
   useEffect(() => {
     if (!recurringData || !firestore || !userId) return;
 
@@ -156,6 +157,12 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   }, [loadingCategories, categories.length, userId, firestore]);
 
   // Actions
+  const updateTransaction = (id: string, type: 'income' | 'expense', data: Partial<Omit<Transaction, 'id' | 'userId'>>) => {
+    if (!userId || !firestore) return;
+    const path = type === 'income' ? `users/${userId}/incomes/${id}` : `users/${userId}/expenses/${id}`;
+    updateDocumentNonBlocking(doc(firestore, path), data);
+  };
+
   const deleteTransaction = (id: string, type: 'income' | 'expense') => {
     if (!userId || !firestore) return;
     const path = type === 'income' ? `users/${userId}/incomes/${id}` : `users/${userId}/expenses/${id}`;
@@ -236,6 +243,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     expenses,
     currentMonthExpenses,
     addTransaction,
+    updateTransaction,
     deleteTransaction,
     clearTransactions,
     budget,
@@ -251,7 +259,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     resetData,
     isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets || loadingRecurring,
     isLoadingCategories: loadingCategories,
-  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, updateTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring]);
 
   return (
     <FinancialContext.Provider value={value}>
