@@ -11,7 +11,7 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-8">
       <DashboardHeader title="Settings" />
       <CurrencySettings />
-      {/* <MonzoSettings /> */}
+      <MonzoSettings />
       <DataImporter />
       <ResetData />
     </div>
