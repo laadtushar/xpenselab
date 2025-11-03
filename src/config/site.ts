@@ -7,6 +7,9 @@ export const siteConfig = {
   links: {
     github: "https://github.com/your-repo/xpenselab",
   },
+  limits: {
+    aiRequestsPerDay: 10,
+  }
 }
 
 export type SiteConfig = typeof siteConfig

@@ -13,8 +13,9 @@ import {
 } from '@/firebase/non-blocking-updates';
 import { format, startOfMonth, endOfMonth, isWithinInterval, addDays, addWeeks, addMonths, addYears, isPast } from 'date-fns';
 import { defaultCategories } from '@/lib/default-categories';
+import { siteConfig } from '@/config/site';
 
-const AI_REQUEST_LIMIT = 10;
+const AI_REQUEST_LIMIT = siteConfig.limits.aiRequestsPerDay;
 
 interface FinancialContextType {
   transactions: Transaction[];
