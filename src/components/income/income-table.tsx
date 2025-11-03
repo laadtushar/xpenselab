@@ -5,7 +5,7 @@ import { useFinancials } from "@/context/financial-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, ArrowUpDown, Edit } from "lucide-react";
+import { Loader2, Trash2, ArrowUpDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "../ui/badge";
 import { CategoryIcon } from "../icons/category-icon";
-import type { Income, Transaction } from "@/lib/types";
+import type { Income } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
-import { TransactionEditDialog } from "../shared/transaction-edit-dialog";
+import { IncomeEditDialog } from "./income-edit-dialog";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -90,7 +90,7 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
                 <TableCell className="text-right">{formatCurrency(income.amount, userData?.currency)}</TableCell>
                 <TableCell>{format(new Date(income.date), 'MMM d, yyyy')}</TableCell>
                  <TableCell className="text-right space-x-0">
-                  <TransactionEditDialog transaction={income as Transaction} />
+                  <IncomeEditDialog income={income} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">

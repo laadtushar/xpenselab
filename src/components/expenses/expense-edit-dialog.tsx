@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,51 +24,45 @@ import { CalendarIcon, Loader2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { useFinancials } from "@/context/financial-context";
 import { useToast } from "@/hooks/use-toast";
-import type { Transaction } from "@/lib/types";
+import type { Expense } from "@/lib/types";
 import { ScrollArea } from "../ui/scroll-area";
 
 const formSchema = z.object({
   description: z.string().min(1, "Description is required."),
   amount: z.coerce.number().positive("Amount must be positive."),
   date: z.date({ required_error: "Date is required." }),
-  category: z.string().optional(),
-}).refine(data => data.category && data.category.length > 0, {
-    message: "Category is required.",
-    path: ["category"],
+  category: z.string().min(1, "Category is required."),
 });
 
 
-interface TransactionEditDialogProps {
-    transaction: Transaction;
+interface ExpenseEditDialogProps {
+    expense: Expense;
 }
 
-export function TransactionEditDialog({ transaction }: TransactionEditDialogProps) {
+export function ExpenseEditDialog({ expense }: ExpenseEditDialogProps) {
   const [open, setOpen] = useState(false);
-  const { updateTransaction, incomeCategories, expenseCategories } = useFinancials();
+  const { updateTransaction, expenseCategories } = useFinancials();
   const { toast } = useToast();
-
-  const categories = useMemo(() => {
-    return transaction.type === 'income' ? incomeCategories : expenseCategories;
-  }, [transaction.type, incomeCategories, expenseCategories]);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    // Use values to ensure the form is controlled by the expense prop
     values: {
-        description: transaction.description,
-        amount: transaction.amount,
-        date: new Date(transaction.date),
-        category: transaction.category || "",
+        description: expense.description,
+        amount: expense.amount,
+        date: new Date(expense.date),
+        category: expense.category,
     }
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    updateTransaction(transaction.id, transaction.type, {
+    updateTransaction(expense.id, 'expense', {
       ...values,
       date: values.date.toISOString(),
     });
     toast({
-      title: "Transaction Updated",
-      description: `Your transaction has been successfully updated.`,
+      title: "Expense Updated",
+      description: `Your expense has been successfully updated.`,
     });
     setOpen(false);
   }
@@ -78,12 +72,12 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon">
             <Edit className="h-4 w-4" />
-            <span className="sr-only">Edit Transaction</span>
+            <span className="sr-only">Edit Expense</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit {transaction.type === 'income' ? 'Income' : 'Expense'}</DialogTitle>
+          <DialogTitle>Edit Expense</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] p-4">
             <Form {...form}>
@@ -164,7 +158,7 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {categories.map((cat) => (
+                          {expenseCategories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.name}>
                               {cat.name}
                             </SelectItem>

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Edit, Loader2, Trash2 } from "lucide-react";
+import { ArrowUpDown, Loader2, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,9 +20,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SplitExpenseDialog } from "./split-expense-dialog";
-import type { Expense, Transaction } from "@/lib/types";
+import type { Expense } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
-import { TransactionEditDialog } from "../shared/transaction-edit-dialog";
+import { ExpenseEditDialog } from "./expense-edit-dialog";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -94,7 +94,7 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
                 <TableCell className="text-right">{formatCurrency(expense.amount, userData?.currency)}</TableCell>
                 <TableCell>{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
                 <TableCell className="text-right space-x-0">
-                  <TransactionEditDialog transaction={expense as Transaction} />
+                  <ExpenseEditDialog expense={expense} />
                   <SplitExpenseDialog expense={expense} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
