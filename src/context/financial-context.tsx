@@ -55,6 +55,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading: loadingUser } = useUser();
   const firestore = useFirestore();
   const userId = user?.uid;
+  const { toast } = useToast();
 
   // Data References
   const userDocRef = useMemoFirebase(() => userId ? doc(firestore, 'users', userId) : null, [firestore, userId]);
@@ -303,7 +304,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     isLoadingCategories: loadingCategories,
     canMakeAiRequest,
     incrementAiRequestCount,
-  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory]);
 
   return (
     <FinancialContext.Provider value={value}>
@@ -359,5 +360,3 @@ export const useAiRequest = <T, U>(
 
   return { makeRequest, isLoading };
 };
-
-    
