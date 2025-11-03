@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -43,7 +43,9 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
   const { updateTransaction, incomeCategories, expenseCategories } = useFinancials();
   const { toast } = useToast();
 
-  const categories = transaction.type === 'income' ? incomeCategories : expenseCategories;
+  const categories = useMemo(() => {
+    return transaction.type === 'income' ? incomeCategories : expenseCategories;
+  }, [transaction.type, incomeCategories, expenseCategories]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,6 +56,18 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
       category: transaction.category,
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        description: transaction.description,
+        amount: transaction.amount,
+        date: new Date(transaction.date),
+        category: transaction.category,
+      });
+    }
+  }, [open, transaction, form]);
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     updateTransaction(transaction.id, transaction.type, {
