@@ -81,17 +81,25 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
       }
       
       const userDocRef = db.collection('users').doc(userId);
-      await userDocRef.set({
-        monzoTokens: {
-            accessToken: tokenData.access_token,
-            refreshToken: tokenData.refresh_token,
-            expiresAt: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-        }
-      }, { merge: true });
+      
+      const monzoTokens: any = {
+          accessToken: tokenData.access_token,
+          expiresAt: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+      };
+      
+      if (tokenData.refresh_token) {
+        monzoTokens.refreshToken = tokenData.refresh_token;
+      }
+      
+      await userDocRef.set({ monzoTokens }, { merge: true });
 
       return { success: true, message: 'Monzo account connected successfully!' };
     } catch (error: any) {
       console.error('Error during token exchange flow:', error);
+      // Check for specific Firestore validation error
+      if (error.message && error.message.includes('Firestore document')) {
+          return { success: false, message: `An unexpected error occurred: ${error.message}. This might be due to an issue with the data being saved.` };
+      }
       return { success: false, message: `An unexpected error occurred: ${error.message}` };
     }
   }
