@@ -38,8 +38,9 @@ const formSchema = z.object({
 export function ExpenseForm() {
   const [open, setOpen] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
-  const { addTransaction, expenseCategories } = useFinancials();
+  const { addTransaction, expenseCategories, userData } = useFinancials();
   const { toast } = useToast();
+  const isPremium = userData?.tier === 'premium';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -56,7 +57,7 @@ export function ExpenseForm() {
 
   useEffect(() => {
     const autoCategorize = async () => {
-      if (debouncedDescription && debouncedDescription.length >= 3) {
+      if (isPremium && debouncedDescription && debouncedDescription.length >= 3) {
         setIsCategorizing(true);
         try {
           const result = await categorizeExpense({ description: debouncedDescription });
@@ -73,7 +74,7 @@ export function ExpenseForm() {
       }
     };
     autoCategorize();
-  }, [debouncedDescription, form, expenseCategories]);
+  }, [debouncedDescription, form, expenseCategories, isPremium]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     addTransaction({
@@ -101,7 +102,7 @@ export function ExpenseForm() {
         <DialogHeader>
           <DialogTitle>Add New Expense</DialogTitle>
           <DialogDescription>
-            Enter the details of your expense. The category will be suggested automatically.
+            Enter the details of your expense. {isPremium && "The category will be suggested automatically."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

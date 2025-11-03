@@ -20,6 +20,11 @@
             "type": "string",
             "description": "The user's preferred currency code (e.g., 'USD', 'EUR')."
         },
+        "tier": {
+            "type": "string",
+            "description": "The user's subscription tier.",
+            "enum": ["basic", "premium"]
+        },
         "monzoTokens": {
             "type": "object",
             "description": "Stores Monzo OAuth tokens.",

@@ -4,12 +4,13 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, CheckCircle, TrendingUp } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle, TrendingUp, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials } from "@/context/financial-context";
 import { checkFinancialWellness } from "@/ai/flows/financial-wellness";
 import { Progress } from "../ui/progress";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 type WellnessResult = {
   wellnessScore: number;
@@ -21,7 +22,8 @@ export function FinancialWellness() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WellnessResult | null>(null);
   const { toast } = useToast();
-  const { transactions, incomes, expenses, budget } = useFinancials();
+  const { transactions, incomes, expenses, budget, userData } = useFinancials();
+  const isPremium = userData?.tier === 'premium';
 
   const handleGetWellnessCheck = async () => {
     if (transactions.length < 10) {
@@ -62,6 +64,25 @@ export function FinancialWellness() {
       setIsLoading(false);
     }
   };
+
+  if (!isPremium) {
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>AI Financial Wellness Check</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Alert>
+                    <Star className="h-4 w-4" />
+                    <AlertTitle>Premium Feature</AlertTitle>
+                    <AlertDescription>
+                        Upgrade to a premium account to get your financial wellness score and personalized advice.
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+        </Card>
+    )
+  }
 
   return (
     <Card>

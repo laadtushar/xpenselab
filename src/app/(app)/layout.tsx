@@ -38,6 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           email: user.email!,
           createdAt: new Date().toISOString(),
           currency: 'USD',
+          tier: 'basic',
         };
         setDocumentNonBlocking(userDocRef, newUserDoc).finally(() => {
           setIsFirestoreCheckComplete(true);

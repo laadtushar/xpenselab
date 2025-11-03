@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wand2 } from "lucide-react";
+import { Loader2, Wand2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials } from "@/context/financial-context";
 import { predictiveForecast } from "@/ai/flows/predictive-forecast";
@@ -24,7 +24,8 @@ export function ForecastGenerator() {
   const [result, setResult] = useState<ForecastResult | null>(null);
   const [scenario, setScenario] = useState("Add a $50 monthly subscription for a gym.");
   const { toast } = useToast();
-  const { transactions, incomes, expenses } = useFinancials();
+  const { transactions, incomes, expenses, userData } = useFinancials();
+  const isPremium = userData?.tier === 'premium';
 
   const handleGenerateForecast = async () => {
     if (transactions.length < 5) {
@@ -62,6 +63,25 @@ export function ForecastGenerator() {
       setIsLoading(false);
     }
   };
+
+  if (!isPremium) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>90-Day Financial Forecast</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Star className="h-4 w-4" />
+            <AlertTitle>Premium Feature</AlertTitle>
+            <AlertDescription>
+              Upgrade to a premium account to unlock predictive forecasting and "what-if" scenarios.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

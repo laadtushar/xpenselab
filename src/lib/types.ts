@@ -5,6 +5,7 @@ export type User = {
     email: string;
     createdAt: string; // ISO string
     currency?: string;
+    tier?: 'basic' | 'premium';
     monzoTokens?: {
         accessToken: string;
         refreshToken: string;

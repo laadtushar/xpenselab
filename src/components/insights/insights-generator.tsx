@@ -4,16 +4,18 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, CheckCircle } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFinancials } from "@/context/financial-context";
 import { generateInsights, GenerateInsightsOutput } from "@/ai/flows/generate-insights";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export function InsightsGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<GenerateInsightsOutput | null>(null);
   const { toast } = useToast();
-  const { transactions } = useFinancials();
+  const { transactions, userData } = useFinancials();
+  const isPremium = userData?.tier === 'premium';
 
   const handleGetInsights = async () => {
     if (transactions.length < 5) {
@@ -42,6 +44,28 @@ export function InsightsGenerator() {
       setIsLoading(false);
     }
   };
+  
+    if (!isPremium) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        Generate Financial Report
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Alert>
+                        <Star className="h-4 w-4" />
+                        <AlertTitle>Premium Feature</AlertTitle>
+                        <AlertDescription>
+                            Upgrade to a premium account to unlock AI-powered financial insights and personalized suggestions.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+        )
+    }
 
   return (
     <Card>

@@ -4,12 +4,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Camera, Zap, AlertTriangle } from 'lucide-react';
+import { Loader2, Camera, Zap, AlertTriangle, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { scanReceipt } from '@/ai/flows/scan-receipt';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { ExpenseFormFromReceipt } from './expense-form-from-receipt';
 import type { Expense } from '@/lib/types';
+import { useFinancials } from '@/context/financial-context';
 
 export function ReceiptScanner() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +19,12 @@ export function ReceiptScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const { userData } = useFinancials();
+  const isPremium = userData?.tier === 'premium';
 
   useEffect(() => {
+    if (!isPremium) return;
+
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -45,7 +50,7 @@ export function ReceiptScanner() {
             stream.getTracks().forEach(track => track.stop());
         }
     }
-  }, [toast]);
+  }, [toast, isPremium]);
 
   const handleScanReceipt = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -85,6 +90,25 @@ export function ReceiptScanner() {
       setIsLoading(false);
     }
   };
+  
+  if (!isPremium) {
+      return (
+           <Card>
+                <CardHeader>
+                    <CardTitle>AI-Powered Receipt Scanner</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Alert>
+                        <Star className="h-4 w-4" />
+                        <AlertTitle>Premium Feature</AlertTitle>
+                        <AlertDescription>
+                            Upgrade to a premium account to unlock the receipt scanner and automatically log expenses from a photo.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+      )
+  }
   
   if (scannedData) {
       return <ExpenseFormFromReceipt receiptData={scannedData} onCancel={() => setScannedData(null)} />
