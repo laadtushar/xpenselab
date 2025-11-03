@@ -1,7 +1,9 @@
+
 import { allIcons } from './all-icons';
 import { useFinancials } from '@/context/financial-context';
 import { MoreHorizontal } from 'lucide-react';
 import React from "react";
+import type { Category } from '@/lib/types';
 
 type CategoryIconProps = {
   categoryName?: string;
@@ -10,12 +12,14 @@ type CategoryIconProps = {
 };
 
 export function CategoryIcon({ categoryName, iconName, className }: CategoryIconProps) {
-  const { categories } = useFinancials();
+  const { incomeCategories, expenseCategories } = useFinancials();
   
   let finalIconName = iconName;
 
   if (!finalIconName && categoryName) {
-    const category = categories.find(c => c.name === categoryName);
+    // Combine both category lists to search for the icon
+    const allCategories: Category[] = [...incomeCategories, ...expenseCategories];
+    const category = allCategories.find(c => c.name === categoryName);
     if (category) {
       finalIconName = category.icon;
     }
