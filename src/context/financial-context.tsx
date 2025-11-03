@@ -31,7 +31,6 @@ interface FinancialContextType {
   budget: Budget | null;
   setBudget: (budget: { amount: number }) => void;
   
-  categories: Category[];
   incomeCategories: Category[];
   expenseCategories: Category[];
   addCategory: (category: Omit<Category, 'id' | 'userId'>) => Promise<void>;
@@ -76,18 +75,6 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const incomes = useMemo(() => incomesData || [], [incomesData]);
   const expenses = useMemo(() => expensesData || [], [expensesData]);
   
-  const categories = useMemo(() => {
-    if (!categoriesData) return [];
-    // Ensure uniqueness using a Map, which is more robust than Set for this case
-    const uniqueCategories = new Map<string, Category>();
-    categoriesData.forEach(cat => {
-        if (!uniqueCategories.has(cat.id)) {
-            uniqueCategories.set(cat.id, cat);
-        }
-    });
-    return Array.from(uniqueCategories.values());
-  }, [categoriesData]);
-
   // Create default categories if the flag is not set for the user
   useEffect(() => {
     const createDefaults = async () => {
@@ -174,7 +161,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     };
 
     cleanupDuplicateCategories();
-  }, [firestore, userId, categoriesData, userData]);
+  }, [firestore, userId, categoriesData, userData, toast]);
 
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'userId'>) => {
@@ -250,26 +237,28 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   }, [expenses, budgetsData]);
   
   const incomeCategories = useMemo(() => {
-    const uniqueIds = new Set();
-    return categories.filter(c => {
-        if (c.type === 'income' && !uniqueIds.has(c.id)) {
-            uniqueIds.add(c.id);
+    if (!categoriesData) return [];
+    const uniqueIds = new Set<string>();
+    return categoriesData.filter(cat => {
+        if (cat.type === 'income' && !uniqueIds.has(cat.id)) {
+            uniqueIds.add(cat.id);
             return true;
         }
         return false;
     });
-  }, [categories]);
+  }, [categoriesData]);
 
   const expenseCategories = useMemo(() => {
-     const uniqueIds = new Set();
-    return categories.filter(c => {
-        if (c.type === 'expense' && !uniqueIds.has(c.id)) {
-            uniqueIds.add(c.id);
+    if (!categoriesData) return [];
+    const uniqueIds = new Set<string>();
+    return categoriesData.filter(cat => {
+        if (cat.type === 'expense' && !uniqueIds.has(cat.id)) {
+            uniqueIds.add(cat.id);
             return true;
         }
         return false;
     });
-  }, [categories]);
+  }, [categoriesData]);
   
   // Actions
   const updateTransaction = (id: string, type: 'income' | 'expense', data: Partial<Omit<Transaction, 'id' | 'userId'>>) => {
@@ -398,7 +387,6 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     clearTransactions,
     budget,
     setBudget,
-    categories,
     incomeCategories,
     expenseCategories,
     addCategory,
@@ -411,7 +399,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     isLoadingCategories: loadingCategories,
     canMakeAiRequest,
     incrementAiRequestCount,
-  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, categories, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory]);
 
   return (
     <FinancialContext.Provider value={value}>
