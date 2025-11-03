@@ -11,7 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, getApp } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 
 const ExchangeTokenInputSchema = z.object({
   code: z.string().describe("The authorization code received from Monzo."),
@@ -76,7 +76,7 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
 
       if (!response.ok) {
         console.error("Failed to exchange token. Status:", response.status, "Body:", tokenData);
-        const errorMessage = tokenData.error_description || tokenData.error || 'Failed to exchange token.';
+        const errorMessage = tokenData.error_description || tokenData.message || tokenData.error || 'Failed to exchange token.';
         return { success: false, message: `API Error: ${errorMessage}` };
       }
       
@@ -96,10 +96,6 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
       return { success: true, message: 'Monzo account connected successfully!' };
     } catch (error: any) {
       console.error('Error during token exchange flow:', error);
-      // Check for specific Firestore validation error
-      if (error.message && error.message.includes('Firestore document')) {
-          return { success: false, message: `An unexpected error occurred: ${error.message}. This might be due to an issue with the data being saved.` };
-      }
       return { success: false, message: `An unexpected error occurred: ${error.message}` };
     }
   }
