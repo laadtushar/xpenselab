@@ -41,7 +41,7 @@ export function IncomeForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: "",
-      amount: undefined,
+      amount: '' as unknown as number,
       date: new Date(),
       category: "",
     },
@@ -57,7 +57,7 @@ export function IncomeForm() {
       title: "Income Added",
       description: `Added ${values.description} to your income.`,
     });
-    form.reset({ date: new Date(), description: '', amount: undefined, category: '' });
+    form.reset({ date: new Date(), description: '', amount: '' as unknown as number, category: '' });
     setOpen(false);
   }
 

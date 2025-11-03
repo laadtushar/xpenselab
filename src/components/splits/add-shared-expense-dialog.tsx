@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -76,6 +77,7 @@ export function AddSharedExpenseDialog({ group }: AddSharedExpenseDialogProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: '',
+      amount: '' as unknown as number,
       date: new Date(),
       paidBy: user?.uid || '',
       splits: group.members.map(m => ({ userId: m, amount: 0, isIncluded: true })),
@@ -141,7 +143,7 @@ export function AddSharedExpenseDialog({ group }: AddSharedExpenseDialogProps) {
       });
       form.reset({
           description: '',
-          amount: undefined,
+          amount: '' as unknown as number,
           date: new Date(),
           paidBy: user.uid,
           splits: group.members.map(m => ({ userId: m, amount: 0, isIncluded: true })),

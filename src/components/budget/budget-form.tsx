@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -11,19 +12,20 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
+import { formatCurrency } from "@/lib/utils";
 
 const formSchema = z.object({
   amount: z.coerce.number().positive("Budget must be a positive number."),
 });
 
 export function BudgetForm() {
-  const { budget, setBudget } = useFinancials();
+  const { budget, setBudget, userData } = useFinancials();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: undefined,
+      amount: '' as unknown as number,
     },
   });
 
@@ -31,7 +33,7 @@ export function BudgetForm() {
     if (budget) {
       form.setValue("amount", budget.amount);
     } else {
-        form.reset({ amount: undefined });
+        form.reset({ amount: '' as unknown as number });
     }
   }, [budget, form]);
 
@@ -41,7 +43,7 @@ export function BudgetForm() {
     });
     toast({
       title: "Budget Updated",
-      description: `Your budget for this month is set to $${values.amount}.`,
+      description: `Your budget for this month is set to ${formatCurrency(values.amount, userData?.currency)}.`,
     });
   };
 
