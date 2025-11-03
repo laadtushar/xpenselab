@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -365,7 +364,7 @@ export function DataImporter() {
                             <TableRow>
                                 <TableHead>Row #</TableHead>
                                 <TableHead>Reason</TableHead>
-                                <TableHead>Row Data</TableHead>
+
                             </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -375,7 +374,7 @@ export function DataImporter() {
                                 <TableCell>
                                     <Badge variant="destructive">{error.reason}</Badge>
                                 </TableCell>
-                                <TableCell className="text-xs font-mono">{JSON.stringify(error.row)}</TableCell>
+                                
                                 </TableRow>
                             ))}
                             </TableBody>

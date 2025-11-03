@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
