@@ -31,8 +31,12 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required."),
   amount: z.coerce.number().positive("Amount must be positive."),
   date: z.date({ required_error: "Date is required." }),
-  category: z.string().min(1, "Category is required."),
+  category: z.string().optional(),
+}).refine(data => data.category && data.category.length > 0, {
+    message: "Category is required.",
+    path: ["category"],
 });
+
 
 interface TransactionEditDialogProps {
     transaction: Transaction;
@@ -49,8 +53,6 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    // Using 'values' makes the form controlled and will react to prop changes.
-    // This is the key fix to ensure the form always has the correct data.
     values: {
         description: transaction.description,
         amount: transaction.amount,
@@ -147,33 +149,31 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
                 )}
                 />
                 <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <div className="relative">
-                        <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                        >
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
-                            <SelectTrigger>
+                          <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
+                          </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.name}>
-                                {cat.name}
-                              </SelectItem>
-                            ))}
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
-                        </Select>
-                    </div>
-                    <FormMessage />
+                      </Select>
+                      <FormMessage />
                     </FormItem>
-                )}
+                  )}
                 />
                 <DialogFooter>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
