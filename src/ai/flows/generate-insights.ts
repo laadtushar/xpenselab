@@ -14,7 +14,7 @@ const GenerateInsightsInputSchema = z.object({
 });
 export type GenerateInsightsInput = z.infer<typeof GenerateInsightsInputSchema>;
 
-const GenerateInsightsPromptInputSchema = GenerateInsightsInputSchema.extend({
+const GenerateInsightsPromptInputSchema = z.object({
     transactionsJson: z.string(),
 });
 
@@ -57,7 +57,7 @@ const generateInsightsFlow = ai.defineFlow(
   },
   async input => {
     const transactionsJson = JSON.stringify(input.transactions, null, 2);
-    const {output} = await prompt({...input, transactionsJson});
+    const {output} = await prompt({ transactionsJson });
     return output!;
   }
 );
