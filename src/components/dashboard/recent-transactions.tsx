@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
@@ -41,7 +40,7 @@ export function RecentTransactions() {
         <div className="space-y-4">
           {recentTransactions.length > 0 ? (
             recentTransactions.map((t) => (
-              <div key={t.id} className="flex items-center">
+              <div key={t.id} className="flex items-center transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground -mx-2 px-2 py-1 rounded-md">
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className={'bg-secondary'}>
                     {t.type === 'income' ? <TrendingUp className="h-4 w-4 text-primary" /> : <CategoryIcon categoryName={t.category} />}

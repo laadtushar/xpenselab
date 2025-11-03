@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -63,9 +62,9 @@ export function MemberBalances({ group }: MemberBalancesProps) {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {balances.map(member => (
-              <div key={member.userId} className="flex items-center">
+              <div key={member.userId} className="flex items-center transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground -mx-2 px-2 py-1 rounded-md">
                 <Avatar className="h-9 w-9">
                   <AvatarFallback>
                     <UserIcon className="h-4 w-4" />
