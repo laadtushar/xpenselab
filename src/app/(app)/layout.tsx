@@ -41,16 +41,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           tier: 'basic',
           hasCreatedDefaultCategories: false,
         };
-        setDocumentNonBlocking(userDocRef, newUserDoc).finally(() => {
-          setIsFirestoreCheckComplete(true);
-        });
+        setDocumentNonBlocking(userDocRef, newUserDoc);
+        setIsFirestoreCheckComplete(true);
       } else {
         const userData = userDocSnap.data() as UserData;
         // If user exists but has no tier or category flag, update them.
         if (!userData.tier || userData.hasCreatedDefaultCategories === undefined) {
-          setDocumentNonBlocking(userDocRef, { tier: 'basic', hasCreatedDefaultCategories: userData.hasCreatedDefaultCategories || false }, { merge: true }).finally(() => {
-            setIsFirestoreCheckComplete(true);
-          });
+          setDocumentNonBlocking(userDocRef, { tier: 'basic', hasCreatedDefaultCategories: userData.hasCreatedDefaultCategories || false }, { merge: true });
+          setIsFirestoreCheckComplete(true);
         } else {
           setIsFirestoreCheckComplete(true);
         }
