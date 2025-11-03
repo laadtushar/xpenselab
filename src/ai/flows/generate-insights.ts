@@ -26,7 +26,8 @@ const GenerateInsightsOutputSchema = z.object({
 export type GenerateInsightsOutput = z.infer<typeof GenerateInsightsOutputSchema>;
 
 export async function generateInsights(input: GenerateInsightsInput): Promise<GenerateInsightsOutput> {
-  return generateInsightsFlow(input);
+  const transactionsJson = JSON.stringify(input.transactions, null, 2);
+  return generateInsightsFlow({ transactionsJson });
 }
 
 const prompt = ai.definePrompt({
@@ -52,12 +53,11 @@ Provide your response in the required JSON format.`,
 const generateInsightsFlow = ai.defineFlow(
   {
     name: 'generateInsightsFlow',
-    inputSchema: GenerateInsightsInputSchema,
+    inputSchema: GenerateInsightsPromptInputSchema,
     outputSchema: GenerateInsightsOutputSchema,
   },
   async input => {
-    const transactionsJson = JSON.stringify(input.transactions, null, 2);
-    const {output} = await prompt({ transactionsJson });
+    const {output} = await prompt(input);
     return output!;
   }
 );
