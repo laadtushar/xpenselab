@@ -10,7 +10,7 @@ import {z} from 'genkit';
 import type { Transaction } from '@/lib/types';
 
 const FinancialWellnessInputSchema = z.object({
-  transactions: z.array(z.custom<Transaction>()).describe("A list of the user's financial transactions over the last few months."),
+  transactionsJson: z.string().describe("A JSON string of the user's financial transactions."),
   totalIncome: z.number().describe("Total income over the period."),
   totalExpenses: z.number().describe("Total expenses over the period."),
   monthlyBudget: z.number().optional().describe("The user's set monthly budget, if any."),
@@ -30,7 +30,7 @@ export async function checkFinancialWellness(input: FinancialWellnessInput): Pro
 
 const prompt = ai.definePrompt({
   name: 'financialWellnessPrompt',
-  input: {schema: FinancialWellnessInputSchema.extend({ transactionsJson: z.string() }) },
+  input: {schema: FinancialWellnessInputSchema },
   output: {schema: FinancialWellnessOutputSchema},
   prompt: `You are a financial wellness coach. Your goal is to analyze a user's financial data to provide a "Financial Wellness Score" out of 100 and offer actionable advice.
 
@@ -60,8 +60,7 @@ const financialWellnessFlow = ai.defineFlow(
     outputSchema: FinancialWellnessOutputSchema,
   },
   async (input) => {
-    const transactionsJson = JSON.stringify(input.transactions, null, 2);
-    const {output} = await prompt({...input, transactionsJson});
+    const {output} = await prompt(input);
     return output!;
   }
 );

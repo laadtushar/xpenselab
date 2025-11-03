@@ -39,7 +39,7 @@ export function FinancialWellness() {
       const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
 
       const response = await checkFinancialWellness({
-        transactions: currentMonthTransactions,
+        transactionsJson: JSON.stringify(currentMonthTransactions, null, 2),
         totalIncome,
         totalExpenses,
         monthlyBudget: budget?.amount,

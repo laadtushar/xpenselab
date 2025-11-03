@@ -10,7 +10,7 @@ import {z} from 'genkit';
 import type { Transaction } from '@/lib/types';
 
 const PredictiveForecastInputSchema = z.object({
-  transactions: z.array(z.custom<Transaction>()).describe("List of user's financial transactions."),
+  transactionsJson: z.string().describe("A JSON string of the user's financial transactions."),
   currentBalance: z.number().describe("The user's current total balance across accounts."),
   scenario: z.string().describe('The "what-if" scenario provided by the user (e.g., "add a $50 monthly subscription").'),
   forecastPeriodDays: z.number().default(90).describe('The number of days into the future to forecast.'),
@@ -32,7 +32,7 @@ export async function predictiveForecast(input: PredictiveForecastInput): Promis
 
 const prompt = ai.definePrompt({
   name: 'predictiveForecastPrompt',
-  input: {schema: PredictiveForecastInputSchema.extend({ transactionsJson: z.string() }) },
+  input: {schema: PredictiveForecastInputSchema },
   output: {schema: PredictiveForecastOutputSchema},
   prompt: `You are a financial analyst AI. Your task is to create a predictive forecast of a user's bank balance over the next {{forecastPeriodDays}} days based on their past transactions and a "what-if" scenario.
 
@@ -58,8 +58,7 @@ const predictiveForecastFlow = ai.defineFlow(
     outputSchema: PredictiveForecastOutputSchema,
   },
   async (input) => {
-    const transactionsJson = JSON.stringify(input.transactions, null, 2);
-    const {output} = await prompt({...input, transactionsJson});
+    const {output} = await prompt(input);
     return output!;
   }
 );

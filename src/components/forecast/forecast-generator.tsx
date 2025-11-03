@@ -39,7 +39,7 @@ export function ForecastGenerator() {
       const currentBalance = totalIncome - totalExpenses;
 
       const response = await predictiveForecast({
-        transactions,
+        transactionsJson: JSON.stringify(transactions, null, 2),
         currentBalance,
         scenario,
         forecastPeriodDays: 90,
