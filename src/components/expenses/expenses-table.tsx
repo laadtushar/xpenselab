@@ -57,6 +57,7 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
   }
 
   return (
+      <div className="w-full overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -124,5 +125,6 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
             )}
           </TableBody>
         </Table>
+      </div>
   );
 }

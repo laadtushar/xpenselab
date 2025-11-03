@@ -359,26 +359,28 @@ export function DataImporter() {
               <CardContent>
                 <h3 className="font-semibold mb-2">Rows with Errors</h3>
                 <div className="max-h-60 overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Row #</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead>Row Data</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {logs.errors.map((error, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{error.rowIndex}</TableCell>
-                          <TableCell>
-                            <Badge variant="destructive">{error.reason}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs font-mono">{JSON.stringify(error.row)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                    <div className="w-full overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Row #</TableHead>
+                                <TableHead>Reason</TableHead>
+                                <TableHead>Row Data</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {logs.errors.map((error, index) => (
+                                <TableRow key={index}>
+                                <TableCell>{error.rowIndex}</TableCell>
+                                <TableCell>
+                                    <Badge variant="destructive">{error.reason}</Badge>
+                                </TableCell>
+                                <TableCell className="text-xs font-mono">{JSON.stringify(error.row)}</TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
               </CardContent>
             )}

@@ -55,6 +55,7 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
   }
 
   return (
+      <div className="w-full overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -119,5 +120,6 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
             )}
           </TableBody>
         </Table>
+      </div>
   );
 }

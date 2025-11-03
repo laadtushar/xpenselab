@@ -40,53 +40,55 @@ export function CategoryList({ type }: CategoryListProps) {
   }
 
   return (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Category</TableHead>
-              <TableHead><span className="sr-only">Actions</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>
-                  <Badge variant="secondary" className="flex items-center gap-2 w-fit text-sm py-1 px-3">
-                    <CategoryIcon categoryName={category.name} iconName={category.icon} className="h-4 w-4" />
-                    {category.name}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <CategoryDialog category={category}>
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                  </CategoryDialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete this category.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteCategory(category.id)}>Continue</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="w-full overflow-x-auto">
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Category</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {categories.map((category) => (
+                <TableRow key={category.id}>
+                    <TableCell>
+                    <Badge variant="secondary" className="flex items-center gap-2 w-fit text-sm py-1 px-3">
+                        <CategoryIcon categoryName={category.name} iconName={category.icon} className="h-4 w-4" />
+                        {category.name}
+                    </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                    <CategoryDialog category={category} type={type}>
+                        <Button variant="ghost" size="icon">
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                        </Button>
+                    </CategoryDialog>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this category.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteCategory(category.id)}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    </TableCell>
+                </TableRow>
+                ))}
+            </TableBody>
+            </Table>
+        </div>
   );
 }
