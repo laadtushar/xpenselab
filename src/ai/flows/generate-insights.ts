@@ -14,6 +14,11 @@ const GenerateInsightsInputSchema = z.object({
 });
 export type GenerateInsightsInput = z.infer<typeof GenerateInsightsInputSchema>;
 
+const GenerateInsightsPromptInputSchema = GenerateInsightsInputSchema.extend({
+    transactionsJson: z.string(),
+});
+
+
 const GenerateInsightsOutputSchema = z.object({
   summary: z.string().describe("A brief, insightful summary of the user's spending and income habits."),
   suggestions: z.array(z.string()).describe('A list of 3-5 actionable and personalized suggestions for financial improvement.'),
@@ -26,7 +31,7 @@ export async function generateInsights(input: GenerateInsightsInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateInsightsPrompt',
-  input: {schema: GenerateInsightsInputSchema},
+  input: {schema: GenerateInsightsPromptInputSchema},
   output: {schema: GenerateInsightsOutputSchema},
   prompt: `You are a helpful and friendly personal finance expert. Your goal is to analyze a user's transaction history to provide them with a clear, concise summary of their financial habits and offer actionable advice.
 
@@ -38,7 +43,7 @@ Based on your analysis, provide:
 
 Here is the user's transaction data:
 \`\`\`json
-{{{jsonStringify transactions}}}
+{{{transactionsJson}}}
 \`\`\`
 
 Provide your response in the required JSON format.`,
@@ -51,7 +56,8 @@ const generateInsightsFlow = ai.defineFlow(
     outputSchema: GenerateInsightsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const transactionsJson = JSON.stringify(input.transactions, null, 2);
+    const {output} = await prompt({...input, transactionsJson});
     return output!;
   }
 );
