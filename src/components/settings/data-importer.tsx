@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFinancials } from "@/context/financial-context";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Download } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Transaction } from "@/lib/types";
@@ -60,6 +60,44 @@ export function DataImporter() {
       setLogs(null);
     }
   };
+
+  const handleDownloadSample = () => {
+    let headers: string[];
+    let data: string[][];
+    let filename: string;
+
+    if (importType === 'expense') {
+      headers = ['Date', 'Description', 'Amount', 'Category'];
+      data = [
+        ['2023-10-26', 'Weekly Groceries', '125.50', 'Groceries'],
+        ['2023-10-25', 'Movie Tickets', '30.00', 'Entertainment'],
+      ];
+      filename = 'sample_expenses.csv';
+    } else { // income
+      headers = ['Date', 'Description', 'Amount', 'Category'];
+      data = [
+        ['2023-10-01', 'Monthly Salary', '5000.00', 'Salary'],
+        ['2023-10-15', 'Freelance Project', '750.00', 'Freelance'],
+      ];
+      filename = 'sample_income.csv';
+    }
+
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   const handleImport = async () => {
     if (!file) {
@@ -252,9 +290,18 @@ export function DataImporter() {
       <CardContent className="space-y-6">
         <div className="space-y-2">
             <h3 className="font-medium text-sm">File Format</h3>
-            <p className="text-xs text-muted-foreground">
-                Ensure your file has a header row. For expenses, expected headers are `Purchase Date` or `Date`, `Item` or `Description/Invoice No.`, `Amount`, and `Category`. For income, expected headers are `Date`, `Income Source` or `Description/Invoice No.`, and `Income Amount` or `Income`. Variations are handled. Dates can be in formats like `m/d/yyyy` or parsable strings.
-            </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+                <p>
+                    Ensure your file has a header row. For both expenses and income, the expected headers are `Date`, `Description`, `Amount`, and `Category`.
+                </p>
+                <p>
+                    Variations like `Purchase Date` for `Date` are handled. Dates can be in formats like `m/d/yyyy` or other standard date strings. If a category doesn't exist, it will be created.
+                </p>
+                <Button variant="link" size="sm" className="p-0 h-auto" onClick={handleDownloadSample}>
+                    <Download className="mr-2 h-3 w-3" />
+                    Download sample {importType} sheet
+                </Button>
+            </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
             <RadioGroup
@@ -341,3 +388,5 @@ export function DataImporter() {
     </Card>
   );
 }
+
+    
