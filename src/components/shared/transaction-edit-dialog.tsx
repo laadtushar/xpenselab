@@ -47,9 +47,11 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
     resolver: zodResolver(formSchema),
   });
 
+  const categories = transaction.type === 'income' ? incomeCategories : expenseCategories;
+
   // Effect to reset the form whenever the dialog is opened or the transaction changes
   useEffect(() => {
-    if (open) {
+    if (open && transaction) {
       form.reset({
         description: transaction.description,
         amount: transaction.amount,
@@ -59,7 +61,6 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
     }
   }, [open, transaction, form]);
 
-  const categories = transaction.type === 'income' ? incomeCategories : expenseCategories;
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     updateTransaction(transaction.id, transaction.type, {
@@ -187,3 +188,4 @@ export function TransactionEditDialog({ transaction }: TransactionEditDialogProp
     </Dialog>
   );
 }
+
