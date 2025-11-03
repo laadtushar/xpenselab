@@ -14,6 +14,7 @@ import {
 import { format, startOfMonth, endOfMonth, isWithinInterval, addDays, addWeeks, addMonths, addYears, isPast } from 'date-fns';
 import { defaultCategories } from '@/lib/default-categories';
 import { siteConfig } from '@/config/site';
+import { useToast } from '@/hooks/use-toast';
 
 const AI_REQUEST_LIMIT = siteConfig.limits.aiRequestsPerDay;
 
@@ -298,7 +299,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     userData: userData || null,
     updateUser,
     resetData,
-    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets || loadingRecurring || isLoadingUser,
+    isLoading: loadingUser || loadingIncomes || loadingExpenses || loadingBudgets || loadingCategories || loadingRecurring || isLoadingUser,
     isLoadingCategories: loadingCategories,
     canMakeAiRequest,
     incrementAiRequestCount,
