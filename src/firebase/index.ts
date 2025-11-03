@@ -1,10 +1,10 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 // This function ensures Firebase is initialized only once.
 function getFirebaseServices() {
@@ -18,13 +18,15 @@ function getFirebaseServices() {
     
     // Initialize App Check right after the app is initialized, ONLY on the client.
     if (typeof window !== 'undefined') {
-      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      try {
         initializeAppCheck(app, {
-          provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+          // Use ReCaptchaEnterpriseProvider, which doesn't require a site key in the code.
+          provider: new ReCaptchaEnterpriseProvider(/* siteKey */),
           isTokenAutoRefreshEnabled: true
         });
-      } else {
-        console.error("Firebase App Check: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check will not be initialized. Please add it to your .env file.");
+        console.log("Firebase App Check initialized with ReCaptchaEnterpriseProvider.");
+      } catch (appCheckError) {
+          console.error("Firebase App Check initialization failed:", appCheckError);
       }
     }
   }
