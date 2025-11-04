@@ -3,7 +3,7 @@
 
 import { useFinancials } from "@/context/financial-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, HelpCircle } from "lucide-react";
 import { useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -156,11 +156,9 @@ export function DashboardStats() {
     const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
     const totalPersonalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     
-    // As per your request: [(Total Income - Total Expenses) ] - (What I am Owed)
+    // Previous formulas from user prompt
     const actualCashLeft = (totalIncome - totalPersonalExpenses) - youAreOwed;
-    
-    // As per your request: [[(Total Income - Total Expenses) ] + (What I am Owed)] - What I owe
-    const finalNetSavings = (totalIncome - totalPersonalExpenses) + youAreOwed - youOwe;
+    const finalNetSavings = ((totalIncome - totalPersonalExpenses) + youAreOwed) - youOwe;
 
     return { 
         actualIncome: totalIncome,
@@ -194,23 +192,23 @@ export function DashboardStats() {
            <StatComparisonCard
              title="Income"
              value1={formatCurrency(actualIncome, userData?.currency)}
-             description1="Cash received"
+             description1="Actual Income"
              value2={formatCurrency(netIncome, userData?.currency)}
-             description2="After deducting what you owe"
+             description2="Income - What You Owe"
            />
            <StatComparisonCard
              title="Expenses"
              value1={formatCurrency(actualExpenses, userData?.currency)}
-             description1="Personal spending"
+             description1="Actual Expenses"
              value2={formatCurrency(netExpenses, userData?.currency)}
-             description2="Including money you lent"
+             description2="Expenses + What You Are Owed"
            />
            <StatComparisonCard
              title="Savings"
              value1={formatCurrency(actualCashLeft, userData?.currency)}
-             description1="Actual cash left"
+             description1="(Income - Expenses) - Owed to You"
              value2={formatCurrency(finalNetSavings, userData?.currency)}
-             description2="After all liabilities"
+             description2="Final Balance after all liabilities"
            />
         </div>
     </TooltipProvider>
