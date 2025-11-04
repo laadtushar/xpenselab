@@ -160,7 +160,7 @@ export function DashboardStats() {
     const netExpenses = actualExpenses + youAreOwed;
 
     const actualSavings = actualIncome - actualExpenses;
-    const netSavings = netIncome - netExpenses;
+    const netSavings = actualSavings - youOwe + youAreOwed;
     
     return { actualIncome, netIncome, actualExpenses, netExpenses, actualSavings, netSavings };
   }, [incomes, expenses, youOwe, youAreOwed]);
@@ -209,4 +209,3 @@ export function DashboardStats() {
     </TooltipProvider>
   );
 }
-
