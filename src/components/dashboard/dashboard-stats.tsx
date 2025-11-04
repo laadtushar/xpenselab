@@ -3,7 +3,7 @@
 
 import { useFinancials } from "@/context/financial-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Loader2, HandCoins, Landmark, HelpCircle, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 import { useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -121,20 +121,20 @@ const StatCard = ({ title, value, description, icon: Icon, tooltip }: { title: s
     </Card>
 );
 
-const StatComparisonCard = ({ title, actualValue, netValue, actualDescription, netDescription }: { title: string, actualValue: string, netValue: string, actualDescription: string, netDescription: string }) => (
+const StatComparisonCard = ({ title, value1, value2, description1, description2 }: { title: string, value1: string, value2: string, description1: string, description2: string }) => (
     <Card>
         <CardHeader>
             <CardTitle className="text-sm font-medium">{title}</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
             <div>
-                <div className="text-2xl font-bold">{actualValue}</div>
-                <p className="text-xs text-muted-foreground">{actualDescription}</p>
+                <div className="text-2xl font-bold">{value1}</div>
+                <p className="text-xs text-muted-foreground">{description1}</p>
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0 mx-4" />
             <div>
-                <div className="text-2xl font-bold">{netValue}</div>
-                <p className="text-xs text-muted-foreground">{netDescription}</p>
+                <div className="text-2xl font-bold">{value2}</div>
+                <p className="text-xs text-muted-foreground">{description2}</p>
             </div>
         </CardContent>
     </Card>
@@ -150,19 +150,26 @@ export function DashboardStats() {
     netIncome,
     actualExpenses,
     netExpenses,
-    actualSavings,
-    netSavings,
+    actualCashLeft,
+    finalNetSavings,
   } = useMemo(() => {
-    const actualIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
-    const actualExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
+    const totalPersonalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     
-    const netIncome = actualIncome - youOwe;
-    const netExpenses = actualExpenses + youAreOwed;
+    // As per your request: [(Total Income - Total Expenses) ] - (What I am Owed)
+    const actualCashLeft = (totalIncome - totalPersonalExpenses) - youAreOwed;
+    
+    // As per your request: [[(Total Income - Total Expenses) ] + (What I am Owed)] - What I owe
+    const finalNetSavings = (totalIncome - totalPersonalExpenses) + youAreOwed - youOwe;
 
-    const actualSavings = actualIncome - actualExpenses;
-    const netSavings = actualSavings - youOwe + youAreOwed;
-    
-    return { actualIncome, netIncome, actualExpenses, netExpenses, actualSavings, netSavings };
+    return { 
+        actualIncome: totalIncome,
+        netIncome: totalIncome - youOwe,
+        actualExpenses: totalPersonalExpenses,
+        netExpenses: totalPersonalExpenses + youAreOwed,
+        actualCashLeft,
+        finalNetSavings
+    };
   }, [incomes, expenses, youOwe, youAreOwed]);
   
   const isLoading = isLoadingFinancials || isLoadingDebts;
@@ -186,24 +193,24 @@ export function DashboardStats() {
         <div className="grid gap-4 md:grid-cols-3">
            <StatComparisonCard
              title="Income"
-             actualValue={formatCurrency(actualIncome, userData?.currency)}
-             actualDescription="Cash received"
-             netValue={formatCurrency(netIncome, userData?.currency)}
-             netDescription="After deducting what you owe"
+             value1={formatCurrency(actualIncome, userData?.currency)}
+             description1="Cash received"
+             value2={formatCurrency(netIncome, userData?.currency)}
+             description2="After deducting what you owe"
            />
            <StatComparisonCard
              title="Expenses"
-             actualValue={formatCurrency(actualExpenses, userData?.currency)}
-             actualDescription="Personal spending"
-             netValue={formatCurrency(netExpenses, userData?.currency)}
-             netDescription="Including money you lent"
+             value1={formatCurrency(actualExpenses, userData?.currency)}
+             description1="Personal spending"
+             value2={formatCurrency(netExpenses, userData?.currency)}
+             description2="Including money you lent"
            />
            <StatComparisonCard
              title="Savings"
-             actualValue={formatCurrency(actualSavings, userData?.currency)}
-             actualDescription="Actual cash left"
-             netValue={formatCurrency(netSavings, userData?.currency)}
-             netDescription="After all liabilities"
+             value1={formatCurrency(actualCashLeft, userData?.currency)}
+             description1="Actual cash left"
+             value2={formatCurrency(finalNetSavings, userData?.currency)}
+             description2="After all liabilities"
            />
         </div>
     </TooltipProvider>
