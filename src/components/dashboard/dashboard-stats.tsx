@@ -121,23 +121,31 @@ const StatCard = ({ title, value, description, icon: Icon, tooltip }: { title: s
     </Card>
 );
 
-const StatComparisonCard = ({ title, value1, value2, description1, description2 }: { title: string, value1: string, value2: string, description1: string, description2: string }) => (
-    <Card>
-        <CardHeader>
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between">
-            <div>
-                <div className="text-2xl font-bold">{value1}</div>
-                <p className="text-xs text-muted-foreground">{description1}</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0 mx-4" />
-            <div>
-                <div className="text-2xl font-bold">{value2}</div>
-                <p className="text-xs text-muted-foreground">{description2}</p>
-            </div>
-        </CardContent>
-    </Card>
+const StatComparisonCard = ({ title, value1, value2, description1, description2, tooltipContent }: { title: string, value1: string, value2: string, description1: string, description2: string, tooltipContent?: React.ReactNode }) => (
+    <Tooltip>
+        <TooltipTrigger asChild>
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        {title}
+                        {tooltipContent && <HelpCircle className="h-3 w-3 text-muted-foreground" />}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between">
+                    <div>
+                        <div className="text-2xl font-bold">{value1}</div>
+                        <p className="text-xs text-muted-foreground">{description1}</p>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0 mx-4" />
+                    <div>
+                        <div className="text-2xl font-bold">{value2}</div>
+                        <p className="text-xs text-muted-foreground">{description2}</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </TooltipTrigger>
+        {tooltipContent && <TooltipContent>{tooltipContent}</TooltipContent>}
+    </Tooltip>
 );
 
 
@@ -156,7 +164,7 @@ export function DashboardStats() {
     const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
     const totalPersonalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     
-    // Previous formulas from user prompt
+    // User's specified formulas
     const actualCashLeft = (totalIncome - totalPersonalExpenses) - youAreOwed;
     const finalNetSavings = ((totalIncome - totalPersonalExpenses) + youAreOwed) - youOwe;
 
@@ -194,21 +202,45 @@ export function DashboardStats() {
              value1={formatCurrency(actualIncome, userData?.currency)}
              description1="Actual Income"
              value2={formatCurrency(netIncome, userData?.currency)}
-             description2="Income - What You Owe"
+             description2="Net Income"
+             tooltipContent={
+                 <div className="text-sm space-y-1">
+                    <p>Net Income = Total Income - What You Owe</p>
+                    <p className="text-muted-foreground">{formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
+                 </div>
+             }
            />
            <StatComparisonCard
              title="Expenses"
              value1={formatCurrency(actualExpenses, userData?.currency)}
              description1="Actual Expenses"
              value2={formatCurrency(netExpenses, userData?.currency)}
-             description2="Expenses + What You Are Owed"
+             description2="Net Expenses"
+              tooltipContent={
+                 <div className="text-sm space-y-1">
+                    <p>Net Expenses = Personal Expenses + What You Are Owed</p>
+                    <p className="text-muted-foreground">{formatCurrency(actualExpenses, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)}</p>
+                 </div>
+             }
            />
            <StatComparisonCard
              title="Savings"
              value1={formatCurrency(actualCashLeft, userData?.currency)}
-             description1="(Income - Expenses) - Owed to You"
+             description1="Actual Cash Left"
              value2={formatCurrency(finalNetSavings, userData?.currency)}
-             description2="Final Balance after all liabilities"
+             description2="Final Net Savings"
+             tooltipContent={
+                 <div className="text-sm space-y-2">
+                    <div>
+                        <p>Actual Cash = (Income - Expenses) - Owed to You</p>
+                        <p className="text-muted-foreground">({formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(actualExpenses, userData?.currency)}) - {formatCurrency(youAreOwed, userData?.currency)}</p>
+                    </div>
+                    <div>
+                        <p>Net Savings = Cash Left + Owed to You - What You Owe</p>
+                        <p className="text-muted-foreground">{formatCurrency(actualCashLeft, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
+                    </div>
+                 </div>
+             }
            />
         </div>
     </TooltipProvider>
