@@ -11,9 +11,10 @@ import type { Debt, Group, SharedExpense } from '@/lib/types';
 import { formatCurrency } from "@/lib/utils";
 import * as React from "react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 
-function useNetDebts() {
+function useSharedFinances() {
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -74,52 +75,35 @@ function useNetDebts() {
     });
   }, [groups, firestore, user]);
 
-  const { youOwe, youAreOwed } = useMemo(() => {
-    let totalOwedToUser = 0;
-    let totalOwedByUser = 0;
+  const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser } = useMemo(() => {
+    const debtsOwedToUser = debtsToUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;
+    const debtsOwedByUser = debtsFromUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;
 
-    // From individual debts
-    totalOwedToUser += debtsToUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;
-    totalOwedByUser += debtsFromUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;
-
-    // From group splits
+    let groupOwedToUser = 0;
+    let groupOwedByUser = 0;
     Object.values(groupBalances).forEach(balance => {
         if (balance > 0) {
-            totalOwedToUser += balance;
+            groupOwedToUser += balance;
         } else {
-            totalOwedByUser += Math.abs(balance);
+            groupOwedByUser += Math.abs(balance);
         }
     });
 
-    return { youAreOwed: totalOwedToUser, youOwe: totalOwedByUser };
+    return { 
+        youAreOwed: debtsOwedToUser + groupOwedToUser, 
+        youOwe: debtsOwedByUser + groupOwedByUser,
+        debtsOwedToUser,
+        debtsOwedByUser,
+        groupOwedToUser,
+        groupOwedByUser,
+    };
   }, [debtsToUser, debtsFromUser, groupBalances]);
 
   const isLoading = isLoadingGroups || isLoadingDebtsTo || isLoadingDebtsFrom || isLoadingGroupExpenses;
 
-  return { youOwe, youAreOwed, isLoading };
+  return { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, isLoading };
 }
 
-
-const StatCard = ({ title, value, description, icon: Icon, tooltip }: { title: string, value: string, description: string, icon: React.ElementType, tooltip?: string }) => (
-    <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            <div className="flex items-center gap-1">
-                {tooltip && (
-                    <Tooltip>
-                        <TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                        <TooltipContent><p>{tooltip}</p></TooltipContent>
-                    </Tooltip>
-                )}
-                <Icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-        </CardHeader>
-        <CardContent>
-            <div className="text-2xl font-bold">{value}</div>
-            <p className="text-xs text-muted-foreground">{description}</p>
-        </CardContent>
-    </Card>
-);
 
 const StatComparisonCard = ({ title, value1, value2, description1, description2, tooltipContent }: { title: string, value1: string, value2: string, description1: string, description2: string, tooltipContent?: React.ReactNode }) => (
     <Tooltip>
@@ -148,10 +132,33 @@ const StatComparisonCard = ({ title, value1, value2, description1, description2,
     </Tooltip>
 );
 
+const StatCard = ({ title, value, description, icon: Icon, tooltip, valueColor }: { title: string, value: string, description: string, icon?: React.ElementType, tooltip?: React.ReactNode, valueColor?: string }) => (
+    <Tooltip>
+        <TooltipTrigger asChild>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                    <div className="flex items-center gap-1">
+                        {tooltip && (
+                            <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        )}
+                        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className={cn("text-2xl font-bold", valueColor)}>{value}</div>
+                    <p className="text-xs text-muted-foreground">{description}</p>
+                </CardContent>
+            </Card>
+        </TooltipTrigger>
+        {tooltip && <TooltipContent>{tooltip}</TooltipContent>}
+    </Tooltip>
+);
+
 
 export function DashboardStats() {
   const { incomes, expenses, isLoading: isLoadingFinancials, userData } = useFinancials();
-  const { youOwe, youAreOwed, isLoading: isLoadingDebts } = useNetDebts();
+  const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, isLoading: isLoadingDebts } = useSharedFinances();
 
   const {
     actualIncome,
@@ -164,7 +171,6 @@ export function DashboardStats() {
     const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
     const totalPersonalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
     
-    // User's specified formulas
     const actualCashLeft = (totalIncome - totalPersonalExpenses) - youAreOwed;
     const finalNetSavings = actualCashLeft + youAreOwed - youOwe;
 
@@ -196,7 +202,7 @@ export function DashboardStats() {
 
   return (
     <TooltipProvider>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
            <StatComparisonCard
              title="Income"
              value1={formatCurrency(actualIncome, userData?.currency)}
@@ -224,22 +230,49 @@ export function DashboardStats() {
            <StatComparisonCard
              title="Savings"
              value1={formatCurrency(actualCashLeft, userData?.currency)}
-             description1="Actual Cash Left = (Income - Expenses) - Owed to You"
+             description1="Actual Cash Left"
              value2={formatCurrency(finalNetSavings, userData?.currency)}
-             description2="Final Net Savings = Cash Left + Owed to You - What You Owe"
+             description2="Final Net Savings"
              tooltipContent={
                  <div className="text-sm space-y-2">
                     <div>
-                        <p>Actual Cash = ({formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(actualExpenses, userData?.currency)}) - {formatCurrency(youAreOwed, userData?.currency)}</p>
+                        <p>Actual Cash = (Income - Expenses) - What You Are Owed</p>
+                        <p className="pl-4">= ({formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(actualExpenses, userData?.currency)}) - {formatCurrency(youAreOwed, userData?.currency)}</p>
                     </div>
                     <div>
-                        <p>Net Savings = {formatCurrency(actualCashLeft, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
+                        <p>Net Savings = Actual Cash + What You Are Owed - What You Owe</p>
+                         <p className="pl-4">= {formatCurrency(actualCashLeft, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
                     </div>
                  </div>
              }
            />
+           <div className="lg:col-span-3 grid md:grid-cols-2 gap-4">
+             <StatCard
+                title="You Are Owed"
+                value={formatCurrency(youAreOwed, userData?.currency)}
+                description="Total from debts and group splits"
+                valueColor="text-green-600"
+                tooltip={
+                  <div className="text-sm space-y-1">
+                    <p>From Individual Debts: {formatCurrency(debtsOwedToUser, userData?.currency)}</p>
+                    <p>From Group Splits: {formatCurrency(groupOwedToUser, userData?.currency)}</p>
+                  </div>
+                }
+             />
+             <StatCard
+                title="You Owe"
+                value={formatCurrency(youOwe, userData?.currency)}
+                description="Total from debts and group splits"
+                valueColor="text-red-600"
+                tooltip={
+                  <div className="text-sm space-y-1">
+                    <p>From Individual Debts: {formatCurrency(debtsOwedByUser, userData?.currency)}</p>
+                    <p>From Group Splits: {formatCurrency(groupOwedByUser, userData?.currency)}</p>
+                  </div>
+                }
+             />
+            </div>
         </div>
     </TooltipProvider>
   );
 }
-
