@@ -17,13 +17,15 @@
  * - /users/{userId}/budgets/{budgetId}: Stores budget entries for a specific user.
  * - /users/{userId}/recurringTransactions/{recurringTransactionId}: Stores recurring transactions.
  * - /users/{userId}/financialInsights/{insightId}: Stores AI-generated insights.
+ * - /users/{userId}/loans/{loanId}: Stores structured loans for a user.
+ * - /users/{userId}/loans/{loanId}/repayments/{repaymentId}: Stores repayments for a loan.
  * - /groups/{groupId}: Stores group information for shared expenses.
  * - /groups/{groupId}/sharedExpenses/{expenseId}: Stores individual shared expenses.
  * - /debts/{debtId}: Stores debt information between users.
  *
  * Key Security Decisions:
  * - Users can only access their own profile data.
- * - Users can only access income, expense, category, and budget data associated with their user ID.
+ * - Users can only access income, expense, category, budget, and loan data associated with their user ID.
  * - Groups and shared expenses are accessible to group members.
  * - Debts are accessible to participants.
  * - Data validation is relaxed in this prototype phase, focusing on authorization.
@@ -125,6 +127,24 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if false;
       allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to loan and repayment entries for a specific user.
+     */
+    match /users/{userId}/loans/{loanId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow delete: if isExistingOwner(userId);
+
+      match /repayments/{repaymentId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.loanId == loanId;
+        allow update, delete: if isExistingOwner(userId);
+      }
     }
 
 

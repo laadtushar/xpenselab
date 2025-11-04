@@ -359,6 +359,34 @@
         "createdBy",
         "settled"
       ]
+    },
+    "Loan": {
+        "title": "Loan",
+        "type": "object",
+        "description": "Represents a structured loan or EMI.",
+        "properties": {
+            "userId": { "type": "string" },
+            "lender": { "type": "string", "description": "Name of the lending institution or person." },
+            "initialAmount": { "type": "number", "description": "The original principal amount of the loan." },
+            "amountRemaining": { "type": "number", "description": "The outstanding principal amount." },
+            "interestRate": { "type": "number", "description": "Annual interest rate (e.g., 5.5 for 5.5%). 0 for interest-free." },
+            "termMonths": { "type": "number", "description": "The total term of the loan in months." },
+            "startDate": { "type": "string", "format": "date-time", "description": "The date the loan was taken out." },
+            "status": { "type": "string", "enum": ["active", "paid"], "description": "The current status of the loan." }
+        },
+        "required": ["userId", "lender", "initialAmount", "amountRemaining", "interestRate", "termMonths", "startDate", "status"]
+    },
+    "Repayment": {
+        "title": "Repayment",
+        "type": "object",
+        "description": "Represents a single payment made towards a loan.",
+        "properties": {
+            "loanId": { "type": "string", "description": "Reference to the Loan this repayment belongs to." },
+            "amount": { "type": "number", "description": "The amount paid." },
+            "date": { "type": "string", "format": "date-time", "description": "The date the payment was made." },
+            "notes": { "type": "string", "description": "Optional notes about the payment." }
+        },
+        "required": ["loanId", "amount", "date"]
     }
   },
   "auth": {
@@ -397,6 +425,14 @@
     "/users/{userId}/budgets/{budgetId}": {
         "schema": { "$ref": "#/entities/Budget" },
         "description": "Stores budget entries for a specific user."
+    },
+    "/users/{userId}/loans/{loanId}": {
+      "schema": { "$ref": "#/entities/Loan" },
+      "description": "Stores a user's structured loans (EMIs)."
+    },
+    "/users/{userId}/loans/{loanId}/repayments/{repaymentId}": {
+      "schema": { "$ref": "#/entities/Repayment" },
+      "description": "Stores repayment records for a specific loan."
     },
     "/groups/{groupId}": {
         "schema": { "$ref": "#/entities/Group" },

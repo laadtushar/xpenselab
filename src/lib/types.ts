@@ -1,8 +1,4 @@
 
-
-
-
-
 export type User = {
     id: string;
     email: string;
@@ -136,4 +132,23 @@ export interface MonzoTransaction {
   category: string;
 }
 
-    
+// Loan/EMI Types
+export type Loan = {
+    id: string;
+    userId: string;
+    lender: string;
+    initialAmount: number;
+    amountRemaining: number;
+    interestRate: number; // Annual percentage rate
+    termMonths: number;
+    startDate: string; // ISO string
+    status: 'active' | 'paid';
+};
+
+export type Repayment = {
+    id: string;
+    loanId: string;
+    amount: number;
+    date: string; // ISO string
+    notes?: string;
+};

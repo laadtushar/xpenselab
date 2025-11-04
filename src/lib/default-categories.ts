@@ -20,6 +20,8 @@ export const defaultCategories: DefaultCategory[] = [
     { name: 'Bills', icon: 'Receipt', type: 'expense' },
     { name: 'Subscriptions', icon: 'CreditCard', type: 'expense' },
     { name: 'Gifts', icon: 'Gift', type: 'expense' },
+    { name: 'Loan Repayment', icon: 'HandCoins', type: 'expense' },
+    { name: 'Bad Debt', icon: 'FileX', type: 'expense' },
     { name: 'Other', icon: 'MoreHorizontal', type: 'expense' },
   
     // Income
@@ -27,5 +29,6 @@ export const defaultCategories: DefaultCategory[] = [
     { name: 'Freelance', icon: 'Briefcase', type: 'income' },
     { name: 'Investment', icon: 'BarChart', type: 'income' },
     { name: 'Gift', icon: 'Gift', type: 'income' },
+    { name: 'Loan', icon: 'Landmark', type: 'income' },
     { name: 'Other', icon: 'MoreHorizontal', type: 'income' },
 ];
