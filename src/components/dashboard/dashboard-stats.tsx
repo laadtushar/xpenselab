@@ -7,7 +7,7 @@ import { Loader2, ArrowRight, HelpCircle } from "lucide-react";
 import { useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import type { Debt, Group, SharedExpense } from '@/lib/types';
+import type { Debt, Group, SharedExpense, Loan } from '@/lib/types';
 import { formatCurrency } from "@/lib/utils";
 import * as React from "react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -34,9 +34,15 @@ function useSharedFinances() {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'debts'), where('fromUserId', '==', user.uid), where('settled', '==', false));
   }, [user, firestore]);
+
+  const loansQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(collection(firestore, 'users', user.uid, 'loans'), where('status', '==', 'active'));
+  }, [firestore, user?.uid]);
   
   const { data: debtsToUser, isLoading: isLoadingDebtsTo } = useCollection<Debt>(debtsOwedToUserQuery);
   const { data: debtsFromUser, isLoading: isLoadingDebtsFrom } = useCollection<Debt>(debtsOwedByUserQuery);
+  const { data: activeLoans, isLoading: isLoadingLoans } = useCollection<Loan>(loansQuery);
   
   const [groupBalances, setGroupBalances] = React.useState<{ [key: string]: number }>({});
   const [isLoadingGroupExpenses, setIsLoadingGroupExpenses] = React.useState(false);
@@ -75,9 +81,10 @@ function useSharedFinances() {
     });
   }, [groups, firestore, user]);
 
-  const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser } = useMemo(() => {
+  const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, totalLoanAmount } = useMemo(() => {
     const debtsOwedToUser = debtsToUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;
     const debtsOwedByUser = debtsFromUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;
+    const totalLoanAmount = activeLoans?.reduce((sum, loan) => sum + loan.amountRemaining, 0) || 0;
 
     let groupOwedToUser = 0;
     let groupOwedByUser = 0;
@@ -91,17 +98,18 @@ function useSharedFinances() {
 
     return { 
         youAreOwed: debtsOwedToUser + groupOwedToUser, 
-        youOwe: debtsOwedByUser + groupOwedByUser,
+        youOwe: debtsOwedByUser + groupOwedByUser + totalLoanAmount,
         debtsOwedToUser,
         debtsOwedByUser,
         groupOwedToUser,
         groupOwedByUser,
+        totalLoanAmount
     };
-  }, [debtsToUser, debtsFromUser, groupBalances]);
+  }, [debtsToUser, debtsFromUser, groupBalances, activeLoans]);
 
-  const isLoading = isLoadingGroups || isLoadingDebtsTo || isLoadingDebtsFrom || isLoadingGroupExpenses;
+  const isLoading = isLoadingGroups || isLoadingDebtsTo || isLoadingDebtsFrom || isLoadingGroupExpenses || isLoadingLoans;
 
-  return { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, isLoading };
+  return { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, totalLoanAmount, isLoading };
 }
 
 
@@ -158,7 +166,7 @@ const StatCard = ({ title, value, description, icon: Icon, tooltip, valueColor }
 
 export function DashboardStats() {
   const { incomes, expenses, isLoading: isLoadingFinancials, userData } = useFinancials();
-  const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, isLoading: isLoadingDebts } = useSharedFinances();
+  const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, totalLoanAmount, isLoading: isLoadingDebts } = useSharedFinances();
 
   const {
     actualIncome,
@@ -206,24 +214,26 @@ export function DashboardStats() {
            <StatComparisonCard
              title="Income"
              value1={formatCurrency(actualIncome, userData?.currency)}
-             description1="Actual Income = Total Income"
+             description1="Actual Income"
              value2={formatCurrency(netIncome, userData?.currency)}
-             description2="Net Income = Total Income - What You Owe"
+             description2="Net Income"
              tooltipContent={
                  <div className="text-sm space-y-1">
-                    <p>Net Income = {formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
+                    <p>Actual Income = {formatCurrency(actualIncome, userData?.currency)}</p>
+                    <p>Net Income = {formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)} (What You Owe)</p>
                  </div>
              }
            />
            <StatComparisonCard
              title="Expenses"
              value1={formatCurrency(actualExpenses, userData?.currency)}
-             description1="Actual Expenses = Personal Expenses"
+             description1="Actual Expenses"
              value2={formatCurrency(netExpenses, userData?.currency)}
-             description2="Net Expenses = Personal Expenses + What You Are Owed"
+             description2="Net Expenses"
               tooltipContent={
                  <div className="text-sm space-y-1">
-                    <p>Net Expenses = {formatCurrency(actualExpenses, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)}</p>
+                    <p>Actual Expenses = {formatCurrency(actualExpenses, userData?.currency)}</p>
+                    <p>Net Expenses = {formatCurrency(actualExpenses, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)} (What You Are Owed)</p>
                  </div>
              }
            />
@@ -262,12 +272,13 @@ export function DashboardStats() {
              <StatCard
                 title="You Owe"
                 value={formatCurrency(youOwe, userData?.currency)}
-                description="Total from debts and group splits"
+                description="Total from debts, splits, and loans"
                 valueColor="text-red-600"
                 tooltip={
                   <div className="text-sm space-y-1">
                     <p>From Individual Debts: {formatCurrency(debtsOwedByUser, userData?.currency)}</p>
                     <p>From Group Splits: {formatCurrency(groupOwedByUser, userData?.currency)}</p>
+                    <p>From Loans & EMIs: {formatCurrency(totalLoanAmount, userData?.currency)}</p>
                   </div>
                 }
              />
