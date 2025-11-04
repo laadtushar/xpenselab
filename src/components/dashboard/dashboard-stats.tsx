@@ -166,7 +166,7 @@ export function DashboardStats() {
     
     // User's specified formulas
     const actualCashLeft = (totalIncome - totalPersonalExpenses) - youAreOwed;
-    const finalNetSavings = ((totalIncome - totalPersonalExpenses) + youAreOwed) - youOwe;
+    const finalNetSavings = actualCashLeft + youAreOwed - youOwe;
 
     return { 
         actualIncome: totalIncome,
@@ -200,44 +200,40 @@ export function DashboardStats() {
            <StatComparisonCard
              title="Income"
              value1={formatCurrency(actualIncome, userData?.currency)}
-             description1="Actual Income"
+             description1="Actual Income = Total Income"
              value2={formatCurrency(netIncome, userData?.currency)}
-             description2="Net Income"
+             description2="Net Income = Total Income - What You Owe"
              tooltipContent={
                  <div className="text-sm space-y-1">
-                    <p>Net Income = Total Income - What You Owe</p>
-                    <p className="text-muted-foreground">{formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
+                    <p>Net Income = {formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
                  </div>
              }
            />
            <StatComparisonCard
              title="Expenses"
              value1={formatCurrency(actualExpenses, userData?.currency)}
-             description1="Actual Expenses"
+             description1="Actual Expenses = Personal Expenses"
              value2={formatCurrency(netExpenses, userData?.currency)}
-             description2="Net Expenses"
+             description2="Net Expenses = Personal Expenses + What You Are Owed"
               tooltipContent={
                  <div className="text-sm space-y-1">
-                    <p>Net Expenses = Personal Expenses + What You Are Owed</p>
-                    <p className="text-muted-foreground">{formatCurrency(actualExpenses, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)}</p>
+                    <p>Net Expenses = {formatCurrency(actualExpenses, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)}</p>
                  </div>
              }
            />
            <StatComparisonCard
              title="Savings"
              value1={formatCurrency(actualCashLeft, userData?.currency)}
-             description1="Actual Cash Left"
+             description1="Actual Cash Left = (Income - Expenses) - Owed to You"
              value2={formatCurrency(finalNetSavings, userData?.currency)}
-             description2="Final Net Savings"
+             description2="Final Net Savings = Cash Left + Owed to You - What You Owe"
              tooltipContent={
                  <div className="text-sm space-y-2">
                     <div>
-                        <p>Actual Cash = (Income - Expenses) - Owed to You</p>
-                        <p className="text-muted-foreground">({formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(actualExpenses, userData?.currency)}) - {formatCurrency(youAreOwed, userData?.currency)}</p>
+                        <p>Actual Cash = ({formatCurrency(actualIncome, userData?.currency)} - {formatCurrency(actualExpenses, userData?.currency)}) - {formatCurrency(youAreOwed, userData?.currency)}</p>
                     </div>
                     <div>
-                        <p>Net Savings = Cash Left + Owed to You - What You Owe</p>
-                        <p className="text-muted-foreground">{formatCurrency(actualCashLeft, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
+                        <p>Net Savings = {formatCurrency(actualCashLeft, userData?.currency)} + {formatCurrency(youAreOwed, userData?.currency)} - {formatCurrency(youOwe, userData?.currency)}</p>
                     </div>
                  </div>
              }
@@ -246,3 +242,4 @@ export function DashboardStats() {
     </TooltipProvider>
   );
 }
+
