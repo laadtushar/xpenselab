@@ -35,8 +35,9 @@ export function StatsCards() {
 
   if (isLoading) {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            {[...Array(5)].map((_, i) => (
+      <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
                 <Card key={i}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Loading...</CardTitle>
@@ -49,85 +50,103 @@ export function StatsCards() {
                 </Card>
             ))}
         </div>
+        <div className="grid gap-4 md:grid-cols-2">
+            {[...Array(2)].map((_, i) => (
+                 <Card key={i}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-8 flex items-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+      </div>
     );
   }
 
   return (
     <TooltipProvider>
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalIncome, userData?.currency)}</div>
-          <p className="text-xs text-muted-foreground">All time personal</p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-medium">Adjusted Expenses</CardTitle>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Personal Expenses + Money You Are Owed</p>
-                    </TooltipContent>
-                </Tooltip>
-            </div>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(adjustedTotalExpenses, userData?.currency)}</div>
-          <p className="text-xs text-muted-foreground">Adjusted for money you've lent</p>
-        </CardContent>
-      </Card>
-      
-       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-           <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-medium">Adjusted Savings</CardTitle>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Total Income - Adjusted Expenses</p>
-                    </TooltipContent>
-                </Tooltip>
-            </div>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(adjustedSavings, userData?.currency)}</div>
-          <p className="text-xs text-muted-foreground">Adjusted for lent money</p>
-        </CardContent>
-      </Card>
-      
-       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">You Are Owed</CardTitle>
-          <HandCoins className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(youAreOwed, userData?.currency)}</div>
-           <p className="text-xs text-muted-foreground">From splits & debts</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">You Owe</CardTitle>
-          <Landmark className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">{formatCurrency(youOwe, userData?.currency)}</div>
-          <p className="text-xs text-muted-foreground">From splits & debts</p>
-        </CardContent>
-      </Card>
+    <div className="grid gap-4">
+        {/* Primary Row */}
+        <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totalIncome, userData?.currency)}</div>
+                <p className="text-xs text-muted-foreground">All time personal income</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-medium">Adjusted Expenses</CardTitle>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Personal Expenses + Money You Are Owed</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(adjustedTotalExpenses, userData?.currency)}</div>
+                <p className="text-xs text-muted-foreground">Adjusted for money you've lent out</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-medium">Adjusted Savings</CardTitle>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Total Income - Adjusted Expenses</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(adjustedSavings, userData?.currency)}</div>
+                <p className="text-xs text-muted-foreground">Your net cash flow</p>
+                </CardContent>
+            </Card>
+        </div>
+        {/* Secondary Row */}
+        <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">You Are Owed</CardTitle>
+                <HandCoins className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(youAreOwed, userData?.currency)}</div>
+                <p className="text-xs text-muted-foreground">From splits & individual debts</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">You Owe</CardTitle>
+                <Landmark className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold text-red-600">{formatCurrency(youOwe, userData?.currency)}</div>
+                <p className="text-xs text-muted-foreground">From splits & individual debts</p>
+                </CardContent>
+            </Card>
+        </div>
     </div>
     </TooltipProvider>
   );
