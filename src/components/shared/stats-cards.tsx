@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Loader2, HandCoins, Landmark, HelpCircle } from "lucide-react";
 import { useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { Debt, Group, SharedExpense } from '@/lib/types';
 import { formatCurrency } from "@/lib/utils";
 import * as React from "react";
@@ -20,16 +20,14 @@ export function StatsCards() {
 
   const { youOwe, youAreOwed, isLoading: isLoadingDebts } = useNetDebts();
   
-  const { totalIncome, totalExpenses, savings, adjustedTotalExpenses, adjustedSavings } = useMemo(() => {
+  const { totalIncome, adjustedTotalExpenses, adjustedSavings } = useMemo(() => {
     const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
     const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
-    const savings = totalIncome - totalExpenses;
 
-    // User's logic: treat money you are owed as a temporary expense from a cash flow perspective
     const adjustedTotalExpenses = totalExpenses + youAreOwed;
     const adjustedSavings = totalIncome - adjustedTotalExpenses;
     
-    return { totalIncome, totalExpenses, savings, adjustedTotalExpenses, adjustedSavings };
+    return { totalIncome, adjustedTotalExpenses, adjustedSavings };
   }, [incomes, expenses, youAreOwed]);
   
   const isLoading = isLoadingFinancials || isLoadingDebts;
@@ -71,7 +69,7 @@ export function StatsCards() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                <CardTitle className="text-sm font-medium">Adjusted Expenses</CardTitle>
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
@@ -92,13 +90,13 @@ export function StatsCards() {
        <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
            <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-medium">Net Savings</CardTitle>
+                <CardTitle className="text-sm font-medium">Adjusted Savings</CardTitle>
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Total Income - Adjusted Total Expenses</p>
+                        <p>Total Income - Adjusted Expenses</p>
                     </TooltipContent>
                 </Tooltip>
             </div>

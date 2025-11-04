@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Loan } from '@/lib/types';
 import { Textarea } from '../ui/textarea';
+import { useFinancials } from '@/context/financial-context';
 
 const formSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive."),
@@ -50,6 +51,7 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { addTransaction } = useFinancials();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,13 +76,22 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
         date: values.date.toISOString(),
       });
 
-      // 2. Update the loan's amountRemaining
+      // 2. Add as an expense transaction for cash-flow tracking
+      addTransaction({
+          type: 'expense',
+          amount: values.amount,
+          date: values.date.toISOString(),
+          description: `Repayment for ${loan.lender} loan`,
+          category: 'Loan Repayment',
+      });
+
+      // 3. Update the loan's amountRemaining
       const newAmountRemaining = loan.amountRemaining - values.amount;
       const loanUpdate: Partial<Loan> = {
           amountRemaining: newAmountRemaining,
       };
 
-      // 3. If loan is paid off, update status
+      // 4. If loan is paid off, update status
       if (newAmountRemaining <= 0) {
         loanUpdate.status = 'paid';
         toast({
@@ -93,7 +104,7 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
 
       toast({
         title: 'Repayment Recorded',
-        description: 'Your payment has been successfully recorded.',
+        description: 'Your payment has been successfully recorded and added as an expense.',
       });
       form.reset();
       setOpen(false);
@@ -118,7 +129,7 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
         <DialogHeader>
           <DialogTitle>Add Repayment</DialogTitle>
           <DialogDescription>
-            Log a payment for your loan from {loan.lender}.
+            Log a payment for your loan from {loan.lender}. This will also be added to your expenses.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
