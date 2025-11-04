@@ -1,12 +1,12 @@
 "use client";
 
 import { DashboardHeader } from "@/components/shared/dashboard-header";
-import { StatsCards } from "@/components/shared/stats-cards";
 import { OverviewChart } from "@/components/dashboard/overview-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
+import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 
 export default function DashboardPage() {
   return (
@@ -20,7 +20,7 @@ export default function DashboardPage() {
         </Link>
       </DashboardHeader>
       
-      <StatsCards />
+      <DashboardStats />
       
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
