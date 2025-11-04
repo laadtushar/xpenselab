@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users, Shapes, HandCoins, Link2, Repeat, BrainCircuit, ScanLine, TrendingUp, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, FileText, Settings, Users, Shapes, HandCoins, Link2, Repeat, BrainCircuit, ScanLine, TrendingUp, HeartPulse, Landmark } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { SplitIcon } from '@/components/icons/split-icon';
 
@@ -19,6 +19,7 @@ const navItems = [
 const sharedNavItems = [
   { href: '/splits', label: 'Splits', icon: SplitIcon },
   { href: '/debts', label: 'Debts', icon: HandCoins },
+  { href: '/loans', label: 'Loans', icon: Landmark },
 ];
 
 const toolsNavItems = [
