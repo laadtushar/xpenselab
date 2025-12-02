@@ -36,7 +36,8 @@ interface FinancialContextType {
   addCategory: (category: Omit<Category, 'id' | 'userId'>) => Promise<void>;
   updateCategory: (category: Category) => void;
   deleteCategory: (id: string) => void;
-  
+  deleteUnusedCategories: (type: 'income' | 'expense') => Promise<void>;
+
   userData: UserData | null;
   updateUser: (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => void;
   
@@ -325,6 +326,48 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     deleteDocumentNonBlocking(docRef);
   };
 
+  const deleteUnusedCategories = useCallback(async (type: 'income' | 'expense') => {
+    if (!userId || !firestore) return;
+
+    const relevantTransactions = type === 'income' ? incomes : expenses;
+    const relevantCategories = type === 'income' ? incomeCategories : expenseCategories;
+
+    const usedCategoryNames = new Set(relevantTransactions.map(t => t.category));
+    
+    const unusedCategories = relevantCategories.filter(cat => !usedCategoryNames.has(cat.name));
+
+    if (unusedCategories.length === 0) {
+      toast({
+        title: "No Unused Categories",
+        description: `All ${type} categories are currently in use.`,
+      });
+      return;
+    }
+
+    const batch = writeBatch(firestore);
+    const categoriesCollectionRef = collection(firestore, 'users', userId, 'categories');
+
+    unusedCategories.forEach(category => {
+      const docRef = doc(categoriesCollectionRef, category.id);
+      batch.delete(docRef);
+    });
+
+    try {
+      await batch.commit();
+      toast({
+        title: "Success",
+        description: `Removed ${unusedCategories.length} unused ${type} categories.`,
+      });
+    } catch (error) {
+      console.error("Failed to delete unused categories:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while removing unused categories.",
+        variant: "destructive",
+      });
+    }
+  }, [userId, firestore, incomes, expenses, incomeCategories, expenseCategories, toast]);
+
   const updateUser = (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => {
     if (!userDocRef || !firestore || !userId) return;
 
@@ -392,6 +435,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     addCategory,
     updateCategory,
     deleteCategory,
+    deleteUnusedCategories,
     userData: userData || null,
     updateUser,
     resetData,
@@ -399,7 +443,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     isLoadingCategories: loadingCategories,
     canMakeAiRequest,
     incrementAiRequestCount,
-  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory, deleteUnusedCategories]);
 
   return (
     <FinancialContext.Provider value={value}>

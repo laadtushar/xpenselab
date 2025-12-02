@@ -2,50 +2,33 @@
 "use client";
 
 import { DashboardHeader } from "@/components/shared/dashboard-header";
+import { CategoryForm } from "@/components/categories/category-form";
 import { CategoryList } from "@/components/categories/category-list";
-import { CategoryDialog } from "@/components/categories/category-form";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFinancials } from "@/context/financial-context";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function CategoriesPage() {
-    const { isLoadingCategories } = useFinancials();
+  const { deleteUnusedCategories } = useFinancials();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div>
       <DashboardHeader title="Categories" />
-      
-      <Card>
-        <CardContent className="pt-6">
-            <Tabs defaultValue="expenses">
-                <div className="flex justify-between items-center mb-4">
-                    <TabsList>
-                        <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                        <TabsTrigger value="income">Income</TabsTrigger>
-                    </TabsList>
-                    <div className="flex gap-2">
-                        <CategoryDialog type="expense" />
-                        <CategoryDialog type="income" />
-                    </div>
-                </div>
-                {isLoadingCategories ? (
-                    <div className="flex justify-center items-center h-64">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                ) : (
-                    <>
-                        <TabsContent value="expenses">
-                            <CategoryList type="expense" />
-                        </TabsContent>
-                        <TabsContent value="income">
-                            <CategoryList type="income" />
-                        </TabsContent>
-                    </>
-                )}
-            </Tabs>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h2 className="text-xl font-bold mb-4">Add New Category</h2>
+          <CategoryForm />
+        </div>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Existing Categories</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => deleteUnusedCategories('income')}>Remove Unused Income</Button>
+              <Button variant="outline" size="sm" onClick={() => deleteUnusedCategories('expense')}>Remove Unused Expense</Button>
+            </div>
+          </div>
+          <CategoryList />
+        </div>
+      </div>
     </div>
   );
 }
