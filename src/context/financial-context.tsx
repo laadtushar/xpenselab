@@ -39,7 +39,7 @@ interface FinancialContextType {
   deleteUnusedCategories: (type: 'income' | 'expense') => Promise<void>;
 
   userData: UserData | null;
-  updateUser: (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => void;
+  updateUser: (data: Partial<UserData> & { saltEdgeCustomerId?: FieldValue | undefined; saltEdgeConnections?: FieldValue | undefined }) => void;
   
   resetData: () => void;
   isLoading: boolean;
@@ -368,14 +368,27 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId, firestore, incomes, expenses, incomeCategories, expenseCategories, toast]);
 
-  const updateUser = (data: Partial<UserData> & { monzoTokens?: FieldValue | undefined }) => {
+  const updateUser = (data: Partial<UserData> & { saltEdgeCustomerId?: FieldValue | undefined; saltEdgeConnections?: FieldValue | undefined }) => {
     if (!userDocRef || !firestore || !userId) return;
 
-    if (data.monzoTokens === undefined) {
-      // Correctly delete the field using updateDoc and deleteField
+    const updates: any = {};
+    
+    if (data.saltEdgeCustomerId === undefined) {
+      updates.saltEdgeCustomerId = deleteField();
+    }
+    
+    if (data.saltEdgeConnections === undefined) {
+      updates.saltEdgeConnections = deleteField();
+    }
+
+    if (Object.keys(updates).length > 0) {
       const userRef = doc(firestore, "users", userId);
-      updateDocumentNonBlocking(userRef, { monzoTokens: deleteField() });
-    } else {
+      updateDocumentNonBlocking(userRef, updates);
+    }
+
+    // Merge other data
+    const { saltEdgeCustomerId, saltEdgeConnections, ...otherData } = data;
+    if (Object.keys(otherData).length > 0 || (saltEdgeCustomerId !== undefined && saltEdgeCustomerId !== deleteField()) || (saltEdgeConnections !== undefined && saltEdgeConnections !== deleteField())) {
       setDocumentNonBlocking(userDocRef, data, { merge: true });
     }
   };

@@ -6,11 +6,14 @@ export type User = {
     createdAt: string; // ISO string
     currency?: string;
     tier?: 'basic' | 'premium';
-    monzoTokens?: {
-        accessToken: string;
-        refreshToken: string;
-        expiresAt: string;
-    };
+    saltEdgeCustomerId?: string;
+    saltEdgeConnections?: {
+        connectionId: string;
+        providerCode: string;
+        providerName: string;
+        status: string;
+        createdAt: string;
+    }[];
     aiRequestCount?: number;
     lastAiRequestDate?: string; // YYYY-MM-DD
     hasCreatedDefaultCategories?: boolean;
@@ -108,29 +111,56 @@ export type MemberBalance = {
   balance: number;
 };
 
-// Monzo Types
-export interface MonzoAccount {
+// Salt Edge Types
+export interface SaltEdgeAccount {
   id: string;
-  description: string;
-  type: 'uk_retail' | 'uk_retail_joint' | 'uk_business';
-  created: string;
+  connection_id: string;
+  name: string;
+  nature: string;
+  balance: number;
+  currency_code: string;
+  extra?: {
+    account_number?: string;
+    iban?: string;
+    sort_code?: string;
+  };
+  created_at: string;
+  updated_at: string;
 }
 
-export interface MonzoTransaction {
+export interface SaltEdgeTransaction {
   id: string;
-  created: string;
+  connection_id: string;
+  account_id: string;
+  made_on: string;
+  amount: number;
+  currency_code: string;
   description: string;
-  amount: number; // in pennies
-  currency: string;
-  merchant: {
-    id: string;
-    name: string;
-    logo: string;
-    category: string;
-  } | null;
-  notes: string;
-  settled: string;
-  category: string;
+  category?: string;
+  subcategory?: string;
+  duplicated?: boolean;
+  mode?: string;
+  status?: string;
+  extra?: {
+    original_amount?: number;
+    original_currency_code?: string;
+    merchant?: {
+      name?: string;
+      logo?: string;
+    };
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SaltEdgeConnection {
+  id: string;
+  customer_id: string;
+  provider_code: string;
+  provider_name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Loan/EMI Types

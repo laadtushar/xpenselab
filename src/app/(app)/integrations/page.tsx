@@ -6,7 +6,7 @@ import { DashboardHeader } from '@/components/shared/dashboard-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { MonzoTransactionImporter } from '@/components/integrations/monzo-transaction-importer';
+import { SaltEdgeTransactionImporter } from '@/components/integrations/saltedge-transaction-importer';
 
 export default function IntegrationsPage() {
     const { user, isUserLoading } = useUser();
@@ -39,7 +39,7 @@ export default function IntegrationsPage() {
     return (
         <div className="flex flex-col gap-8">
             <DashboardHeader title="Integrations" />
-            <MonzoTransactionImporter userId={user.uid} />
+            <SaltEdgeTransactionImporter userId={user.uid} />
         </div>
     );
 }
