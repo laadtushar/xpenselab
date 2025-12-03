@@ -1,24 +1,69 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
-import { initializeFirebase } from '@/firebase';
+import { firebaseConfig } from '@/firebase/config';
+import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
+interface FirebaseServices {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+}
+
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const firebaseServices = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
-    return initializeFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  const [services, setServices] = useState<FirebaseServices | null>(null);
+
+  useEffect(() => {
+    // This effect runs once on the client after the component mounts.
+    // This is the safe place to initialize Firebase.
+    let app: FirebaseApp;
+    try {
+      app = getApp();
+    } catch (e) {
+      app = initializeApp(firebaseConfig);
+      
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
+      if (siteKey) {
+        try {
+          initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(siteKey),
+            isTokenAutoRefreshEnabled: true,
+          });
+        } catch (appCheckError) {
+          console.error("Firebase App Check initialization failed:", appCheckError);
+        }
+      } else {
+        console.error('App Check skipped: NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is not set.');
+      }
+    }
+    
+    setServices({
+      firebaseApp: app,
+      auth: getAuth(app),
+      firestore: getFirestore(app),
+    });
+
+  }, []); // Empty dependency array ensures this runs only once.
+
+  if (!services) {
+    // Render nothing or a loader until Firebase is initialized.
+    // This prevents children from trying to access Firebase services too early.
+    return null; 
+  }
 
   return (
     <FirebaseProvider
-      firebaseApp={firebaseServices.firebaseApp}
-      auth={firebaseServices.auth}
-      firestore={firebaseServices.firestore}
+      firebaseApp={services.firebaseApp}
+      auth={services.auth}
+      firestore={services.firestore}
     >
       {children}
     </FirebaseProvider>
