@@ -200,10 +200,13 @@ service cloud.firestore {
      */
     match /groups/{groupId} {
         allow get: if isGroupMember(groupId);
-        allow list: if isSignedIn();
         allow create: if isSignedIn();
         allow update: if isSignedIn() && request.auth.uid in resource.data.members;
         allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    match /groups {
+        allow list: if isSignedIn();
     }
 
     /**
@@ -262,5 +265,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
