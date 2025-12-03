@@ -28,14 +28,16 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     let app: FirebaseApp;
     if (!getApps().length) {
         app = initializeApp(firebaseConfig);
+        // Conditionally initialize App Check only if the site key is available
         if (process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY) {
             try {
                 initializeAppCheck(app, {
                     provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY),
                     isTokenAutoRefreshEnabled: true,
                 });
+                console.log("Firebase App Check initialized successfully.");
             } catch (e) {
-                console.error("Error initializing App Check", e);
+                console.error("Error initializing Firebase App Check", e);
             }
         }
     } else {
@@ -66,4 +68,3 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     </FirebaseProvider>
   );
 }
-
