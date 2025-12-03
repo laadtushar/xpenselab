@@ -66,8 +66,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for income entries.
      */
     match /users/{userId}/incomes/{incomeId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
@@ -83,8 +82,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for expense entries.
      */
     match /users/{userId}/expenses/{expenseId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
@@ -100,8 +98,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for category entries.
      */
     match /users/{userId}/categories/{categoryId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
@@ -111,8 +108,7 @@ service cloud.firestore {
      * @description Controls access to recurring transactions for a specific user.
      */
     match /users/{userId}/recurringTransactions/{recurringTransactionId} {
-      allow list: if isOwner(userId);
-      allow get: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
@@ -122,8 +118,7 @@ service cloud.firestore {
      * @description Controls access to financial insights for a specific user.
      */
     match /users/{userId}/financialInsights/{insightId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if false;
       allow delete: if isExistingOwner(userId);
@@ -133,15 +128,13 @@ service cloud.firestore {
      * @description Controls access to loan and repayment entries for a specific user.
      */
     match /users/{userId}/loans/{loanId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
 
       match /repayments/{repaymentId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow list, get: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.loanId == loanId;
         allow update, delete: if isExistingOwner(userId);
       }
@@ -158,8 +151,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for budget entries.
      */
     match /users/{userId}/budgets/{budgetId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow list, get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
