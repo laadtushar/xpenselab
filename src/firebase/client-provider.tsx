@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -65,3 +66,4 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     </FirebaseProvider>
   );
 }
+
