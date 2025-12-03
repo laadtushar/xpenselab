@@ -49,8 +49,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-      allow read, update, delete: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
+      allow read, update, delete, create: if request.auth.uid == userId;
     }
 
     /**
