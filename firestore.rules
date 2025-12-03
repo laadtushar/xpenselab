@@ -111,8 +111,8 @@ service cloud.firestore {
      * @description Controls access to recurring transactions for a specific user.
      */
     match /users/{userId}/recurringTransactions/{recurringTransactionId} {
-      allow get: if isOwner(userId);
       allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == request.auth.uid;
       allow delete: if isExistingOwner(userId);
