@@ -199,7 +199,7 @@ service cloud.firestore {
      * @principle Enforces group membership for access to group details.
      */
     match /groups/{groupId} {
-        allow get: if isSignedIn();
+        allow get: if isGroupMember(groupId);
         allow list: if isSignedIn();
         allow create: if isSignedIn();
         allow update: if isSignedIn() && request.auth.uid in resource.data.members;
@@ -216,11 +216,15 @@ service cloud.firestore {
      */
     match /groups/{groupId}/sharedExpenses/{expenseId} {
         allow get: if isGroupMember(groupId);
-        allow list: if isGroupMember(groupId);
         allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
         allow update: if isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
         allow delete: if isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
     }
+
+    match /groups/{groupId}/sharedExpenses {
+        allow list: if isGroupMember(groupId);
+    }
+
 
     /**
      * @description Controls access to debt documents.
@@ -231,11 +235,14 @@ service cloud.firestore {
      * @allow (delete) - Only the creator of the debt can delete it.
      */
     match /debts/{debtId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn();
+        allow get: if isSignedIn() && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId || request.auth.uid == resource.data.createdBy);
         allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
         allow update: if isSignedIn() && resource.data.createdBy == request.auth.uid;
         allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    match /debts {
+        allow list: if isSignedIn();
     }
 
     function isSignedIn() {
@@ -255,3 +262,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
