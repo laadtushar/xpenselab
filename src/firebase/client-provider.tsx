@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -31,6 +30,8 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
         // Conditionally initialize App Check only if the site key is available
         if (process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY) {
             try {
+                // IMPORTANT: Set the debug token for development environments.
+                (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
                 initializeAppCheck(app, {
                     provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY),
                     isTokenAutoRefreshEnabled: true,
