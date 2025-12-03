@@ -25,24 +25,20 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     // This effect runs once on the client after the component mounts.
     // This is the safe place to initialize Firebase.
     let app: FirebaseApp;
-    try {
-      app = getApp();
-    } catch (e) {
-      app = initializeApp(firebaseConfig);
-      
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY;
-      if (siteKey) {
-        try {
-          initializeAppCheck(app, {
-            provider: new ReCaptchaV3Provider(siteKey),
-            isTokenAutoRefreshEnabled: true,
-          });
-        } catch (appCheckError) {
-          console.error("Firebase App Check initialization failed:", appCheckError);
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+        if (process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY) {
+            try {
+                initializeAppCheck(app, {
+                    provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY),
+                    isTokenAutoRefreshEnabled: true,
+                });
+            } catch (e) {
+                console.error("Error initializing App Check", e);
+            }
         }
-      } else {
-        console.error('App Check skipped: NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY is not set.');
-      }
+    } else {
+        app = getApp();
     }
     
     setServices({
