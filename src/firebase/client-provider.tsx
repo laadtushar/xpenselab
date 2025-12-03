@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
@@ -23,7 +23,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
 
   useEffect(() => {
     // This effect runs once on the client after the component mounts.
-    // This is the safe place to initialize Firebase.
+    // This is the safe place to initialize Firebase and access browser-specific APIs.
     let app: FirebaseApp;
     if (!getApps().length) {
         app = initializeApp(firebaseConfig);
@@ -47,11 +47,11 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       firestore: getFirestore(app),
     });
 
-  }, []); // Empty dependency array ensures this runs only once.
+  }, []); // The empty dependency array ensures this effect runs only once on mount.
 
   if (!services) {
-    // Render nothing or a loader until Firebase is initialized.
-    // This prevents children from trying to access Firebase services too early.
+    // Render nothing or a global loader while Firebase is initializing.
+    // This prevents children from trying to access Firebase services before they are ready.
     return null; 
   }
 
