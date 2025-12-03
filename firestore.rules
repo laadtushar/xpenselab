@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Firestore Security Rules for FinanceFlow.
  *
@@ -26,79 +25,275 @@
  * Key Security Decisions:
  * - Users can only access their own profile data.
  * - Users can only access income, expense, category, budget, and loan data associated with their user ID.
- * - Groups and shared expenses are accessible to group members.
- * - Debts are accessible to participants.
- * - Data validation is relaxed in this prototype phase, focusing on authorization.
- *
- * Denormalization for Authorization:
- * - Incomes, expenses, categories and budgets documents all require the `userId` field for
- *   authorization.
- * - SharedExpenses documents require `groupId` and the `splits` array to determine authorized users.
+ * - Groups and shared expenses are accessible to group members only.
+ * - Debts are accessible only to participants (fromUserId, toUserId).
+ * - List operations require client-side query filtering for security.
+ * - Critical fields are validated on create/update operations.
  */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
     /**
      * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create, read, update, delete) - User with matching {userId} can manage their profile.
+     * @validation Ensures userId field matches document path.
      */
     match /users/{userId} {
-      allow read, update, delete, create: if request.auth.uid == userId;
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId;
     }
 
     /**
-     * @description Controls access to all user-specific subcollections.
-     * Grants list and write access to the owner of the data.
+     * @description Controls access to income entries for a specific user.
+     * @path /users/{userId}/incomes/{incomeId}
+     * @validation Ensures userId field matches and exists in document.
      */
-    match /users/{userId}/{subcollection}/{document=**} {
-        allow read, write: if request.auth.uid == userId;
+    match /users/{userId}/incomes/{incomeId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+    }
+
+    match /users/{userId}/incomes {
+      allow list: if request.auth.uid == userId;
+    }
+
+    /**
+     * @description Controls access to expense entries for a specific user.
+     * @path /users/{userId}/expenses/{expenseId}
+     * @validation Ensures userId field matches and exists in document.
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+    }
+
+    match /users/{userId}/expenses {
+      allow list: if request.auth.uid == userId;
+    }
+
+    /**
+     * @description Controls access to category entries for a specific user.
+     * @path /users/{userId}/categories/{categoryId}
+     * @validation Ensures userId field matches and exists in document.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+    }
+
+    match /users/{userId}/categories {
+      allow list: if request.auth.uid == userId;
+    }
+
+    /**
+     * @description Controls access to recurring transactions for a specific user.
+     * @validation Ensures userId field matches and exists in document.
+     */
+    match /users/{userId}/recurringTransactions/{recurringTransactionId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+    }
+
+    match /users/{userId}/recurringTransactions {
+      allow list: if request.auth.uid == userId;
+    }
+
+    /**
+     * @description Controls access to financial insights for a specific user.
+     * @note Insights are immutable after creation (no updates allowed).
+     */
+    match /users/{userId}/financialInsights/{insightId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if false; // Insights are immutable
+    }
+
+    match /users/{userId}/financialInsights {
+      allow list: if request.auth.uid == userId;
+    }
+
+    /**
+     * @description Controls access to loan and repayment entries for a specific user.
+     * @validation Ensures userId field matches and exists in document.
+     */
+    match /users/{userId}/loans/{loanId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+
+      match /repayments/{repaymentId} {
+        allow read, delete: if request.auth.uid == userId;
+        allow create: if request.auth.uid == userId;
+        allow update: if request.auth.uid == userId;
+      }
+
+      match /repayments {
+        allow list: if request.auth.uid == userId;
+      }
+    }
+
+    match /users/{userId}/loans {
+      allow list: if request.auth.uid == userId;
+    }
+
+    /**
+     * @description Controls access to budget entries for a specific user.
+     * @validation Ensures userId field matches and exists in document.
+     */
+    match /users/{userId}/budgets/{budgetId} {
+      allow read, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+      allow update: if request.auth.uid == userId 
+        && request.resource.data.userId == userId;
+    }
+
+    match /users/{userId}/budgets {
+      allow list: if request.auth.uid == userId;
     }
 
     /**
      * @description Controls access to group documents.
+     * @path /groups/{groupId}
+     * @allow (create) - Any authenticated user can create a group if they set themselves as creator and member.
+     * @allow (get) - Only group members can read group details.
+     * @allow (update) - Only group members can update the group.
+     * @allow (delete) - Only the group creator can delete the group.
+     * @note Use client-side queries: .where('members', 'array-contains', currentUserId)
      */
     match /groups/{groupId} {
-        allow get: if isGroupMember(groupId);
-        allow create: if isSignedIn();
-        allow update: if isSignedIn() && request.auth.uid in resource.data.members;
-        allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow get: if isSignedIn() && isGroupMember(groupId);
+      allow create: if isSignedIn() 
+        && request.resource.data.createdBy == request.auth.uid
+        && request.auth.uid in request.resource.data.members;
+      allow update: if isSignedIn() 
+        && isGroupMember(groupId);
+      allow delete: if isSignedIn() 
+        && resource.data.createdBy == request.auth.uid;
     }
-    
+
+    /**
+     * @note List operations blocked - use array-contains queries on client side
+     * Example: db.collection('groups').where('members', 'array-contains', currentUserId)
+     */
     match /groups {
-        allow list: if isSignedIn();
+      allow list: if false;
     }
 
     /**
      * @description Controls access to shared expense documents within a group.
+     * @path /groups/{groupId}/sharedExpenses/{expenseId}
+     * @allow (create) - Only group members can create shared expenses they paid for.
+     * @allow (get) - Only group members can read shared expenses.
+     * @allow (update, delete) - Only the user who paid can update or delete the expense.
+     * @validation Ensures paidBy matches authenticated user and groupId is correct.
      */
     match /groups/{groupId}/sharedExpenses/{expenseId} {
-        allow get, create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-        allow update, delete: if isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
+      allow get: if isSignedIn() && isGroupMember(groupId);
+      allow create: if isSignedIn() 
+        && isGroupMember(groupId) 
+        && request.resource.data.groupId == groupId
+        && request.resource.data.paidBy == request.auth.uid;
+      allow update: if isSignedIn() 
+        && isGroupMember(groupId) 
+        && resource.data.paidBy == request.auth.uid
+        && request.resource.data.paidBy == request.auth.uid;
+      allow delete: if isSignedIn() 
+        && isGroupMember(groupId) 
+        && resource.data.paidBy == request.auth.uid;
     }
-    
+
     match /groups/{groupId}/sharedExpenses {
-        allow list: if isGroupMember(groupId);
+      allow list: if isSignedIn() && isGroupMember(groupId);
     }
 
     /**
      * @description Controls access to debt documents.
+     * @path /debts/{debtId}
+     * @allow (get) - Only participants (fromUserId or toUserId) can read.
+     * @allow (create) - Any authenticated user can create a debt if they're a participant.
+     * @allow (update, delete) - Only participants can modify the debt.
+     * @note Use client-side queries for listing debts:
+     *   - .where('fromUserId', '==', currentUserId)
+     *   - .where('toUserId', '==', currentUserId)
      */
     match /debts/{debtId} {
-        allow get: if isSignedIn() && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId || request.auth.uid == resource.data.createdBy);
-        allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-        allow update, delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow get: if isSignedIn() && (
+        request.auth.uid == resource.data.fromUserId 
+        || request.auth.uid == resource.data.toUserId
+      );
+      allow create: if isSignedIn() 
+        && (request.auth.uid == request.resource.data.fromUserId 
+          || request.auth.uid == request.resource.data.toUserId)
+        && request.resource.data.fromUserId != request.resource.data.toUserId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.fromUserId 
+        || request.auth.uid == resource.data.toUserId
+      );
+      allow delete: if isSignedIn() && (
+        request.auth.uid == resource.data.fromUserId 
+        || request.auth.uid == resource.data.toUserId
+      );
     }
 
+    /**
+     * @note List operations blocked - use filtered queries on client side
+     * Example: db.collection('debts').where('fromUserId', '==', currentUserId)
+     * Example: db.collection('debts').where('toUserId', '==', currentUserId)
+     */
     match /debts {
-        allow list: if isSignedIn();
+      allow list: if false;
     }
 
+    // ========== Helper Functions ==========
+
+    /**
+     * @function isSignedIn
+     * @returns {boolean} True if user is authenticated
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @function isOwner
+     * @param {string} userId - The user ID to check ownership against
+     * @returns {boolean} True if authenticated user matches userId
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @function isGroupMember
+     * @param {string} groupId - The group ID to check membership
+     * @returns {boolean} True if authenticated user is in the group's members array
+     * @note This performs a document read and counts against quota
+     */
     function isGroupMember(groupId) {
-        return request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      return request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
     }
   }
 }
+    
