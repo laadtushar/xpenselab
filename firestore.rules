@@ -36,9 +36,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    /**
-     * @description Controls access to user-specific data. All subcollections are nested here.
-     */
     match /users/{userId} {
       allow read, delete: if request.auth.uid == userId;
       allow create: if request.auth.uid == userId && request.resource.data.userId == userId;
