@@ -36,6 +36,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    /**
+     * @description Controls access to user-specific data. All subcollections are nested here.
+     */
     match /users/{userId} {
       allow read, delete: if request.auth.uid == userId;
       allow create: if request.auth.uid == userId && request.resource.data.userId == userId;
@@ -43,80 +46,67 @@ service cloud.firestore {
 
       /**
        * @description Controls access to income entries for a specific user.
+       * Includes both single document access (get) and collection queries (list).
        */
       match /incomes/{incomeId} {
-        allow read, write, delete: if request.auth.uid == userId;
-      }
-      match /incomes {
-        allow list: if request.auth.uid == userId;
+        allow get, list: if request.auth.uid == userId;
+        allow create, update, delete: if request.auth.uid == userId;
       }
 
       /**
        * @description Controls access to expense entries for a specific user.
        */
       match /expenses/{expenseId} {
-        allow read, write, delete: if request.auth.uid == userId;
-      }
-      match /expenses {
-        allow list: if request.auth.uid == userId;
+        allow get, list: if request.auth.uid == userId;
+        allow create, update, delete: if request.auth.uid == userId;
       }
       
       /**
        * @description Controls access to category entries for a specific user.
        */
       match /categories/{categoryId} {
-        allow read, write, delete: if request.auth.uid == userId;
-      }
-      match /categories {
-        allow list: if request.auth.uid == userId;
+        allow get, list: if request.auth.uid == userId;
+        allow create, update, delete: if request.auth.uid == userId;
       }
 
       /**
        * @description Controls access to recurring transactions for a specific user.
        */
       match /recurringTransactions/{recurringTransactionId} {
-        allow read, write, delete: if request.auth.uid == userId;
-      }
-      match /recurringTransactions {
-        allow list: if request.auth.uid == userId;
+        allow get, list: if request.auth.uid == userId;
+        allow create, update, delete: if request.auth.uid == userId;
       }
 
       /**
        * @description Controls access to financial insights for a specific user.
        */
       match /financialInsights/{insightId} {
-        allow read, create, delete: if request.auth.uid == userId;
+        allow get, list, create, delete: if request.auth.uid == userId;
         allow update: if false; // Insights are immutable
-      }
-       match /financialInsights {
-        allow list: if request.auth.uid == userId;
       }
 
       /**
        * @description Controls access to loan and repayment entries for a specific user.
        */
       match /loans/{loanId} {
-        allow read, write, delete: if request.auth.uid == userId;
+        allow get, list: if request.auth.uid == userId;
+        allow create, update, delete: if request.auth.uid == userId;
 
+        /**
+         * @description Controls access to repayments within a loan.
+         */
         match /repayments/{repaymentId} {
-          allow read, write, delete: if request.auth.uid == userId;
+          allow get, list: if request.auth.uid == userId;
+          allow create, update, delete: if request.auth.uid == userId;
         }
-         match /repayments {
-            allow list: if request.auth.uid == userId;
-        }
-      }
-       match /loans {
-        allow list: if request.auth.uid == userId;
       }
 
       /**
        * @description Controls access to budget entries for a specific user.
        */
       match /budgets/{budgetId} {
-        allow read, write, delete: if request.auth.uid == userId;
-      }
-      match /budgets {
-        allow list: if request.auth.uid == userId;
+        allow get, list: if request.auth.uid == userId;
+        allow create, update, delete: if request.auth.uid == userId;
       }
     }
 
@@ -125,6 +115,7 @@ service cloud.firestore {
      */
     match /groups/{groupId} {
       allow get: if isSignedIn() && isGroupMember(groupId);
+      allow list: if isSignedIn();
       allow create: if isSignedIn() 
         && request.resource.data.createdBy == request.auth.uid
         && request.auth.uid in request.resource.data.members;
@@ -135,29 +126,20 @@ service cloud.firestore {
        * @description Controls access to shared expense documents within a group.
        */
       match /sharedExpenses/{expenseId} {
-        allow get: if isSignedIn() && isGroupMember(groupId);
+        allow get, list: if isSignedIn() && isGroupMember(groupId);
         allow create: if isSignedIn() && isGroupMember(groupId) && request.resource.data.paidBy == request.auth.uid;
         allow update, delete: if isSignedIn() && isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
       }
-       match /sharedExpenses {
-        allow list: if isSignedIn() && isGroupMember(groupId);
-      }
-    }
-    
-    match /groups {
-        allow list: if isSignedIn();
     }
 
     /**
      * @description Controls access to debt documents.
      */
     match /debts/{debtId} {
-      allow get, update, delete: if isSignedIn() && isParticipant(resource.data);
+      allow get: if isSignedIn() && isParticipant(resource.data);
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && isParticipant(request.resource.data);
-    }
-    
-    match /debts {
-        allow list: if isSignedIn();
+      allow update, delete: if isSignedIn() && isParticipant(resource.data);
     }
 
     // ========== Helper Functions ==========
