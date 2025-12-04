@@ -1,24 +1,54 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
-import { initializeFirebase } from '@/firebase';
+import { firebaseConfig } from '@/firebase/config';
+import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
+interface FirebaseServices {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+}
+
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const firebaseServices = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
-    return initializeFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  const [services, setServices] = useState<FirebaseServices | null>(null);
+
+  useEffect(() => {
+    // This effect runs once on the client after the component mounts.
+    // This is the safe place to initialize Firebase and access browser-specific APIs.
+    let app: FirebaseApp;
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    
+    setServices({
+      firebaseApp: app,
+      auth: getAuth(app),
+      firestore: getFirestore(app),
+    });
+
+  }, []); // The empty dependency array ensures this effect runs only once on mount.
+
+  if (!services) {
+    // Render nothing or a global loader while Firebase is initializing.
+    // This prevents children from trying to access Firebase services before they are ready.
+    return null; 
+  }
 
   return (
     <FirebaseProvider
-      firebaseApp={firebaseServices.firebaseApp}
-      auth={firebaseServices.auth}
-      firestore={firebaseServices.firestore}
+      firebaseApp={services.firebaseApp}
+      auth={services.auth}
+      firestore={services.firestore}
     >
       {children}
     </FirebaseProvider>
