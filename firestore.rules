@@ -41,7 +41,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow read, delete: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId && request.resource.data.userId == userId;
+      allow create: if request.auth.uid == userId;
       allow update: if request.auth.uid == userId;
 
       /**
