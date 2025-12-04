@@ -23,7 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isUserLoading) {
-      return;
+      return; // Wait for Firebase Auth to initialize
     }
 
     if (!user) {
@@ -31,6 +31,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (!firestore) return; // Wait for firestore to be available
+
+    // Check for the user document in Firestore
     const userDocRef = doc(firestore, 'users', user.uid);
     getDoc(userDocRef).then(userDocSnap => {
       if (!userDocSnap.exists()) {
@@ -41,6 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           tier: 'basic',
           hasCreatedDefaultCategories: false,
         };
+        // Set the document and then confirm the check is complete
         setDocumentNonBlocking(userDocRef, newUserDoc);
         setIsFirestoreCheckComplete(true);
       } else {
@@ -48,14 +52,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         // If user exists but has no tier or category flag, update them.
         if (!userData.tier || userData.hasCreatedDefaultCategories === undefined) {
           setDocumentNonBlocking(userDocRef, { tier: 'basic', hasCreatedDefaultCategories: userData.hasCreatedDefaultCategories || false }, { merge: true });
-          setIsFirestoreCheckComplete(true);
-        } else {
-          setIsFirestoreCheckComplete(true);
         }
+        setIsFirestoreCheckComplete(true);
       }
     }).catch(error => {
       console.error("AppLayout: Error checking/creating user document:", error);
-      setIsFirestoreCheckComplete(true); // Proceed even if there's an error
+      // In case of error, we still proceed to avoid getting stuck on the loading screen.
+      // The error will likely manifest elsewhere, but this prevents a total app blockage.
+      setIsFirestoreCheckComplete(true); 
     });
 
   }, [user, isUserLoading, firestore, router]);
@@ -66,6 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
   
+  // Render a global loading indicator until both Firebase Auth and our Firestore check are complete.
   if (isUserLoading || !isFirestoreCheckComplete) {
     return (
       <div className="flex h-screen items-center justify-center">
