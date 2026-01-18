@@ -29,8 +29,8 @@ const formSchema = z.object({
 });
 
 interface ExpenseFormFromReceiptProps {
-    receiptData: Partial<Expense>;
-    onCancel: () => void;
+  receiptData: Partial<Expense>;
+  onCancel: () => void;
 }
 
 export function ExpenseFormFromReceipt({ receiptData, onCancel }: ExpenseFormFromReceiptProps) {
@@ -55,17 +55,20 @@ export function ExpenseFormFromReceipt({ receiptData, onCancel }: ExpenseFormFro
     const autoCategorize = async () => {
       // Don't re-categorize if a category was already suggested by the receipt scan
       if (receiptData.category && expenseCategories.some(c => c.name === receiptData.category)) {
-          form.setValue("category", receiptData.category, { shouldValidate: true });
-          return;
+        form.setValue("category", receiptData.category, { shouldValidate: true });
+        return;
       }
 
       if (debouncedDescription && debouncedDescription.length >= 3) {
         setIsCategorizing(true);
         try {
-          const result = await categorizeExpense({ description: debouncedDescription });
-          const categoryExists = expenseCategories.some(c => c.name === result.category);
-          if (result.category && categoryExists) {
-            form.setValue("category", result.category, { shouldValidate: true });
+          const response = await categorizeExpense({ description: debouncedDescription });
+          if (response.success && response.data) {
+            const result = response.data;
+            const categoryExists = expenseCategories.some(c => c.name === result.category);
+            if (result.category && categoryExists) {
+              form.setValue("category", result.category, { shouldValidate: true });
+            }
           }
         } catch (error) {
           console.error("AI categorization failed:", error);
@@ -92,91 +95,91 @@ export function ExpenseFormFromReceipt({ receiptData, onCancel }: ExpenseFormFro
 
   return (
     <Card>
-        <CardHeader>
-            <CardTitle>Confirm Scanned Expense</CardTitle>
-            <CardDescription>AI has extracted the following details from your receipt. Please review and confirm.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl><Input placeholder="e.g., Weekly groceries" {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Amount</FormLabel>
-                    <FormControl><Input type="number" step="0.01" placeholder="e.g., 75.50" {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <div className="relative">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {expenseCategories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        {isCategorizing && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
-                    </div>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Expense
-                    </Button>
-                </div>
-            </form>
-            </Form>
-        </CardContent>
+      <CardHeader>
+        <CardTitle>Confirm Scanned Expense</CardTitle>
+        <CardDescription>AI has extracted the following details from your receipt. Please review and confirm.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl><Input placeholder="e.g., Weekly groceries" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl><Input type="number" step="0.01" placeholder="e.g., 75.50" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <div className="relative">
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {expenseCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isCategorizing && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Expense
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
     </Card>
   );
 }

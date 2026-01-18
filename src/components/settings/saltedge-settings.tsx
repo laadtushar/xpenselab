@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useUser } from "@/firebase";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { FEATURES } from "@/lib/config";
 
 export function SaltEdgeConnectButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +51,7 @@ export function SaltEdgeConnectButton() {
 }
 
 export function SaltEdgeSettings() {
+  if (!FEATURES.isSaltEdgeEnabled) return null;
   const { userData, updateUser, isLoading } = useFinancials();
   const { user } = useUser();
   const { toast } = useToast();

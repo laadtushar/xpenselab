@@ -16,7 +16,7 @@ export function AiBudgetAssistant() {
   const { toast } = useToast();
   const { incomes, currentMonthExpenses, budget, userData, canMakeAiRequest } = useFinancials();
   const isPremium = userData?.tier === 'premium';
-  
+
   const { makeRequest: makeBudgetingRequest, isLoading } = useAiRequest(budgetingAssistance);
 
   const { remainingRequests } = useMemo(() => {
@@ -29,12 +29,12 @@ export function AiBudgetAssistant() {
     const today = new Date();
     const monthStart = startOfMonth(today);
     const monthEnd = endOfMonth(today);
-    
+
     const monthlyExpenses = currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
     const monthlyIncome = incomes
       .filter(income => isWithinInterval(new Date(income.date), { start: monthStart, end: monthEnd }))
       .reduce((sum, t) => sum + t.amount, 0);
-      
+
     const spendingCategories = currentMonthExpenses
       .filter(t => t.category)
       .reduce((acc, t) => {
@@ -58,14 +58,22 @@ export function AiBudgetAssistant() {
     setResult(null);
 
     const response = await makeBudgetingRequest({
-        monthlyIncome: financialData.monthlyIncome,
-        monthlyExpenses: financialData.monthlyExpenses,
-        budgetGoal: budget.amount,
-        spendingCategories: financialData.spendingCategories,
+      monthlyIncome: financialData.monthlyIncome,
+      monthlyExpenses: financialData.monthlyExpenses,
+      budgetGoal: budget.amount,
+      spendingCategories: financialData.spendingCategories,
     });
 
     if (response) {
-        setResult(response);
+      if (response.success && response.data) {
+        setResult(response.data);
+      } else if (response.error) {
+        toast({
+          title: "AI Assistant Error",
+          description: response.error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -73,16 +81,16 @@ export function AiBudgetAssistant() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                AI Budget Assistant
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            AI Budget Assistant
+          </div>
+          {isPremium && remainingRequests !== undefined && (
+            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              {remainingRequests} requests left today
             </div>
-             {isPremium && remainingRequests !== undefined && (
-                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Info className="h-3 w-3" />
-                    {remainingRequests} requests left today
-                </div>
-            )}
+          )}
         </CardTitle>
         <CardDescription>
           Get personalized advice on your spending habits and budget for the current month.
@@ -90,13 +98,13 @@ export function AiBudgetAssistant() {
       </CardHeader>
       <CardContent className="space-y-4">
         {!isPremium ? (
-             <Alert>
-                <Star className="h-4 w-4" />
-                <AlertTitle>Premium Feature</AlertTitle>
-                <AlertDescription>
-                    Upgrade to a premium account to unlock the AI Budget Assistant and get personalized financial advice.
-                </AlertDescription>
-            </Alert>
+          <Alert>
+            <Star className="h-4 w-4" />
+            <AlertTitle>Premium Feature</AlertTitle>
+            <AlertDescription>
+              Upgrade to a premium account to unlock the AI Budget Assistant and get personalized financial advice.
+            </AlertDescription>
+          </Alert>
         ) : !result ? (
           <div className="flex justify-center">
             <Button onClick={handleGetAdvice} disabled={isLoading}>
@@ -130,4 +138,3 @@ export function AiBudgetAssistant() {
   );
 }
 
-    

@@ -22,7 +22,7 @@ export function ForecastGenerator() {
   const { makeRequest: makeForecastRequest, isLoading } = useAiRequest(predictiveForecast);
 
   const isPremium = userData?.tier === 'premium';
-  
+
   const { remainingRequests } = useMemo(() => {
     const { remaining } = canMakeAiRequest();
     return { remainingRequests: remaining };
@@ -43,14 +43,14 @@ export function ForecastGenerator() {
     const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
     const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
     const currentBalance = totalIncome - totalExpenses;
-    
+
     // Basic analysis on the client
     const firstDate = new Date(transactions[transactions.length - 1].date);
     const lastDate = new Date(transactions[0].date);
     const days = differenceInDays(lastDate, firstDate) || 1;
     const avgDailyIncome = totalIncome / days;
     const avgDailyExpense = totalExpenses / days;
-    
+
     const recurringExpenses = transactions.filter(t => t.description.match(/subscription|monthly|yearly/i));
 
     const analysis = `
@@ -64,9 +64,17 @@ export function ForecastGenerator() {
       financialSummary: analysis,
       userScenario: scenario,
     });
-    
+
     if (response) {
-      setResult(response);
+      if (response.success && response.data) {
+        setResult(response.data);
+      } else if (response.error) {
+        toast({
+          title: "Forecast Error",
+          description: response.error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -96,12 +104,12 @@ export function ForecastGenerator() {
           <div className="flex items-center gap-2">
             90-Day Financial Forecast
           </div>
-           {isPremium && remainingRequests !== undefined && (
-                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Info className="h-3 w-3" />
-                    {remainingRequests} requests left today
-                </div>
-            )}
+          {isPremium && remainingRequests !== undefined && (
+            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              {remainingRequests} requests left today
+            </div>
+          )}
         </CardTitle>
         <CardDescription>
           Enter a "what-if" scenario to see how it might impact your future finances.
@@ -128,7 +136,7 @@ export function ForecastGenerator() {
             )}
           </Button>
         </div>
-        
+
         {result && result.forecast?.length > 0 && (
           <div className="space-y-6">
             <Alert>

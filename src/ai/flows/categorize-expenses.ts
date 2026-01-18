@@ -22,12 +22,22 @@ const CategorizeExpenseOutputSchema = z.object({
 });
 export type CategorizeExpenseOutput = z.infer<typeof CategorizeExpenseOutputSchema>;
 
-export async function categorizeExpense(input: CategorizeExpenseInput): Promise<CategorizeExpenseOutput> {
+export type CategorizeExpenseResponse = {
+  success: boolean;
+  data?: CategorizeExpenseOutput;
+  error?: string;
+};
+
+export async function categorizeExpense(input: CategorizeExpenseInput): Promise<CategorizeExpenseResponse> {
   try {
-    return await categorizeExpenseFlow(input);
+    const result = await categorizeExpenseFlow(input);
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("AI flow failed (categorizeExpense):", error);
-    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+    return {
+      success: false,
+      error: error.message || "Categorization service currently unavailable."
+    };
   }
 }
 

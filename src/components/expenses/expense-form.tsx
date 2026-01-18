@@ -57,8 +57,9 @@ export function ExpenseForm() {
 
   const autoCategorize = useCallback(async () => {
     if (isPremium && debouncedDescription && debouncedDescription.length >= 3) {
-      const result = await makeCategorizationRequest({ description: debouncedDescription });
-      if (result) {
+      const response = await makeCategorizationRequest({ description: debouncedDescription });
+      if (response && response.success && response.data) {
+        const result = response.data;
         const categoryExists = expenseCategories.some(c => c.name === result.category);
         if (result.category && categoryExists) {
           form.setValue("category", result.category, { shouldValidate: true });
@@ -169,7 +170,7 @@ export function ExpenseForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                   <div className="relative">
+                  <div className="relative">
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -185,7 +186,7 @@ export function ExpenseForm() {
                       </SelectContent>
                     </Select>
                     {isCategorizing && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
-                   </div>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

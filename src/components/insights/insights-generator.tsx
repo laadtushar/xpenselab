@@ -25,19 +25,19 @@ export function InsightsGenerator() {
 
   const handleGetInsights = async () => {
     if (transactions.length < 5) {
-        toast({
-            title: "Not Enough Data",
-            description: "You need at least 5 transactions to generate insights.",
-            variant: "destructive",
-        });
-        return;
+      toast({
+        title: "Not Enough Data",
+        description: "You need at least 5 transactions to generate insights.",
+        variant: "destructive",
+      });
+      return;
     }
-    
+
     setResult(null);
 
     const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
     const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
-    
+
     const spendingByCategory = expenses
       .reduce((acc, t) => {
         const category = t.category || 'Uncategorized';
@@ -60,46 +60,54 @@ export function InsightsGenerator() {
     const response = await makeInsightsRequest({ financialSummary: summary });
 
     if (response) {
-      setResult(response);
+      if (response.success && response.data) {
+        setResult(response.data);
+      } else if (response.error) {
+        toast({
+          title: "AI Analysis Error",
+          description: response.error,
+          variant: "destructive",
+        });
+      }
     }
   };
-  
-    if (!isPremium) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        Generate Financial Report
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Alert>
-                        <Star className="h-4 w-4" />
-                        <AlertTitle>Premium Feature</AlertTitle>
-                        <AlertDescription>
-                            Upgrade to a premium account to unlock AI-powered financial insights and personalized suggestions.
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
-        )
-    }
+
+  if (!isPremium) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Generate Financial Report
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Star className="h-4 w-4" />
+            <AlertTitle>Premium Feature</AlertTitle>
+            <AlertDescription>
+              Upgrade to a premium account to unlock AI-powered financial insights and personalized suggestions.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Generate Financial Report
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Generate Financial Report
+          </div>
+          {isPremium && remainingRequests !== undefined && (
+            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              {remainingRequests} requests left today
             </div>
-             {isPremium && remainingRequests !== undefined && (
-                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Info className="h-3 w-3" />
-                    {remainingRequests} requests left today
-                </div>
-            )}
+          )}
         </CardTitle>
         <CardDescription>
           Let AI analyze your spending and income to provide a summary and actionable suggestions.
@@ -107,13 +115,13 @@ export function InsightsGenerator() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex justify-center">
-            <Button onClick={handleGetInsights} disabled={isLoading || !!result}>
-                {isLoading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</>
-                ) : ( "Generate Insights" )}
-            </Button>
+          <Button onClick={handleGetInsights} disabled={isLoading || !!result}>
+            {isLoading ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</>
+            ) : ("Generate Insights")}
+          </Button>
         </div>
-        
+
         {result && (
           <div className="space-y-6">
             <div>
@@ -131,10 +139,10 @@ export function InsightsGenerator() {
                 ))}
               </ul>
             </div>
-             <div className="flex justify-center">
-                <Button variant="outline" onClick={() => setResult(null)}>
-                    Generate New Report
-                </Button>
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => setResult(null)}>
+                Generate New Report
+              </Button>
             </div>
           </div>
         )}

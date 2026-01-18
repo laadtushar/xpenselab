@@ -3,6 +3,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { FEATURES } from '@/lib/config';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import type { MonzoAccount } from '@/lib/types';
@@ -95,6 +96,9 @@ const listMonzoAccountsFlow = ai.defineFlow(
     outputSchema: ListMonzoAccountsOutputSchema,
   },
   async ({ userId }) => {
+    if (!FEATURES.isMonzoEnabled) {
+      throw new Error("Monzo integration is deprecated and disabled.");
+    }
     try {
       const accessToken = await getValidAccessToken(userId);
 

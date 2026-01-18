@@ -25,12 +25,22 @@ const ScanReceiptOutputSchema = z.object({
 });
 export type ScanReceiptOutput = z.infer<typeof ScanReceiptOutputSchema>;
 
-export async function scanReceipt(input: ScanReceiptInput): Promise<ScanReceiptOutput> {
+export type ScanReceiptResponse = {
+  success: boolean;
+  data?: ScanReceiptOutput;
+  error?: string;
+};
+
+export async function scanReceipt(input: ScanReceiptInput): Promise<ScanReceiptResponse> {
   try {
-    return await scanReceiptFlow(input);
+    const result = await scanReceiptFlow(input);
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("AI flow failed (scanReceipt):", error);
-    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+    return {
+      success: false,
+      error: error.message || "Receipt scanning currently unavailable."
+    };
   }
 }
 

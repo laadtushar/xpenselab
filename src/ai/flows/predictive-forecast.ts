@@ -25,12 +25,22 @@ const PredictiveForecastOutputSchema = z.object({
 });
 export type PredictiveForecastOutput = z.infer<typeof PredictiveForecastOutputSchema>;
 
-export async function predictiveForecast(input: PredictiveForecastInput): Promise<PredictiveForecastOutput> {
+export type PredictiveForecastResponse = {
+  success: boolean;
+  data?: PredictiveForecastOutput;
+  error?: string;
+};
+
+export async function predictiveForecast(input: PredictiveForecastInput): Promise<PredictiveForecastResponse> {
   try {
-    return await predictiveForecastFlow(input);
+    const result = await predictiveForecastFlow(input);
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("AI flow failed (predictiveForecast):", error);
-    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+    return {
+      success: false,
+      error: error.message || "Predictive forecast currently unavailable."
+    };
   }
 }
 

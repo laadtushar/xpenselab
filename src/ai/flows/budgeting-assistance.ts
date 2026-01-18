@@ -35,14 +35,24 @@ const BudgetingAssistanceOutputSchema = z.object({
 });
 export type BudgetingAssistanceOutput = z.infer<typeof BudgetingAssistanceOutputSchema>;
 
+export type BudgetingAssistanceResponse = {
+  success: boolean;
+  data?: BudgetingAssistanceOutput;
+  error?: string;
+};
+
 export async function budgetingAssistance(
   input: BudgetingAssistanceInput
-): Promise<BudgetingAssistanceOutput> {
+): Promise<BudgetingAssistanceResponse> {
   try {
-    return await budgetingAssistanceFlow(input);
+    const result = await budgetingAssistanceFlow(input);
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("AI flow failed (budgetingAssistance):", error);
-    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+    return {
+      success: false,
+      error: error.message || "Budgeting assistance currently unavailable."
+    };
   }
 }
 

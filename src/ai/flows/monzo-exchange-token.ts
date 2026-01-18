@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { FEATURES } from '@/lib/config';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 
@@ -39,6 +40,9 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
     outputSchema: ExchangeTokenOutputSchema,
   },
   async (input) => {
+    if (!FEATURES.isMonzoEnabled) {
+      return { success: false, message: "Monzo integration is deprecated and disabled." };
+    }
     // Initialize Firebase Admin SDK inside the flow for reliability
     if (!getApps().length) {
       initializeApp();

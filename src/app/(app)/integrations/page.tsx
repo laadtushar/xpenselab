@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { SaltEdgeTransactionImporter } from '@/components/integrations/saltedge-transaction-importer';
+import { FEATURES } from '@/lib/config';
 
 export default function IntegrationsPage() {
     const { user, isUserLoading } = useUser();
@@ -23,10 +24,10 @@ export default function IntegrationsPage() {
     }
 
     if (!user) {
-         return (
+        return (
             <div className="flex flex-col gap-8">
                 <DashboardHeader title="Integrations" />
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle>Authentication Required</CardTitle>
                         <CardDescription>Please log in to manage your integrations.</CardDescription>
@@ -35,11 +36,22 @@ export default function IntegrationsPage() {
             </div>
         );
     }
-    
+
     return (
         <div className="flex flex-col gap-8">
             <DashboardHeader title="Integrations" />
-            <SaltEdgeTransactionImporter userId={user.uid} />
+            {FEATURES.isSaltEdgeEnabled ? (
+                <SaltEdgeTransactionImporter userId={user.uid} />
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>No Active Integrations</CardTitle>
+                        <CardDescription>
+                            Bank integrations are currently disabled. You can still import data via CSV in Settings.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            )}
         </div>
     );
 }

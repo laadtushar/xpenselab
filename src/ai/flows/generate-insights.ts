@@ -19,12 +19,22 @@ const GenerateInsightsOutputSchema = z.object({
 });
 export type GenerateInsightsOutput = z.infer<typeof GenerateInsightsOutputSchema>;
 
-export async function generateInsights(input: GenerateInsightsInput): Promise<GenerateInsightsOutput> {
+export type GenerateInsightsResponse = {
+  success: boolean;
+  data?: GenerateInsightsOutput;
+  error?: string;
+};
+
+export async function generateInsights(input: GenerateInsightsInput): Promise<GenerateInsightsResponse> {
   try {
-    return await generateInsightsFlow(input);
+    const result = await generateInsightsFlow(input);
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("AI flow failed (generateInsights):", error);
-    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+    return {
+      success: false,
+      error: error.message || "Financial insights currently unavailable."
+    };
   }
 }
 

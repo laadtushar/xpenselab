@@ -3,6 +3,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { FEATURES } from '@/lib/config';
 import { getValidAccessToken } from './monzo-list-accounts'; // Reusing the token helper
 import type { MonzoTransaction } from '@/lib/types';
 
@@ -33,6 +34,9 @@ const listMonzoTransactionsFlow = ai.defineFlow(
     outputSchema: ListMonzoTransactionsOutputSchema,
   },
   async ({ userId, accountId }) => {
+    if (!FEATURES.isMonzoEnabled) {
+      throw new Error("Monzo integration is deprecated and disabled.");
+    }
     try {
       const accessToken = await getValidAccessToken(userId);
       const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(); // 90 days ago

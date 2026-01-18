@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useFinancials } from "@/context/financial-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { FEATURES } from "@/lib/config";
 
 const MONZO_CLIENT_ID = process.env.NEXT_PUBLIC_MONZO_CLIENT_ID;
 
@@ -13,31 +14,32 @@ function generateState() {
 }
 
 export function MonzoConnectButton() {
-    const handleConnect = () => {
-        const MONZO_REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/settings/monzo` : '';
-        if (!MONZO_CLIENT_ID) {
-            alert("Monzo Client ID is not configured. Please set NEXT_PUBLIC_MONZO_CLIENT_ID in your environment variables.");
-            return;
-        }
+  const handleConnect = () => {
+    const MONZO_REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/settings/monzo` : '';
+    if (!MONZO_CLIENT_ID) {
+      alert("Monzo Client ID is not configured. Please set NEXT_PUBLIC_MONZO_CLIENT_ID in your environment variables.");
+      return;
+    }
 
-        const state = generateState();
-        localStorage.setItem('monzo_oauth_state', state);
+    const state = generateState();
+    localStorage.setItem('monzo_oauth_state', state);
 
-        const authUrl = new URL('https://auth.monzo.com');
-        authUrl.searchParams.append('client_id', MONZO_CLIENT_ID);
-        authUrl.searchParams.append('redirect_uri', MONZO_REDIRECT_URI);
-        authUrl.searchParams.append('response_type', 'code');
-        authUrl.searchParams.append('state', state);
-        
-        window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
-    };
+    const authUrl = new URL('https://auth.monzo.com');
+    authUrl.searchParams.append('client_id', MONZO_CLIENT_ID);
+    authUrl.searchParams.append('redirect_uri', MONZO_REDIRECT_URI);
+    authUrl.searchParams.append('response_type', 'code');
+    authUrl.searchParams.append('state', state);
 
-    return (
-        <Button onClick={handleConnect}>Connect with Monzo</Button>
-    );
+    window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <Button onClick={handleConnect}>Connect with Monzo</Button>
+  );
 }
 
 export function MonzoSettings() {
+  if (!FEATURES.isMonzoEnabled) return null;
   const { userData, updateUser, isLoading } = useFinancials();
   const { toast } = useToast();
   const isConnected = !!userData?.monzoTokens;
@@ -45,8 +47,8 @@ export function MonzoSettings() {
   const handleDisconnect = () => {
     updateUser({ monzoTokens: undefined });
     toast({
-        title: "Monzo Account Disconnected",
-        description: "Your Monzo account has been disconnected.",
+      title: "Monzo Account Disconnected",
+      description: "Your Monzo account has been disconnected.",
     });
   }
 
@@ -60,7 +62,7 @@ export function MonzoSettings() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin" />
         ) : isConnected ? (
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">You are connected to Monzo.</p>

@@ -2,6 +2,7 @@
 'use server';
 
 import crypto from 'crypto';
+import { FEATURES } from '@/lib/config';
 
 const SALTEDGE_API_URL = 'https://www.saltedge.com/api/v6';
 
@@ -14,6 +15,9 @@ export async function generateSaltEdgeSignature(
   url: string,
   body: string = ''
 ): Promise<string> {
+  if (!FEATURES.isSaltEdgeEnabled) {
+    return '';
+  }
   const appId = process.env.SALTEDGE_APP_ID;
   const secret = process.env.SALTEDGE_SECRET;
   const privateKey = process.env.SALTEDGE_PRIVATE_KEY;
@@ -51,6 +55,9 @@ export async function saltEdgeRequest(
   endpoint: string,
   body?: any
 ): Promise<any> {
+  if (!FEATURES.isSaltEdgeEnabled) {
+    throw new Error("Salt Edge integration is deprecated and disabled.");
+  }
   const appId = process.env.SALTEDGE_APP_ID;
   const secret = process.env.SALTEDGE_SECRET;
 
