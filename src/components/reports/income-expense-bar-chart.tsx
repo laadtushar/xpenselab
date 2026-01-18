@@ -11,8 +11,8 @@ import {
     ChartLegendContent,
     type ChartConfig,
 } from "@/components/ui/chart"
-import { differenceInDays, format, startOfDay, startOfMonth, addDays, addMonths, isSameDay, isSameMonth, min, max } from "date-fns"
-import { Transaction } from "@/lib/types"
+import { differenceInDays, format, startOfDay, startOfMonth, startOfWeek, startOfYear, addDays, addMonths, addWeeks, addYears, isSameDay, isSameMonth, isSameWeek, isSameYear, min, max } from "date-fns"
+import { Transaction, TimeGrain } from "@/lib/types"
 
 const chartConfig = {
     income: {
@@ -28,9 +28,10 @@ const chartConfig = {
 interface IncomeExpenseBarChartProps {
     transactions: Transaction[]
     isLoading?: boolean
+    timeGrain?: TimeGrain
 }
 
-export function IncomeExpenseBarChart({ transactions, isLoading }: IncomeExpenseBarChartProps) {
+export function IncomeExpenseBarChart({ transactions, isLoading, timeGrain }: IncomeExpenseBarChartProps) {
 
     const data = useMemo(() => {
         if (transactions.length === 0) return [];
@@ -38,29 +39,59 @@ export function IncomeExpenseBarChart({ transactions, isLoading }: IncomeExpense
         const dates = transactions.map(t => new Date(t.date));
         const minDate = min(dates);
         const maxDate = max(dates);
-        const diffDays = differenceInDays(maxDate, minDate);
-        const isDaily = diffDays <= 35;
+
+        let grain = timeGrain;
+        if (!grain) {
+            const diffDays = differenceInDays(maxDate, minDate);
+            grain = diffDays <= 35 ? 'day' : 'month';
+        }
+
+        const getStart = (d: Date) => {
+            if (grain === 'week') return startOfWeek(d, { weekStartsOn: 1 });
+            if (grain === 'month') return startOfMonth(d);
+            if (grain === 'year') return startOfYear(d);
+            return startOfDay(d);
+        };
+
+        const addInterval = (d: Date, n: number) => {
+            if (grain === 'week') return addWeeks(d, n);
+            if (grain === 'month') return addMonths(d, n);
+            if (grain === 'year') return addYears(d, n);
+            return addDays(d, n);
+        };
+
+        const isSame = (d1: Date, d2: Date) => {
+            if (grain === 'week') return isSameWeek(d1, d2, { weekStartsOn: 1 });
+            if (grain === 'month') return isSameMonth(d1, d2);
+            if (grain === 'year') return isSameYear(d1, d2);
+            return isSameDay(d1, d2);
+        };
+
+        const getLabel = (d: Date) => {
+            if (grain === 'week') return `W${format(d, 'w')} ${format(d, 'MMM')}`;
+            if (grain === 'month') return format(d, 'MMM yyyy');
+            if (grain === 'year') return format(d, 'yyyy');
+            return format(d, 'd MMM');
+        };
 
         const buckets: { date: Date, label: string, income: number, expenses: number }[] = [];
 
-        let current = isDaily ? startOfDay(minDate) : startOfMonth(minDate);
-        const end = isDaily ? startOfDay(maxDate) : startOfMonth(maxDate);
+        let current = getStart(minDate);
+        const end = getStart(maxDate);
 
         while (current <= end) {
             buckets.push({
                 date: current,
-                label: format(current, isDaily ? "d MMM" : "MMM yyyy"),
+                label: getLabel(current),
                 income: 0,
                 expenses: 0
             });
-            current = isDaily ? addDays(current, 1) : addMonths(current, 1);
+            current = addInterval(current, 1);
         }
 
         transactions.forEach(t => {
             const tDate = new Date(t.date);
-            const bucket = buckets.find(b =>
-                isDaily ? isSameDay(new Date(b.date), tDate) : isSameMonth(new Date(b.date), tDate)
-            );
+            const bucket = buckets.find(b => isSame(new Date(b.date), tDate));
             if (bucket) {
                 if (t.type === 'income') {
                     bucket.income += Number(t.amount);
@@ -72,7 +103,7 @@ export function IncomeExpenseBarChart({ transactions, isLoading }: IncomeExpense
 
         return buckets;
 
-    }, [transactions]);
+    }, [transactions, timeGrain]);
 
     if (isLoading) {
         return (

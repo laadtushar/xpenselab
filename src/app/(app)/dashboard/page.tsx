@@ -19,14 +19,14 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </DashboardHeader>
-      
+
       <DashboardStats />
-      
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+
+      <div className="grid gap-4 sm:gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2 min-w-0">
           <OverviewChart />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 min-w-0">
           <RecentTransactions />
         </div>
       </div>

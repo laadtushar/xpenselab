@@ -1,5 +1,7 @@
 
 
+export type TimeGrain = 'day' | 'week' | 'month' | 'year';
+
 export type User = {
   id: string;
   email: string;

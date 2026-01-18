@@ -15,18 +15,18 @@ export function RecentTransactions() {
   const recentTransactions = useMemo(() => {
     return transactions.slice(0, 5);
   }, [transactions]);
-  
+
   if (isLoading) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>Your 5 most recent transactions.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center items-center h-48">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>Your 5 most recent transactions.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -46,8 +46,8 @@ export function RecentTransactions() {
                     {t.type === 'income' ? <TrendingUp className="h-4 w-4 text-primary" /> : <CategoryIcon categoryName={t.category} />}
                   </AvatarFallback>
                 </Avatar>
-                <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">{t.description}</p>
+                <div className="ml-4 space-y-1 min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-none truncate">{t.description}</p>
                   <p className="text-sm text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</p>
                 </div>
                 <div className={`ml-auto font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>

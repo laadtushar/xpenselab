@@ -9,6 +9,13 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import {
     Popover,
     PopoverContent,
     PopoverTrigger,
@@ -23,7 +30,7 @@ import {
 } from "@/components/ui/command"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Category } from "@/lib/types"
+import { Category, TimeGrain } from "@/lib/types"
 
 interface DashboardFiltersProps {
     dateRange: DateRange | undefined
@@ -33,6 +40,8 @@ interface DashboardFiltersProps {
     setSelectedCategories: (categories: string[]) => void
     searchQuery: string
     setSearchQuery: (query: string) => void
+    timeGrain: TimeGrain
+    setTimeGrain: (grain: TimeGrain) => void
 }
 
 export function DashboardFilters({
@@ -43,6 +52,8 @@ export function DashboardFilters({
     setSelectedCategories,
     searchQuery,
     setSearchQuery,
+    timeGrain,
+    setTimeGrain,
 }: DashboardFiltersProps) {
     const [openCategory, setOpenCategory] = React.useState(false)
 
@@ -59,7 +70,7 @@ export function DashboardFilters({
 
     return (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-1 bg-background/50 backdrop-blur rounded-lg">
-            <div className="flex flex-1 items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
 
                 {/* Date Range Picker */}
                 <Popover>
@@ -68,7 +79,7 @@ export function DashboardFilters({
                             id="date"
                             variant={"outline"}
                             className={cn(
-                                "w-[260px] justify-start text-left font-normal",
+                                "w-full sm:w-[260px] justify-start text-left font-normal",
                                 !dateRange && "text-muted-foreground"
                             )}
                         >
@@ -106,7 +117,7 @@ export function DashboardFilters({
                             variant="outline"
                             role="combobox"
                             aria-expanded={openCategory}
-                            className="w-[200px] justify-between"
+                            className="w-full sm:w-[200px] justify-between"
                         >
                             {selectedCategories.length > 0
                                 ? `${selectedCategories.length} selected`
@@ -140,6 +151,19 @@ export function DashboardFilters({
                         </Command>
                     </PopoverContent>
                 </Popover>
+
+                {/* Time Grain Selector */}
+                <Select value={timeGrain} onValueChange={(value: TimeGrain) => setTimeGrain(value)}>
+                    <SelectTrigger className="w-full sm:w-[120px]">
+                        <SelectValue placeholder="Select interval" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="day">Daily</SelectItem>
+                        <SelectItem value="week">Weekly</SelectItem>
+                        <SelectItem value="month">Monthly</SelectItem>
+                        <SelectItem value="year">Yearly</SelectItem>
+                    </SelectContent>
+                </Select>
 
                 {/* Search Input */}
                 <div className="relative w-full md:w-[250px]">

@@ -13,6 +13,7 @@ import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
 import { useFinancials } from "@/context/financial-context";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { TimeGrain } from "@/lib/types";
 
 export default function ReportsPage() {
   const { transactions, incomeCategories, expenseCategories, isLoading } = useFinancials();
@@ -24,6 +25,7 @@ export default function ReportsPage() {
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [timeGrain, setTimeGrain] = useState<TimeGrain>('day');
 
   // Combined Categories for Filter
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
@@ -82,6 +84,8 @@ export default function ReportsPage() {
           setSelectedCategories={setSelectedCategories}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          timeGrain={timeGrain}
+          setTimeGrain={setTimeGrain}
         />
       </div>
 
@@ -93,21 +97,21 @@ export default function ReportsPage() {
 
       {/* Main Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
-          <FinancialTrendsChart transactions={filteredTransactions} isLoading={isLoading} />
+        <div className="col-span-4 min-w-0">
+          <FinancialTrendsChart transactions={filteredTransactions} isLoading={isLoading} timeGrain={timeGrain} />
         </div>
-        <div className="col-span-3">
+        <div className="col-span-3 min-w-0">
           <SpendingByCategoryChart transactions={filteredTransactions} isLoading={isLoading} />
         </div>
       </div>
 
       {/* Secondary Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
-          <CategoryTrendChart transactions={filteredTransactions} isLoading={isLoading} />
+        <div className="col-span-4 min-w-0">
+          <CategoryTrendChart transactions={filteredTransactions} isLoading={isLoading} timeGrain={timeGrain} />
         </div>
-        <div className="col-span-3">
-          <IncomeExpenseBarChart transactions={filteredTransactions} isLoading={isLoading} />
+        <div className="col-span-3 min-w-0">
+          <IncomeExpenseBarChart transactions={filteredTransactions} isLoading={isLoading} timeGrain={timeGrain} />
         </div>
       </div>
 

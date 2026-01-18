@@ -11,12 +11,13 @@ import {
     ChartLegendContent,
     type ChartConfig,
 } from "@/components/ui/chart"
-import { differenceInDays, format, startOfDay, startOfMonth, addDays, addMonths, isSameDay, isSameMonth, min, max } from "date-fns"
-import { Transaction } from "@/lib/types"
+import { differenceInDays, format, startOfDay, startOfMonth, startOfWeek, startOfYear, addDays, addMonths, addWeeks, addYears, isSameDay, isSameMonth, isSameWeek, isSameYear, min, max } from "date-fns"
+import { Transaction, TimeGrain } from "@/lib/types"
 
 interface CategoryTrendChartProps {
     transactions: Transaction[]
     isLoading?: boolean
+    timeGrain?: TimeGrain
 }
 
 const COLORS = [
@@ -28,10 +29,10 @@ const COLORS = [
     "hsl(var(--muted))",
 ]
 
-export function CategoryTrendChart({ transactions, isLoading }: CategoryTrendChartProps) {
+export function CategoryTrendChart({ transactions, isLoading, timeGrain }: CategoryTrendChartProps) {
 
     const chartDataResult = useMemo(() => {
-        if (transactions.length === 0) return { data: [], config: {} };
+        if (transactions.length === 0) return { data: [], config: {}, topCategories: [] };
 
         // 1. Identify Top 5 Categories overall for the period
         const expenses = transactions.filter(t => t.type === 'expense');
@@ -50,33 +51,63 @@ export function CategoryTrendChart({ transactions, isLoading }: CategoryTrendCha
         const dates = transactions.map(t => new Date(t.date));
         const minDate = min(dates);
         const maxDate = max(dates);
-        const diffDays = differenceInDays(maxDate, minDate);
-        const isDaily = diffDays <= 35;
+
+        let grain = timeGrain;
+        if (!grain) {
+            const diffDays = differenceInDays(maxDate, minDate);
+            grain = diffDays <= 35 ? 'day' : 'month';
+        }
+
+        const getStart = (d: Date) => {
+            if (grain === 'week') return startOfWeek(d, { weekStartsOn: 1 });
+            if (grain === 'month') return startOfMonth(d);
+            if (grain === 'year') return startOfYear(d);
+            return startOfDay(d);
+        };
+
+        const addInterval = (d: Date, n: number) => {
+            if (grain === 'week') return addWeeks(d, n);
+            if (grain === 'month') return addMonths(d, n);
+            if (grain === 'year') return addYears(d, n);
+            return addDays(d, n);
+        };
+
+        const isSame = (d1: Date, d2: Date) => {
+            if (grain === 'week') return isSameWeek(d1, d2, { weekStartsOn: 1 });
+            if (grain === 'month') return isSameMonth(d1, d2);
+            if (grain === 'year') return isSameYear(d1, d2);
+            return isSameDay(d1, d2);
+        };
+
+        const getLabel = (d: Date) => {
+            if (grain === 'week') return `W${format(d, 'w')} ${format(d, 'MMM')}`;
+            if (grain === 'month') return format(d, 'MMM yyyy');
+            if (grain === 'year') return format(d, 'yyyy');
+            return format(d, 'd MMM');
+        };
 
         // 3. Build Data Points
         const buckets: any[] = [];
-        let current = isDaily ? startOfDay(minDate) : startOfMonth(minDate);
-        const end = isDaily ? startOfDay(maxDate) : startOfMonth(maxDate);
+        let current = getStart(minDate);
+        const end = getStart(maxDate);
 
         while (current <= end) {
             const bucket: any = {
                 date: current,
-                label: format(current, isDaily ? "d MMM" : "MMM yyyy"),
+                label: getLabel(current),
                 Other: 0
             };
             // Initialize top categories to 0
             topCategories.forEach(cat => bucket[cat] = 0);
 
             buckets.push(bucket);
-            current = isDaily ? addDays(current, 1) : addMonths(current, 1);
+            current = addInterval(current, 1);
         }
 
         // 4. Fill Data
         expenses.forEach(t => {
             const tDate = new Date(t.date);
-            const bucket = buckets.find(b =>
-                isDaily ? isSameDay(new Date(b.date), tDate) : isSameMonth(new Date(b.date), tDate)
-            );
+            const bucket = buckets.find(b => isSame(new Date(b.date), tDate));
             if (bucket) {
                 const cat = t.category || 'Uncategorized';
                 if (topCategories.includes(cat)) {
@@ -102,7 +133,7 @@ export function CategoryTrendChart({ transactions, isLoading }: CategoryTrendCha
 
         return { data: buckets, config, topCategories };
 
-    }, [transactions]);
+    }, [transactions, timeGrain]);
 
     const { data, config, topCategories } = chartDataResult;
 
