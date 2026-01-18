@@ -14,9 +14,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 
 const ExchangeTokenInputSchema = z.object({
-  code: z.string().describe("The authorization code received from Monzo."),
-  redirect_uri: z.string().describe("The redirect URI used in the initial request."),
-  userId: z.string().describe("The Firebase Auth user ID."),
+  code: z.string().min(1, "Auth code cannot be empty").describe("The authorization code received from Monzo."),
+  redirect_uri: z.string().min(1, "Redirect URI cannot be empty").describe("The redirect URI used in the initial request."),
+  userId: z.string().min(1, "User ID cannot be empty").describe("The Firebase Auth user ID."),
 });
 export type ExchangeTokenInput = z.infer<typeof ExchangeTokenInputSchema>;
 
@@ -41,7 +41,7 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
   async (input) => {
     // Initialize Firebase Admin SDK inside the flow for reliability
     if (!getApps().length) {
-        initializeApp();
+      initializeApp();
     }
     const db = getFirestore();
 
@@ -73,18 +73,18 @@ const exchangeMonzoTokenFlow = ai.defineFlow(
         const errorMessage = tokenData.error_description || tokenData.message || tokenData.error || `Request failed with status code ${response.status}`;
         return { success: false, message: `API Error: ${errorMessage}` };
       }
-      
+
       const userDocRef = db.collection('users').doc(userId);
-      
+
       const monzoTokens: any = {
-          accessToken: tokenData.access_token,
-          expiresAt: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
+        accessToken: tokenData.access_token,
+        expiresAt: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
       };
-      
+
       if (tokenData.refresh_token) {
         monzoTokens.refreshToken = tokenData.refresh_token;
       }
-      
+
       await userDocRef.set({ monzoTokens }, { merge: true });
 
       return { success: true, message: 'Monzo account connected successfully!' };

@@ -5,18 +5,18 @@
  * @fileOverview An AI flow for forecasting future financial balances with "what-if" scenarios.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const PredictiveForecastInputSchema = z.object({
-  financialSummary: z.string().describe("A summary of the user's financial data, including current balance, average income/expenses, and recurring transactions."),
-  userScenario: z.string().describe('The "what-if" scenario provided by the user (e.g., "add a $50 monthly subscription").'),
+  financialSummary: z.string().min(1, "Financial summary cannot be empty").describe("A summary of the user's financial data, including current balance, average income/expenses, and recurring transactions."),
+  userScenario: z.string().min(1, "User scenario cannot be empty").describe('The "what-if" scenario provided by the user (e.g., "add a $50 monthly subscription").'),
 });
 export type PredictiveForecastInput = z.infer<typeof PredictiveForecastInputSchema>;
 
 const ForecastDataPointSchema = z.object({
-    date: z.string().describe('The date for the forecast point in YYYY-MM-DD format.'),
-    balance: z.number().describe('The projected balance for that date.'),
+  date: z.string().describe('The date for the forecast point in YYYY-MM-DD format.'),
+  balance: z.number().describe('The projected balance for that date.'),
 });
 
 const PredictiveForecastOutputSchema = z.object({
@@ -26,13 +26,18 @@ const PredictiveForecastOutputSchema = z.object({
 export type PredictiveForecastOutput = z.infer<typeof PredictiveForecastOutputSchema>;
 
 export async function predictiveForecast(input: PredictiveForecastInput): Promise<PredictiveForecastOutput> {
-  return predictiveForecastFlow(input);
+  try {
+    return await predictiveForecastFlow(input);
+  } catch (error: any) {
+    console.error("AI flow failed (predictiveForecast):", error);
+    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const prompt = ai.definePrompt({
   name: 'predictiveForecastPrompt',
-  input: {schema: PredictiveForecastInputSchema },
-  output: {schema: PredictiveForecastOutputSchema},
+  input: { schema: PredictiveForecastInputSchema },
+  output: { schema: PredictiveForecastOutputSchema },
   prompt: `You are a financial analyst AI. Your task is to create a predictive forecast of a user's bank balance over the next 90 days based on their financial summary and a "what-if" scenario.
 
 1.  Analyze the user's historical financial summary to understand their cash flow.
@@ -58,7 +63,7 @@ const predictiveForecastFlow = ai.defineFlow(
     outputSchema: PredictiveForecastOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

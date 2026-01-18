@@ -4,12 +4,13 @@
  * @fileOverview An AI flow for scanning and extracting data from a receipt image.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const ScanReceiptInputSchema = z.object({
   photoDataUri: z
     .string()
+    .min(1, "Photo data URI cannot be empty")
     .describe(
       "A photo of a receipt, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
@@ -25,13 +26,18 @@ const ScanReceiptOutputSchema = z.object({
 export type ScanReceiptOutput = z.infer<typeof ScanReceiptOutputSchema>;
 
 export async function scanReceipt(input: ScanReceiptInput): Promise<ScanReceiptOutput> {
-  return scanReceiptFlow(input);
+  try {
+    return await scanReceiptFlow(input);
+  } catch (error: any) {
+    console.error("AI flow failed (scanReceipt):", error);
+    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const prompt = ai.definePrompt({
   name: 'scanReceiptPrompt',
-  input: {schema: ScanReceiptInputSchema},
-  output: {schema: ScanReceiptOutputSchema},
+  input: { schema: ScanReceiptInputSchema },
+  output: { schema: ScanReceiptOutputSchema },
   prompt: `You are an expert receipt reader. Analyze the provided receipt image and extract the following information:
 - The merchant name to use as the transaction description.
 - The final total amount of the transaction.
@@ -50,7 +56,7 @@ const scanReceiptFlow = ai.defineFlow(
     outputSchema: ScanReceiptOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

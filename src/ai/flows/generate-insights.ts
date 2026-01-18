@@ -5,11 +5,11 @@
  * @fileOverview AI agent for providing financial insights based on a summary of transaction history.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateInsightsInputSchema = z.object({
-    financialSummary: z.string().describe("A summary of the user's financial data including income, expenses, and top spending categories."),
+  financialSummary: z.string().min(1, "Financial summary cannot be empty").describe("A summary of the user's financial data including income, expenses, and top spending categories."),
 });
 export type GenerateInsightsInput = z.infer<typeof GenerateInsightsInputSchema>;
 
@@ -20,13 +20,18 @@ const GenerateInsightsOutputSchema = z.object({
 export type GenerateInsightsOutput = z.infer<typeof GenerateInsightsOutputSchema>;
 
 export async function generateInsights(input: GenerateInsightsInput): Promise<GenerateInsightsOutput> {
-  return generateInsightsFlow(input);
+  try {
+    return await generateInsightsFlow(input);
+  } catch (error: any) {
+    console.error("AI flow failed (generateInsights):", error);
+    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const prompt = ai.definePrompt({
   name: 'generateInsightsPrompt',
-  input: {schema: GenerateInsightsInputSchema},
-  output: {schema: GenerateInsightsOutputSchema},
+  input: { schema: GenerateInsightsInputSchema },
+  output: { schema: GenerateInsightsOutputSchema },
   prompt: `You are a helpful and friendly personal finance expert. Your goal is to analyze a user's financial summary to provide them with a clear, concise overview of their financial habits and offer actionable advice.
 
 Analyze the provided summary of the user's financial data.
@@ -48,7 +53,7 @@ const generateInsightsFlow = ai.defineFlow(
     outputSchema: GenerateInsightsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

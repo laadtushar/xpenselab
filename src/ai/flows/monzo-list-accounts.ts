@@ -8,7 +8,7 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import type { MonzoAccount } from '@/lib/types';
 
 const ListMonzoAccountsInputSchema = z.object({
-  userId: z.string().describe("The Firebase Auth user ID."),
+  userId: z.string().min(1, "User ID cannot be empty").describe("The Firebase Auth user ID."),
 });
 
 const ListMonzoAccountsOutputSchema = z.object({
@@ -16,7 +16,12 @@ const ListMonzoAccountsOutputSchema = z.object({
 });
 
 export async function listMonzoAccounts(userId: string): Promise<z.infer<typeof ListMonzoAccountsOutputSchema>> {
-  return listMonzoAccountsFlow({ userId });
+  try {
+    return await listMonzoAccountsFlow({ userId });
+  } catch (error: any) {
+    console.error("AI flow failed (listMonzoAccounts):", error);
+    throw new Error(`Monzo Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 // Helper function to handle token refresh
@@ -92,7 +97,7 @@ const listMonzoAccountsFlow = ai.defineFlow(
   async ({ userId }) => {
     try {
       const accessToken = await getValidAccessToken(userId);
-      
+
       const response = await fetch('https://api.monzo.com/accounts', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -101,10 +106,10 @@ const listMonzoAccountsFlow = ai.defineFlow(
         const errorData = await response.json();
         throw new Error(`Failed to fetch accounts: ${errorData.message || response.statusText}`);
       }
-      
+
       const data = await response.json();
       const accounts: MonzoAccount[] = data.accounts.filter((acc: MonzoAccount) => !acc.id.startsWith('pot_'));
-      
+
       return { accounts };
     } catch (error: any) {
       console.error('Error in listMonzoAccountsFlow:', error);

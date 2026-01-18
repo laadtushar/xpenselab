@@ -8,11 +8,11 @@
  * - CategorizeExpenseOutput - The return type for the categorizeExpense function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const CategorizeExpenseInputSchema = z.object({
-  description: z.string().describe('The description of the expense.'),
+  description: z.string().min(1, "Description cannot be empty").describe('The description of the expense.'),
 });
 export type CategorizeExpenseInput = z.infer<typeof CategorizeExpenseInputSchema>;
 
@@ -23,13 +23,18 @@ const CategorizeExpenseOutputSchema = z.object({
 export type CategorizeExpenseOutput = z.infer<typeof CategorizeExpenseOutputSchema>;
 
 export async function categorizeExpense(input: CategorizeExpenseInput): Promise<CategorizeExpenseOutput> {
-  return categorizeExpenseFlow(input);
+  try {
+    return await categorizeExpenseFlow(input);
+  } catch (error: any) {
+    console.error("AI flow failed (categorizeExpense):", error);
+    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const prompt = ai.definePrompt({
   name: 'categorizeExpensePrompt',
-  input: {schema: CategorizeExpenseInputSchema},
-  output: {schema: CategorizeExpenseOutputSchema},
+  input: { schema: CategorizeExpenseInputSchema },
+  output: { schema: CategorizeExpenseOutputSchema },
   prompt: `You are an expert personal finance manager. Determine the most appropriate category for the expense described below.
 
 Description: {{{description}}}
@@ -48,7 +53,7 @@ const categorizeExpenseFlow = ai.defineFlow(
     outputSchema: CategorizeExpenseOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

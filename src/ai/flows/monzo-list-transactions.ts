@@ -7,8 +7,8 @@ import { getValidAccessToken } from './monzo-list-accounts'; // Reusing the toke
 import type { MonzoTransaction } from '@/lib/types';
 
 const ListMonzoTransactionsInputSchema = z.object({
-  userId: z.string().describe("The Firebase Auth user ID."),
-  accountId: z.string().describe("The Monzo account ID."),
+  userId: z.string().min(1, "User ID cannot be empty").describe("The Firebase Auth user ID."),
+  accountId: z.string().min(1, "Account ID cannot be empty").describe("The Monzo account ID."),
 });
 
 const ListMonzoTransactionsOutputSchema = z.object({
@@ -18,7 +18,12 @@ const ListMonzoTransactionsOutputSchema = z.object({
 export async function listMonzoTransactions(
   input: z.infer<typeof ListMonzoTransactionsInputSchema>
 ): Promise<z.infer<typeof ListMonzoTransactionsOutputSchema>> {
-  return listMonzoTransactionsFlow(input);
+  try {
+    return await listMonzoTransactionsFlow(input);
+  } catch (error: any) {
+    console.error("AI flow failed (listMonzoTransactions):", error);
+    throw new Error(`Monzo Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const listMonzoTransactionsFlow = ai.defineFlow(
@@ -31,7 +36,7 @@ const listMonzoTransactionsFlow = ai.defineFlow(
     try {
       const accessToken = await getValidAccessToken(userId);
       const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(); // 90 days ago
-      
+
       const url = new URL('https://api.monzo.com/transactions');
       url.searchParams.append('account_id', accountId);
       url.searchParams.append('since', sinceDate);

@@ -5,11 +5,11 @@
  * @fileOverview AI agent for assessing a user's financial wellness based on a data summary.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const FinancialWellnessInputSchema = z.object({
-  financialSummary: z.string().describe("A summary of the user's financial data, including income, expenses, savings rate, and budget."),
+  financialSummary: z.string().min(1, "Financial summary cannot be empty").describe("A summary of the user's financial data, including income, expenses, savings rate, and budget."),
 });
 export type FinancialWellnessInput = z.infer<typeof FinancialWellnessInputSchema>;
 
@@ -21,13 +21,20 @@ const FinancialWellnessOutputSchema = z.object({
 export type FinancialWellnessOutput = z.infer<typeof FinancialWellnessOutputSchema>;
 
 export async function checkFinancialWellness(input: FinancialWellnessInput): Promise<FinancialWellnessOutput> {
+  try {
     return await financialWellnessFlow(input);
+  } catch (error: any) {
+    console.error("Detailed Genkit/AI Error in checkFinancialWellness:", error);
+    // Re-throw with message to hope it propagates or at least is logged.
+    // In production, this message is often sanitized, but the server log will remain.
+    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const prompt = ai.definePrompt({
   name: 'financialWellnessPrompt',
-  input: {schema: FinancialWellnessInputSchema },
-  output: {schema: FinancialWellnessOutputSchema},
+  input: { schema: FinancialWellnessInputSchema },
+  output: { schema: FinancialWellnessOutputSchema },
   prompt: `You are a financial wellness coach. Your goal is to analyze a user's financial data summary to provide a "Financial Wellness Score" out of 100 and offer actionable advice.
 
 Consider the following factors in your analysis based on the provided summary:
@@ -51,7 +58,7 @@ const financialWellnessFlow = ai.defineFlow(
     outputSchema: FinancialWellnessOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

@@ -8,8 +8,8 @@
  * - BudgetingAssistanceOutput - The return type for the budgetingAssistance function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const BudgetingAssistanceInputSchema = z.object({
   monthlyIncome: z.number().describe('The user\'s total monthly income.'),
@@ -38,13 +38,18 @@ export type BudgetingAssistanceOutput = z.infer<typeof BudgetingAssistanceOutput
 export async function budgetingAssistance(
   input: BudgetingAssistanceInput
 ): Promise<BudgetingAssistanceOutput> {
-  return budgetingAssistanceFlow(input);
+  try {
+    return await budgetingAssistanceFlow(input);
+  } catch (error: any) {
+    console.error("AI flow failed (budgetingAssistance):", error);
+    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+  }
 }
 
 const budgetingAssistancePrompt = ai.definePrompt({
   name: 'budgetingAssistancePrompt',
-  input: {schema: BudgetingAssistanceInputSchema},
-  output: {schema: BudgetingAssistanceOutputSchema},
+  input: { schema: BudgetingAssistanceInputSchema },
+  output: { schema: BudgetingAssistanceOutputSchema },
   prompt: `You are a personal finance advisor. Analyze the user's financial data and provide an assessment of their spending habits. Determine if budget corrections are needed and offer personalized recommendations.
 
 Monthly Income: {{monthlyIncome}}
@@ -63,7 +68,7 @@ const budgetingAssistanceFlow = ai.defineFlow(
     outputSchema: BudgetingAssistanceOutputSchema,
   },
   async input => {
-    const {output} = await budgetingAssistancePrompt(input);
+    const { output } = await budgetingAssistancePrompt(input);
     return output!;
   }
 );
