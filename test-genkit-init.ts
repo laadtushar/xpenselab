@@ -1,4 +1,7 @@
 
+import { config } from 'dotenv';
+config();
+
 import { ai } from './src/ai/genkit';
 import { checkFinancialWellness } from './src/ai/flows/financial-wellness';
 
