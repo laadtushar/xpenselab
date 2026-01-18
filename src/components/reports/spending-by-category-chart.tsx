@@ -9,38 +9,31 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/ui/chart"
-import { useFinancials } from "@/context/financial-context"
-import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns"
-import { Loader2 } from "lucide-react"
+import { Transaction } from "@/lib/types"
 
-// Generate a color palette for categories
-// You might want to move this to a utility or constant file
 const COLORS = [
     "hsl(var(--chart-1))",
     "hsl(var(--chart-2))",
     "hsl(var(--chart-3))",
     "hsl(var(--chart-4))",
     "hsl(var(--chart-5))",
-    "hsl(var(--muted))", // For others
+    "hsl(var(--muted))",
 ]
 
-export function SpendingByCategoryChart() {
-    const { expenses, isLoading } = useFinancials()
+interface SpendingByCategoryChartProps {
+    transactions: Transaction[]
+    isLoading?: boolean
+}
+
+export function SpendingByCategoryChart({ transactions, isLoading }: SpendingByCategoryChartProps) {
 
     const data = useMemo(() => {
-        // Current month filter by default, or maybe all time? 
-        // Let's do current month for now as it's most relevant for "Spending"
-        const today = new Date();
-        const monthStart = startOfMonth(today);
-        const monthEnd = endOfMonth(today);
-
-        const currentMonthExpenses = expenses.filter(t =>
-            isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd })
-        );
+        // Filter for expenses only
+        const expenses = transactions.filter(t => t.type === 'expense');
 
         const categoryMap = new Map<string, number>();
 
-        currentMonthExpenses.forEach(expense => {
+        expenses.forEach(expense => {
             const category = expense.category || "Uncategorized";
             const current = categoryMap.get(category) || 0;
             categoryMap.set(category, current + Number(expense.amount));
@@ -61,7 +54,7 @@ export function SpendingByCategoryChart() {
         }
 
         return sortedCategories;
-    }, [expenses]);
+    }, [transactions]);
 
     const totalSpending = useMemo(() => {
         return data.reduce((acc, curr) => acc + curr.amount, 0);
@@ -82,38 +75,32 @@ export function SpendingByCategoryChart() {
 
 
     if (isLoading) {
+        // ... (loading state logic)
         return (
-            <Card className="flex flex-col">
-                <CardHeader className="items-center pb-0">
-                    <CardTitle>Spending by Category</CardTitle>
-                    <CardDescription>Current Month</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 pb-0 flex items-center justify-center min-h-[250px]">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </CardContent>
-            </Card>
+            <div className="flex items-center justify-center min-h-[250px] w-full border rounded-lg">
+                <p className="text-sm text-muted-foreground animate-pulse">Loading chart data...</p>
+            </div>
         )
     }
 
     if (data.length === 0) {
         return (
-            <Card className="flex flex-col">
+            <Card className="flex flex-col h-full">
                 <CardHeader className="items-center pb-0">
                     <CardTitle>Spending by Category</CardTitle>
-                    <CardDescription>Current Month</CardDescription>
+                    <CardDescription>No data for selected period</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-0 flex items-center justify-center min-h-[250px]">
-                    <p className="text-muted-foreground text-sm">No expenses this month</p>
+                    <p className="text-muted-foreground text-sm">No expenses found</p>
                 </CardContent>
             </Card>
         )
     }
 
     return (
-        <Card className="flex flex-col">
+        <Card className="flex flex-col h-full">
             <CardHeader className="items-center pb-0">
                 <CardTitle>Spending by Category</CardTitle>
-                <CardDescription>Current Month</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 pb-0">
                 <ChartContainer

@@ -11,9 +11,8 @@ import {
     ChartLegendContent,
     type ChartConfig,
 } from "@/components/ui/chart"
-import { useFinancials } from "@/context/financial-context"
-import { subMonths, format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns"
-import { Loader2 } from "lucide-react"
+import { differenceInDays, format, startOfDay, startOfMonth, addDays, addMonths, isSameDay, isSameMonth, min, max } from "date-fns"
+import { Transaction } from "@/lib/types"
 
 const chartConfig = {
     income: {
@@ -26,47 +25,72 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function IncomeVsExpenseChart() {
-    const { transactions, isLoading } = useFinancials()
+interface IncomeExpenseBarChartProps {
+    transactions: Transaction[]
+    isLoading?: boolean
+}
+
+export function IncomeExpenseBarChart({ transactions, isLoading }: IncomeExpenseBarChartProps) {
 
     const data = useMemo(() => {
-        const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), i)).reverse();
+        if (transactions.length === 0) return [];
 
-        return months.map(date => {
-            const monthStart = startOfMonth(date);
-            const monthEnd = endOfMonth(date);
-            const monthKey = format(date, "MMM yyyy");
+        const dates = transactions.map(t => new Date(t.date));
+        const minDate = min(dates);
+        const maxDate = max(dates);
+        const diffDays = differenceInDays(maxDate, minDate);
+        const isDaily = diffDays <= 35;
 
-            const monthlyTransactions = transactions.filter(t =>
-                isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd })
+        const buckets: { date: Date, label: string, income: number, expenses: number }[] = [];
+
+        let current = isDaily ? startOfDay(minDate) : startOfMonth(minDate);
+        const end = isDaily ? startOfDay(maxDate) : startOfMonth(maxDate);
+
+        while (current <= end) {
+            buckets.push({
+                date: current,
+                label: format(current, isDaily ? "d MMM" : "MMM yyyy"),
+                income: 0,
+                expenses: 0
+            });
+            current = isDaily ? addDays(current, 1) : addMonths(current, 1);
+        }
+
+        transactions.forEach(t => {
+            const tDate = new Date(t.date);
+            const bucket = buckets.find(b =>
+                isDaily ? isSameDay(new Date(b.date), tDate) : isSameMonth(new Date(b.date), tDate)
             );
-
-            const income = monthlyTransactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + Number(t.amount), 0);
-
-            const expenses = monthlyTransactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + Number(t.amount), 0);
-
-            return {
-                month: monthKey,
-                income,
-                expenses
+            if (bucket) {
+                if (t.type === 'income') {
+                    bucket.income += Number(t.amount);
+                } else {
+                    bucket.expenses += Number(t.amount);
+                }
             }
         });
+
+        return buckets;
 
     }, [transactions]);
 
     if (isLoading) {
         return (
+            <div className="flex items-center justify-center min-h-[300px] w-full border rounded-lg">
+                <p className="text-sm text-muted-foreground animate-pulse">Loading chart...</p>
+            </div>
+        )
+    }
+
+    if (data.length === 0) {
+        return (
             <Card>
                 <CardHeader>
                     <CardTitle>Income vs Expenses</CardTitle>
-                    <CardDescription>Monthly Comparison</CardDescription>
+                    <CardDescription>Bar Chart Comparison</CardDescription>
                 </CardHeader>
                 <CardContent className="flex h-[300px] items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm">No data for selected period</p>
                 </CardContent>
             </Card>
         )
@@ -77,7 +101,7 @@ export function IncomeVsExpenseChart() {
             <CardHeader>
                 <CardTitle>Income vs Expenses</CardTitle>
                 <CardDescription>
-                    Monthly Comparison - Last 6 Months
+                    Comparison
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -85,11 +109,11 @@ export function IncomeVsExpenseChart() {
                     <BarChart accessibilityLayer data={data}>
                         <CartesianGrid vertical={false} />
                         <XAxis
-                            dataKey="month"
+                            dataKey="label"
                             tickLine={false}
                             tickMargin={10}
                             axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 3)}
+                            tickFormatter={(value) => value}
                         />
                         <YAxis
                             tickLine={false}

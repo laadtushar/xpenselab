@@ -1,23 +1,32 @@
 
 
 export type User = {
-    id: string;
-    email: string;
-    createdAt: string; // ISO string
-    currency?: string;
-    tier?: 'basic' | 'premium';
-    saltEdgeCustomerId?: string;
-    saltEdgeConnections?: {
-        connectionId: string;
-        providerCode: string;
-        providerName: string;
-        status: string;
-        createdAt: string;
-    }[];
-    aiRequestCount?: number;
-    lastAiRequestDate?: string; // YYYY-MM-DD
-    hasCreatedDefaultCategories?: boolean;
-    hasRunCategoryCleanup?: boolean;
+  id: string;
+  email: string;
+  createdAt: string; // ISO string
+  currency?: string;
+  tier?: 'basic' | 'premium';
+  saltEdgeCustomerId?: string;
+  saltEdgeConnections?: {
+    connectionId: string;
+    providerCode: string;
+    providerName: string;
+    status: string;
+    createdAt: string;
+  }[];
+  aiRequestCount?: number;
+  lastAiRequestDate?: string; // YYYY-MM-DD
+  hasCreatedDefaultCategories?: boolean;
+  hasRunCategoryCleanup?: boolean;
+  monzoTokens?: {
+    access_token: string;
+    client_id: string;
+    expires_in: number;
+    refresh_token: string;
+    scope: string;
+    token_type: string;
+    user_id: string;
+  };
 };
 
 export type Transaction = {
@@ -50,23 +59,23 @@ export type Category = {
 }
 
 export type RecurringTransaction = {
-    id: string;
-    userId: string;
-    type: 'income' | 'expense';
-    amount: number;
-    description: string;
-    category: string;
-    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-    startDate: string; // ISO string
-    nextDueDate: string; // ISO string
+  id: string;
+  userId: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description: string;
+  category: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  startDate: string; // ISO string
+  nextDueDate: string; // ISO string
 };
 
 export type FinancialInsight = {
-    id: string;
-    userId: string;
-    generatedAt: string; // ISO string
-    summary: string;
-    suggestions: string[];
+  id: string;
+  userId: string;
+  generatedAt: string; // ISO string
+  summary: string;
+  suggestions: string[];
 };
 
 // Types for Split functionality
@@ -165,21 +174,21 @@ export interface SaltEdgeConnection {
 
 // Loan/EMI Types
 export type Loan = {
-    id: string;
-    userId: string;
-    lender: string;
-    initialAmount: number;
-    amountRemaining: number;
-    interestRate: number; // Annual percentage rate
-    termMonths: number;
-    startDate: string; // ISO string
-    status: 'active' | 'paid';
+  id: string;
+  userId: string;
+  lender: string;
+  initialAmount: number;
+  amountRemaining: number;
+  interestRate: number; // Annual percentage rate
+  termMonths: number;
+  startDate: string; // ISO string
+  status: 'active' | 'paid';
 };
 
 export type Repayment = {
-    id: string;
-    loanId: string;
-    amount: number;
-    date: string; // ISO string
-    notes?: string;
+  id: string;
+  loanId: string;
+  amount: number;
+  date: string; // ISO string
+  notes?: string;
 };

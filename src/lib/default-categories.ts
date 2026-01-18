@@ -1,5 +1,5 @@
 
-import { Omit } from "lucide-react";
+
 import type { Category } from "./types";
 
 type DefaultCategory = Omit<Category, 'id' | 'userId'>;
@@ -23,7 +23,7 @@ export const defaultCategories: DefaultCategory[] = [
     { name: 'Loan Repayment', icon: 'HandCoins', type: 'expense' },
     { name: 'Bad Debt', icon: 'FileX', type: 'expense' },
     { name: 'Other', icon: 'MoreHorizontal', type: 'expense' },
-  
+
     // Income
     { name: 'Salary', icon: 'HandCoins', type: 'income' },
     { name: 'Freelance', icon: 'Briefcase', type: 'income' },
