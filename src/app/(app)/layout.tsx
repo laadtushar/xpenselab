@@ -34,7 +34,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!firestore) return; // Wait for firestore to be available
 
     // Check for the user document in Firestore
-    console.log('DEBUG: Firestore App Options:', firestore.app.options);
     const userDocRef = doc(firestore, 'users', user.uid);
     getDoc(userDocRef).then(userDocSnap => {
       if (!userDocSnap.exists()) {

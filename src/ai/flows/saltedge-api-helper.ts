@@ -8,12 +8,12 @@ const SALTEDGE_API_URL = 'https://www.saltedge.com/api/v6';
 /**
  * Generate Salt Edge API signature for authenticated requests
  */
-export function generateSaltEdgeSignature(
+export async function generateSaltEdgeSignature(
   expiresAt: number,
   method: string,
   url: string,
   body: string = ''
-): string {
+): Promise<string> {
   const appId = process.env.SALTEDGE_APP_ID;
   const secret = process.env.SALTEDGE_SECRET;
   const privateKey = process.env.SALTEDGE_PRIVATE_KEY;
@@ -61,8 +61,8 @@ export async function saltEdgeRequest(
   const expiresAt = Math.floor(Date.now() / 1000) + 60; // 1 minute from now
   const url = `${SALTEDGE_API_URL}${endpoint}`;
   const bodyString = body ? JSON.stringify(body) : '';
-  
-  const signature = generateSaltEdgeSignature(expiresAt, method, url, bodyString);
+
+  const signature = await generateSaltEdgeSignature(expiresAt, method, url, bodyString);
 
   const headers: Record<string, string> = {
     'App-id': appId,
@@ -84,8 +84,8 @@ export async function saltEdgeRequest(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      errorData.error?.message || 
-      errorData.error?.class || 
+      errorData.error?.message ||
+      errorData.error?.class ||
       `Salt Edge API error: ${response.status} ${response.statusText}`
     );
   }

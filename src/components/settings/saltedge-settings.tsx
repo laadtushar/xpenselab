@@ -21,8 +21,8 @@ export function SaltEdgeConnectButton() {
     try {
       // Get current user ID - we'll need to pass it from parent
       // For now, we'll handle this in the parent component
-      const returnUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/settings/saltedge` 
+      const returnUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/settings/saltedge`
         : '';
 
       // This will be called from the parent with userId
@@ -55,7 +55,7 @@ export function SaltEdgeSettings() {
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
-  const [fakeProviders, setFakeProviders] = useState<Array<{code: string; name: string}>>([]);
+  const [fakeProviders, setFakeProviders] = useState<Array<{ code: string; name: string }>>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const isConnected = !!userData?.saltEdgeCustomerId;
 
@@ -63,11 +63,11 @@ export function SaltEdgeSettings() {
   const loadFakeProviders = async () => {
     setLoadingProviders(true);
     try {
-      const result = await listSaltEdgeProviders({ 
-        includeSandboxes: true, 
+      const result = await listSaltEdgeProviders({
+        includeSandboxes: true,
         countryCode: 'XF' // XF is the fake country code
       });
-      const fake = result.providers.filter(p => 
+      const fake = result.providers.filter(p =>
         p.code.includes('fake') || p.country_code === 'XF'
       );
       setFakeProviders(fake);
@@ -167,14 +167,14 @@ export function SaltEdgeSettings() {
             <div className="space-y-2">
               <Label htmlFor="test-provider">Test with Fake Provider (Optional)</Label>
               <div className="flex gap-2">
-                <Select 
-                  value={selectedProvider} 
+                <Select
+                  value={selectedProvider}
                   onValueChange={(value) => {
                     if (value === '__load__') {
                       loadFakeProviders();
                       return;
                     }
-                    setSelectedProvider(value);
+                    setSelectedProvider(value === '__none__' ? '' : value);
                   }}
                   disabled={loadingProviders}
                 >
@@ -182,7 +182,7 @@ export function SaltEdgeSettings() {
                     <SelectValue placeholder="Select a fake provider for testing" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (Show all providers)</SelectItem>
+                    <SelectItem value="__none__">None (Show all providers)</SelectItem>
                     {fakeProviders.length === 0 && !loadingProviders && (
                       <SelectItem value="__load__">
                         Load Fake Providers...
