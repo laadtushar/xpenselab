@@ -1,159 +1,63 @@
-/**
- * @fileOverview Firestore Security Rules for FinanceFlow.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal financial data
- * (incomes, expenses, budgets, categories), ensuring that only the authenticated
- * user can create, read, update, or delete their own data. Shared financial data
- * (groups, shared expenses, debts) uses a shared access model, where group members
- * can access group-related data.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles.
- * - /users/{userId}/incomes/{incomeId}: Stores income entries for a specific user.
- * - /users/{userId}/expenses/{expenseId}: Stores expense entries for a specific user.
- * - /users/{userId}/categories/{categoryId}: Stores categories for a specific user.
- * - /users/{userId}/budgets/{budgetId}: Stores budget entries for a specific user.
- * - /users/{userId}/recurringTransactions/{recurringTransactionId}: Stores recurring transactions.
- * - /users/{userId}/financialInsights/{insightId}: Stores AI-generated insights.
- * - /users/{userId}/loans/{loanId}: Stores structured loans for a user.
- * - /users/{userId}/loans/{loanId}/repayments/{repaymentId}: Stores repayments for a loan.
- * - /groups/{groupId}: Stores group information for shared expenses.
- * - /groups/{groupId}/sharedExpenses/{expenseId}: Stores individual shared expenses.
- * - /debts/{debtId}: Stores debt information between users.
- *
- * Key Security Decisions:
- * - Users can only access their own profile data.
- * - Users can only access income, expense, category, budget, and loan data associated with their user ID.
- * - Groups and shared expenses are accessible to group members only.
- * - Debts are accessible only to participants (fromUserId, toUserId).
- * - List operations require client-side query filtering for security.
- * - Critical fields are validated on create/update operations.
- */
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    /**
-     * @description Controls access to user-specific data. All subcollections are nested here.
-     */
-    match /users/{userId} {
-      allow read, delete: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
 
-      /**
-       * @description Controls access to income entries for a specific user.
-       * Includes both single document access (get) and collection queries (list).
-       */
-      match /incomes/{incomeId} {
-        allow get, list: if request.auth.uid == userId;
-        allow create, update, delete: if request.auth.uid == userId;
-      }
-
-      /**
-       * @description Controls access to expense entries for a specific user.
-       */
-      match /expenses/{expenseId} {
-        allow get, list: if request.auth.uid == userId;
-        allow create, update, delete: if request.auth.uid == userId;
-      }
-      
-      /**
-       * @description Controls access to category entries for a specific user.
-       */
-      match /categories/{categoryId} {
-        allow get, list: if request.auth.uid == userId;
-        allow create, update, delete: if request.auth.uid == userId;
-      }
-
-      /**
-       * @description Controls access to recurring transactions for a specific user.
-       */
-      match /recurringTransactions/{recurringTransactionId} {
-        allow get, list: if request.auth.uid == userId;
-        allow create, update, delete: if request.auth.uid == userId;
-      }
-
-      /**
-       * @description Controls access to financial insights for a specific user.
-       */
-      match /financialInsights/{insightId} {
-        allow get, list, create, delete: if request.auth.uid == userId;
-        allow update: if false; // Insights are immutable
-      }
-
-      /**
-       * @description Controls access to loan and repayment entries for a specific user.
-       */
-      match /loans/{loanId} {
-        allow get, list: if request.auth.uid == userId;
-        allow create, update, delete: if request.auth.uid == userId;
-
-        /**
-         * @description Controls access to repayments within a loan.
-         */
-        match /repayments/{repaymentId} {
-          allow get, list: if request.auth.uid == userId;
-          allow create, update, delete: if request.auth.uid == userId;
-        }
-      }
-
-      /**
-       * @description Controls access to budget entries for a specific user.
-       */
-      match /budgets/{budgetId} {
-        allow get, list: if request.auth.uid == userId;
-        allow create, update, delete: if request.auth.uid == userId;
-      }
-    }
-
-    /**
-     * @description Controls access to group documents.
-     */
-    match /groups/{groupId} {
-      allow get: if isSignedIn() && isGroupMember(groupId);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() 
-        && request.resource.data.createdBy == request.auth.uid
-        && request.auth.uid in request.resource.data.members;
-      allow update: if isSignedIn() && isGroupMember(groupId);
-      allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
-      
-      /**
-       * @description Controls access to shared expense documents within a group.
-       */
-      match /sharedExpenses/{expenseId} {
-        allow get, list: if isSignedIn() && isGroupMember(groupId);
-        allow create: if isSignedIn() && isGroupMember(groupId) && request.resource.data.paidBy == request.auth.uid;
-        allow update, delete: if isSignedIn() && isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
-      }
-    }
-
-    /**
-     * @description Controls access to debt documents.
-     */
-    match /debts/{debtId} {
-      allow get: if isSignedIn() && isParticipant(resource.data);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isParticipant(request.resource.data);
-      allow update, delete: if isSignedIn() && isParticipant(resource.data);
-    }
-
-    // ========== Helper Functions ==========
-
+    // Helper Functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isParticipant(debtData) {
-      return request.auth.uid == debtData.fromUserId || request.auth.uid == debtData.toUserId;
+    function isOwner(userId) {
+      // Robust check: matches auth.uid against path segment or captured variable
+      return request.auth.uid == userId || (request.path.segments.size() > 4 && request.path.segments[4] == request.auth.uid);
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
     function isGroupMember(groupId) {
-      return request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        return request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+    }
+
+    // ========== User Data ==========
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+
+      // CATCH-ALL: Matches ANY subcollection (incomes, expenses, loans, etc.)
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ========== Groups ==========
+    match /groups/{groupId} {
+        allow get: if isSignedIn();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && request.auth.uid in resource.data.members;
+        allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+        
+        match /sharedExpenses/{expenseId} {
+            allow get: if isGroupMember(groupId);
+            allow list: if isGroupMember(groupId);
+            allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+            allow update: if isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
+            allow delete: if isGroupMember(groupId) && resource.data.paidBy == request.auth.uid;
+        }
+    }
+
+    // ========== Debts ==========
+    match /debts/{debtId} {
+        allow get: if isSignedIn();
+        allow list: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+        allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
   }
 }

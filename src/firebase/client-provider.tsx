@@ -5,7 +5,7 @@ import { FirebaseProvider } from '@/firebase/provider';
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -25,15 +25,15 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     // This is the safe place to initialize Firebase and access browser-specific APIs.
     let app: FirebaseApp;
     if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
+      app = initializeApp(firebaseConfig);
     } else {
-        app = getApp();
+      app = getApp();
     }
-    
+
     setServices({
       firebaseApp: app,
       auth: getAuth(app),
-      firestore: getFirestore(app),
+      firestore: initializeFirestore(app, { experimentalAutoDetectLongPolling: true }),
     });
 
   }, []); // The empty dependency array ensures this effect runs only once on mount.
@@ -41,7 +41,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   if (!services) {
     // Render nothing or a global loader while Firebase is initializing.
     // This prevents children from trying to access Firebase services before they are ready.
-    return null; 
+    return null;
   }
 
   return (

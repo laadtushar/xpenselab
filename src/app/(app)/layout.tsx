@@ -18,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  
+
   const [isFirestoreCheckComplete, setIsFirestoreCheckComplete] = useState(false);
 
   useEffect(() => {
@@ -34,6 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!firestore) return; // Wait for firestore to be available
 
     // Check for the user document in Firestore
+    console.log('DEBUG: Firestore App Options:', firestore.app.options);
     const userDocRef = doc(firestore, 'users', user.uid);
     getDoc(userDocRef).then(userDocSnap => {
       if (!userDocSnap.exists()) {
@@ -59,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       console.error("AppLayout: Error checking/creating user document:", error);
       // In case of error, we still proceed to avoid getting stuck on the loading screen.
       // The error will likely manifest elsewhere, but this prevents a total app blockage.
-      setIsFirestoreCheckComplete(true); 
+      setIsFirestoreCheckComplete(true);
     });
 
   }, [user, isUserLoading, firestore, router]);
@@ -69,52 +70,52 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       auth.signOut();
     }
   };
-  
+
   // Render a global loading indicator until both Firebase Auth and our Firestore check are complete.
   if (isUserLoading || !isFirestoreCheckComplete) {
     return (
       <div className="flex h-screen items-center justify-center">
-         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-  
+
   return (
     <FinancialProvider>
       <SidebarProvider>
-          <Sidebar>
-            <SidebarHeader>
-              <div className="flex items-center gap-2 p-2">
-                <Logo />
-                <span className="text-xl font-headline font-semibold">XpenseLab</span>
-              </div>
-            </SidebarHeader>
-            <SidebarContent>
-              <DashboardNav />
-            </SidebarContent>
-            <SidebarFooter>
-              <div className="flex items-center justify-between p-3">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.photoURL || undefined} />
-                    <AvatarFallback>
-                      <UserIcon className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col text-sm">
-                    <span className="font-medium">{user?.displayName || 'User'}</span>
-                    <span className="text-xs text-muted-foreground">{user?.email}</span>
-                  </div>
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-2 p-2">
+              <Logo />
+              <span className="text-xl font-headline font-semibold">XpenseLab</span>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <DashboardNav />
+          </SidebarContent>
+          <SidebarFooter>
+            <div className="flex items-center justify-between p-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.photoURL || undefined} />
+                  <AvatarFallback>
+                    <UserIcon className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col text-sm">
+                  <span className="font-medium">{user?.displayName || 'User'}</span>
+                  <span className="text-xs text-muted-foreground">{user?.email}</span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
-                  <LogOut className="h-4 w-4" />
-                </Button>
               </div>
-            </SidebarFooter>
-          </Sidebar>
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
-            {children}
-          </main>
+              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </SidebarFooter>
+        </Sidebar>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </SidebarProvider>
     </FinancialProvider>
   );
