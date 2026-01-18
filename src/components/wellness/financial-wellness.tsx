@@ -19,7 +19,7 @@ export function FinancialWellness() {
   const { transactions, incomes, expenses, budget, userData, canMakeAiRequest } = useFinancials();
   const { makeRequest: makeWellnessRequest, isLoading } = useAiRequest(checkFinancialWellness);
   const isPremium = userData?.tier === 'premium';
-  
+
   const { remainingRequests } = useMemo(() => {
     const { remaining } = canMakeAiRequest();
     return { remainingRequests: remaining };
@@ -41,7 +41,7 @@ export function FinancialWellness() {
     const totalIncome = incomes.reduce((acc, t) => acc + t.amount, 0);
     const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
-    
+
     const financialSummary = `
         Total Income: ${totalIncome.toFixed(2)}
         Total Expenses: ${totalExpenses.toFixed(2)}
@@ -52,28 +52,36 @@ export function FinancialWellness() {
     const response = await makeWellnessRequest({
       financialSummary,
     });
-    
+
     if (response) {
-      setResult(response);
+      if (response.success && response.data) {
+        setResult(response.data);
+      } else if (response.error) {
+        toast({
+          title: "AI Error",
+          description: response.error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
   if (!isPremium) {
     return (
-         <Card>
-            <CardHeader>
-                <CardTitle>AI Financial Wellness Check</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Alert>
-                    <Star className="h-4 w-4" />
-                    <AlertTitle>Premium Feature</AlertTitle>
-                    <AlertDescription>
-                        Upgrade to a premium account to get your financial wellness score and personalized advice.
-                    </AlertDescription>
-                </Alert>
-            </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Financial Wellness Check</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Star className="h-4 w-4" />
+            <AlertTitle>Premium Feature</AlertTitle>
+            <AlertDescription>
+              Upgrade to a premium account to get your financial wellness score and personalized advice.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -81,15 +89,15 @@ export function FinancialWellness() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              AI Financial Wellness Check
+          <div className="flex items-center gap-2">
+            AI Financial Wellness Check
+          </div>
+          {isPremium && remainingRequests !== undefined && (
+            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              {remainingRequests} requests left today
             </div>
-            {isPremium && remainingRequests !== undefined && (
-                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Info className="h-3 w-3" />
-                    {remainingRequests} requests left today
-                </div>
-            )}
+          )}
         </CardTitle>
         <CardDescription>
           Get a score and personalized advice on your financial health based on your recent activity.
@@ -111,9 +119,9 @@ export function FinancialWellness() {
         {result && (
           <div className="space-y-6">
             <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Your Score</p>
-                <p className="text-6xl font-bold text-primary">{result.wellnessScore}</p>
-                <Progress value={result.wellnessScore} className="mt-4 h-3" />
+              <p className="text-sm text-muted-foreground mb-2">Your Score</p>
+              <p className="text-6xl font-bold text-primary">{result.wellnessScore}</p>
+              <Progress value={result.wellnessScore} className="mt-4 h-3" />
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><TrendingUp className="h-5 w-5" /> Analysis</h3>
@@ -122,7 +130,7 @@ export function FinancialWellness() {
             <div>
               <h3 className="text-lg font-semibold mb-2">Your Path to Improvement</h3>
               <ul className="space-y-3">
-                {result.recommendations.map((suggestion, index) => (
+                {result.recommendations.map((suggestion: string, index: number) => (
                   <li key={index} className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
                     <CheckCircle className="h-5 w-5 mt-1 text-green-500 shrink-0" />
                     <span className="text-muted-foreground">{suggestion}</span>

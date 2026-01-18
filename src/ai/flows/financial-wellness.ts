@@ -20,14 +20,25 @@ const FinancialWellnessOutputSchema = z.object({
 });
 export type FinancialWellnessOutput = z.infer<typeof FinancialWellnessOutputSchema>;
 
-export async function checkFinancialWellness(input: FinancialWellnessInput): Promise<FinancialWellnessOutput> {
+export type FinancialWellnessResponse = {
+  success: boolean;
+  data?: FinancialWellnessOutput;
+  error?: string;
+};
+
+export async function checkFinancialWellness(input: FinancialWellnessInput): Promise<FinancialWellnessResponse> {
+  console.log("🔍 checkFinancialWellness called with input length:", input.financialSummary.length);
   try {
-    return await financialWellnessFlow(input);
+    const result = await financialWellnessFlow(input);
+    console.log("✅ financialWellnessFlow succeeded");
+    return { success: true, data: result };
   } catch (error: any) {
     console.error("Detailed Genkit/AI Error in checkFinancialWellness:", error);
-    // Re-throw with message to hope it propagates or at least is logged.
-    // In production, this message is often sanitized, but the server log will remain.
-    throw new Error(`AI Service Failure: ${error.message || 'Unknown error'}`);
+    // Return the error as a value, NOT a throw. This bypasses Server Component serialization issues.
+    return {
+      success: false,
+      error: error.message || "AI Service Unavailable. Please check your API key and logs."
+    };
   }
 }
 
