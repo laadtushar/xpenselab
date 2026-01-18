@@ -30,6 +30,16 @@ export default function DashboardPage() {
           <RecentTransactions />
         </div>
       </div>
+
+      {/* Mobile Quick Add FAB */}
+      <div className="fixed bottom-24 right-6 md:hidden z-50">
+        <Link href="/expenses">
+          <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+            <PlusCircle className="h-6 w-6" />
+            <span className="sr-only">Add Expense</span>
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

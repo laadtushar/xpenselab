@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, X } from "lucide-react";
 import { useFinancials } from "@/context/financial-context";
 import { useDebounce } from "@/hooks/use-debounce";
-import { format } from "date-fns";
+import { format, subDays, subMonths, subYears } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
 interface TransactionFiltersProps {
@@ -36,10 +36,19 @@ export function TransactionFilters({ onFilterChange, type }: TransactionFiltersP
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [openDate, setOpenDate] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
   const { incomeCategories, expenseCategories } = useFinancials();
   const categories = type === 'income' ? incomeCategories : expenseCategories;
+
+  const presets = [
+    { label: 'Last 7 Days', getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }) },
+    { label: 'Last 30 Days', getValue: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+    { label: 'Last 6 Months', getValue: () => ({ from: subMonths(new Date(), 6), to: new Date() }) },
+    { label: 'Last Year', getValue: () => ({ from: subYears(new Date(), 1), to: new Date() }) },
+    { label: 'All Time', getValue: () => undefined },
+  ];
 
   useEffect(() => {
     onFilterChange({
@@ -54,7 +63,7 @@ export function TransactionFilters({ onFilterChange, type }: TransactionFiltersP
     setCategory("");
     setDateRange(undefined);
   };
-  
+
   const hasActiveFilters = search || category || dateRange;
 
   return (
@@ -78,7 +87,7 @@ export function TransactionFilters({ onFilterChange, type }: TransactionFiltersP
           ))}
         </SelectContent>
       </Select>
-      <Popover>
+      <Popover open={openDate} onOpenChange={setOpenDate}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -97,14 +106,34 @@ export function TransactionFilters({ onFilterChange, type }: TransactionFiltersP
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange}
-            onSelect={setDateRange}
-            numberOfMonths={2}
-          />
+          <div className="flex flex-col md:flex-row">
+            <div className="flex flex-col gap-1 p-2 border-b md:border-b-0 md:border-r overflow-y-auto max-h-[300px] md:max-h-none">
+              {presets.map((preset) => (
+                <Button
+                  key={preset.label}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start font-normal text-left"
+                  onClick={() => {
+                    setDateRange(preset.getValue());
+                    setOpenDate(false);
+                  }}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            <div className="p-0">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+            </div>
+          </div>
         </PopoverContent>
       </Popover>
       {hasActiveFilters && (

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2, ArrowUpDown, Edit, Save, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,9 +38,9 @@ type SortDescriptor = {
 };
 
 interface IncomeTableProps {
-    incomes: Income[];
-    onSortChange: (descriptor: SortDescriptor) => void;
-    sortDescriptor?: SortDescriptor;
+  incomes: Income[];
+  onSortChange: (descriptor: SortDescriptor) => void;
+  sortDescriptor?: SortDescriptor;
 }
 
 export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTableProps) {
@@ -47,45 +48,45 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
   const [newIncome, setNewIncome] = useState<Partial<Income>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Partial<Income>>({});
-  
+
   const createSortHandler = (column: 'description' | 'amount' | 'date') => () => {
     if (!sortDescriptor || sortDescriptor.column !== column) {
       onSortChange({ column, direction: 'ascending' });
     } else if (sortDescriptor.direction === 'ascending') {
       onSortChange({ column, direction: 'descending' });
     } else {
-       onSortChange({ column: 'date', direction: 'descending' });
+      onSortChange({ column: 'date', direction: 'descending' });
     }
   };
-  
-    const handleAddIncome = async () => {
-        if (newIncome.description && newIncome.amount && newIncome.date && newIncome.category) {
-            await addTransaction({ ...newIncome, type: 'income' } as any);
-            setNewIncome({});
-        }
-    }
 
-    const handleEditClick = (income: Income) => {
-      setEditingId(income.id);
-      setEditedData(income);
-    };
-  
-    const handleCancelEdit = () => {
+  const handleAddIncome = async () => {
+    if (newIncome.description && newIncome.amount && newIncome.date && newIncome.category) {
+      await addTransaction({ ...newIncome, type: 'income' } as any);
+      setNewIncome({});
+    }
+  }
+
+  const handleEditClick = (income: Income) => {
+    setEditingId(income.id);
+    setEditedData(income);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditedData({});
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editedData) {
+      updateTransaction(editingId, 'income', editedData);
       setEditingId(null);
       setEditedData({});
-    };
-  
-    const handleSaveEdit = () => {
-      if (editingId && editedData) {
-        updateTransaction(editingId, 'income', editedData);
-        setEditingId(null);
-        setEditedData({});
-      }
-    };
-  
-    const handleInputChange = (field: keyof Income, value: any) => {
-      setEditedData(prev => ({ ...prev, [field]: value }));
-    };
+    }
+  };
+
+  const handleInputChange = (field: keyof Income, value: any) => {
+    setEditedData(prev => ({ ...prev, [field]: value }));
+  };
 
   if (isLoading) {
     return (
@@ -96,136 +97,245 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
   }
 
   return (
-      <div className="w-full overflow-x-auto">
+    <div className="w-full">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-right">
-                 <Button variant="ghost" onClick={createSortHandler('amount')}>
+                <Button variant="ghost" onClick={createSortHandler('amount')}>
                   Amount
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={createSortHandler('date')}>
-                    Date
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                 </Button>
+                  Date
+                  <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
               </TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
-                <TableCell>
-                    <Input placeholder="Description" value={newIncome.description || ''} onChange={(e) => setNewIncome({ ...newIncome, description: e.target.value })} />
-                </TableCell>
-                <TableCell>
-                    <Select onValueChange={(value) => setNewIncome({ ...newIncome, category: value })}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {incomeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </TableCell>
-                <TableCell>
-                    <Input type="number" placeholder="Amount" value={newIncome.amount || ''} onChange={(e) => setNewIncome({ ...newIncome, amount: parseFloat(e.target.value) })} />
-                </TableCell>
-                <TableCell>
-                    <Input type="date" placeholder="Date" value={newIncome.date || ''} onChange={(e) => setNewIncome({ ...newIncome, date: e.target.value })}/>
-                </TableCell>
-                <TableCell>
-                    <Button onClick={handleAddIncome}>Add</Button>
-                </TableCell>
+              <TableCell>
+                <Input placeholder="Description" value={newIncome.description || ''} onChange={(e) => setNewIncome({ ...newIncome, description: e.target.value })} />
+              </TableCell>
+              <TableCell>
+                <Select onValueChange={(value) => setNewIncome({ ...newIncome, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {incomeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell>
+                <Input type="number" placeholder="Amount" value={newIncome.amount || ''} onChange={(e) => setNewIncome({ ...newIncome, amount: parseFloat(e.target.value) })} />
+              </TableCell>
+              <TableCell>
+                <Input type="date" placeholder="Date" value={newIncome.date || ''} onChange={(e) => setNewIncome({ ...newIncome, date: e.target.value })} />
+              </TableCell>
+              <TableCell>
+                <Button onClick={handleAddIncome}>Add</Button>
+              </TableCell>
             </TableRow>
             {incomes.length > 0 ? incomes.map((income) => {
               const isEditing = editingId === income.id;
               return (
-              <TableRow key={income.id}>
-                <TableCell className="font-medium">
-                  {isEditing ? (
-                    <Input value={editedData.description || ''} onChange={(e) => handleInputChange('description', e.target.value)} />
-                  ) : (
-                    income.description
-                  )}
-                  </TableCell>
-                 <TableCell>
-                  {isEditing ? (
-                    <Select onValueChange={(value) => handleInputChange('category', value)} value={editedData.category}>
-                      <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
-                      <SelectContent>
-                        {incomeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge variant="secondary" className="flex items-center gap-2 w-fit">
-                      <CategoryIcon categoryName={income.category} className="h-3 w-3" />
-                      {income.category}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  {isEditing ? (
-                    <Input type="number" value={editedData.amount || ''} onChange={(e) => handleInputChange('amount', parseFloat(e.target.value))} />
-                  ) : (
-                    formatCurrency(income.amount, userData?.currency)
-                  )}
-                </TableCell>
-                <TableCell>
-                  {isEditing ? (
-                    <Input type="date" value={editedData.date ? format(new Date(editedData.date), 'yyyy-MM-dd') : ''} onChange={(e) => handleInputChange('date', e.target.value ? new Date(e.target.value).toISOString() : '')} />
+                <TableRow key={income.id}>
+                  <TableCell className="font-medium">
+                    {isEditing ? (
+                      <Input value={editedData.description || ''} onChange={(e) => handleInputChange('description', e.target.value)} />
                     ) : (
-                    format(new Date(income.date), 'MMM d, yyyy')
-                  )}
+                      income.description
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <Select onValueChange={(value) => handleInputChange('category', value)} value={editedData.category}>
+                        <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                        <SelectContent>
+                          {incomeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+                        <CategoryIcon categoryName={income.category} className="h-3 w-3" />
+                        {income.category}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isEditing ? (
+                      <Input type="number" value={editedData.amount || ''} onChange={(e) => handleInputChange('amount', parseFloat(e.target.value))} />
+                    ) : (
+                      formatCurrency(income.amount, userData?.currency)
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <Input type="date" value={editedData.date ? format(new Date(editedData.date), 'yyyy-MM-dd') : ''} onChange={(e) => handleInputChange('date', e.target.value ? new Date(e.target.value).toISOString() : '')} />
+                    ) : (
+                      format(new Date(income.date), 'MMM d, yyyy')
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right space-x-0">
+                    {isEditing ? (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={handleSaveEdit}><Save className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(income)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete this income entry.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteTransaction(income.id, 'income')}>Continue</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )
+            }) : (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  No income records match your filters.
                 </TableCell>
-                 <TableCell className="text-right space-x-0">
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {/* Mobile Add Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Add New Income</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Input placeholder="Description" value={newIncome.description || ''} onChange={(e) => setNewIncome({ ...newIncome, description: e.target.value })} />
+            <div className="flex gap-2">
+              <Input type="number" placeholder="Amount" className="flex-1" value={newIncome.amount || ''} onChange={(e) => setNewIncome({ ...newIncome, amount: parseFloat(e.target.value) })} />
+              <Input type="date" className="flex-1" value={newIncome.date || ''} onChange={(e) => setNewIncome({ ...newIncome, date: e.target.value })} />
+            </div>
+            <Select onValueChange={(value) => setNewIncome({ ...newIncome, category: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {incomeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button className="w-full mt-2" onClick={handleAddIncome}>Add Income</Button>
+          </CardContent>
+        </Card>
+
+        {incomes.length > 0 ? incomes.map((income) => {
+          const isEditing = editingId === income.id;
+          return (
+            <Card key={income.id}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="space-y-1 w-full min-w-0">
+                    {isEditing ? (
+                      <Input value={editedData.description || ''} onChange={(e) => handleInputChange('description', e.target.value)} className="mb-2" placeholder="Description" />
+                    ) : (
+                      <div className="font-semibold truncate leading-tight">{income.description}</div>
+                    )}
+
+                    {isEditing ? (
+                      <Select onValueChange={(value) => handleInputChange('category', value)} value={editedData.category}>
+                        <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                        <SelectContent>
+                          {incomeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="secondary" className="w-fit">
+                        <CategoryIcon categoryName={income.category} className="h-3 w-3 mr-1" />
+                        {income.category}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    {isEditing ? (
+                      <Input type="number" value={editedData.amount || ''} onChange={(e) => handleInputChange('amount', parseFloat(e.target.value))} className="w-24 text-right mb-1" placeholder="Amount" />
+                    ) : (
+                      <div className="font-bold text-lg">{formatCurrency(income.amount, userData?.currency)}</div>
+                    )}
+
+                    {isEditing ? (
+                      <Input type="date" value={editedData.date ? format(new Date(editedData.date), 'yyyy-MM-dd') : ''} onChange={(e) => handleInputChange('date', e.target.value ? new Date(e.target.value).toISOString() : '')} className="w-32 text-right text-xs" />
+                    ) : (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(income.date), 'MMM d, yyyy')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
                   {isEditing ? (
                     <>
-                      <Button variant="ghost" size="icon" onClick={handleSaveEdit}><Save className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
+                      <Button size="sm" onClick={handleSaveEdit} className="h-8"><Save className="mr-2 h-3 w-3" /> Save</Button>
+                      <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-8">Cancel</Button>
                     </>
                   ) : (
                     <>
-                      <Button variant="ghost" size="icon" onClick={() => handleEditClick(income)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleEditClick(income)} className="h-8 w-8 p-0"><Edit className="h-4 w-4" /></Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this income entry.
-                            </AlertDialogDescription>
+                            <AlertDialogTitle>Delete Income?</AlertDialogTitle>
+                            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteTransaction(income.id, 'income')}>Continue</AlertDialogAction>
+                            <AlertDialogAction onClick={() => deleteTransaction(income.id, 'income')}>Delete</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
                     </>
                   )}
-                </TableCell>
-              </TableRow>
-            )}) : (
-                 <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                        No income records match your filters.
-                    </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        }) : (
+          <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg">No income found.</div>
+        )}
       </div>
+    </div>
   );
 }
