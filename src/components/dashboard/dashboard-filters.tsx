@@ -1,8 +1,6 @@
-"use client"
-
 import * as React from "react"
 import { CalendarIcon, Check, ChevronsUpDown, X } from "lucide-react"
-import { format } from "date-fns"
+import { format, subDays, subMonths, subYears, startOfDay } from "date-fns"
 import { type DateRange } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
@@ -56,6 +54,7 @@ export function DashboardFilters({
     setTimeGrain,
 }: DashboardFiltersProps) {
     const [openCategory, setOpenCategory] = React.useState(false)
+    const [openDate, setOpenDate] = React.useState(false) // Control popover open state
 
     // Helper to get category name
     const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || id;
@@ -68,12 +67,20 @@ export function DashboardFilters({
         }
     }
 
+    const presets = [
+        { label: 'Last 7 Days', getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }) },
+        { label: 'Last 30 Days', getValue: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+        { label: 'Last 6 Months', getValue: () => ({ from: subMonths(new Date(), 6), to: new Date() }) },
+        { label: 'Last Year', getValue: () => ({ from: subYears(new Date(), 1), to: new Date() }) },
+        { label: 'All Time', getValue: () => undefined },
+    ];
+
     return (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-1 bg-background/50 backdrop-blur rounded-lg">
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
 
                 {/* Date Range Picker */}
-                <Popover>
+                <Popover open={openDate} onOpenChange={setOpenDate}>
                     <PopoverTrigger asChild>
                         <Button
                             id="date"
@@ -99,14 +106,34 @@ export function DashboardFilters({
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            initialFocus
-                            mode="range"
-                            defaultMonth={dateRange?.from}
-                            selected={dateRange}
-                            onSelect={setDateRange}
-                            numberOfMonths={2}
-                        />
+                        <div className="flex flex-col md:flex-row">
+                            <div className="flex flex-col gap-1 p-2 border-b md:border-b-0 md:border-r overflow-y-auto max-h-[300px] md:max-h-none">
+                                {presets.map((preset) => (
+                                    <Button
+                                        key={preset.label}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="justify-start font-normal text-left"
+                                        onClick={() => {
+                                            setDateRange(preset.getValue());
+                                            setOpenDate(false); // Close on preset select
+                                        }}
+                                    >
+                                        {preset.label}
+                                    </Button>
+                                ))}
+                            </div>
+                            <div className="p-0">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                />
+                            </div>
+                        </div>
                     </PopoverContent>
                 </Popover>
 
