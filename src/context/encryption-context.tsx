@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useMemo, useEffect, useCallback, useState, useRef } from 'react';
 import type { User as UserData } from '@/lib/types';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, updateDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDoc } from 'firebase/firestore';
 import {
   initializeEncryption,
   getEncryptionKey,
@@ -252,9 +252,24 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       }
       
       // Try as recovery code (only if main code didn't work)
+      // Fetch user document directly from Firestore to ensure we have the latest recovery code data
+      // This is important when unlocking in a new browser where userData might not be loaded yet
+      if (!userId || !firestore) {
+        throw new EncryptionError('User not authenticated');
+      }
+      
+      const userRef = doc(firestore, 'users', userId);
+      const userDocSnapshot = await getDoc(userRef);
+      
+      if (!userDocSnapshot.exists()) {
+        throw new EncryptionError('User document not found');
+      }
+      
+      const userDocData = userDocSnapshot.data() as UserData;
+      
       // Check if recovery code data exists
-      if (!userData?.recoveryCodeHashes || !userData?.recoveryCodeSalt || !userData?.encryptedMainCodes) {
-        // No recovery codes configured or userData is stale
+      if (!userDocData?.recoveryCodeHashes || !userDocData?.recoveryCodeSalt || !userDocData?.encryptedMainCodes) {
+        // No recovery codes configured
         // If we got here, main code didn't work and recovery codes aren't available
         throw new EncryptionError('Invalid encryption code or recovery code');
       }
@@ -263,7 +278,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       const inputHash = await hashRecoveryCode(code);
       
       // Find matching recovery code hash
-      const recoveryCodeIndex = userData.recoveryCodeHashes.findIndex(
+      const recoveryCodeIndex = userDocData.recoveryCodeHashes.findIndex(
         (storedHash: string) => storedHash === inputHash
       );
       
@@ -272,7 +287,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       }
       
       // Decrypt main code using recovery code
-      const recoveryCodeSaltBinary = atob(userData.recoveryCodeSalt);
+      const recoveryCodeSaltBinary = atob(userDocData.recoveryCodeSalt);
       const recoveryCodeSalt = new Uint8Array(recoveryCodeSaltBinary.length);
       for (let i = 0; i < recoveryCodeSaltBinary.length; i++) {
         recoveryCodeSalt[i] = recoveryCodeSaltBinary.charCodeAt(i);
@@ -305,7 +320,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       );
       
       // Decrypt main code
-      const encryptedMainCode = userData.encryptedMainCodes[recoveryCodeIndex];
+      const encryptedMainCode = userDocData.encryptedMainCodes[recoveryCodeIndex];
       const [ivBase64, encryptedBase64] = encryptedMainCode.split(':');
       
       const ivBinary = atob(ivBase64);
@@ -349,7 +364,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         error as Error
       );
     }
-  }, [isEncryptionEnabled, unlockAttempts, userData]);
+  }, [isEncryptionEnabled, unlockAttempts, userId, firestore]);
   
   /**
    * Lock encryption (clear key from memory)
