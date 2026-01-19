@@ -30,7 +30,6 @@ export function EncryptionUnlockModal() {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [justUnlocked, setJustUnlocked] = useState(false);
 
   const form = useForm<z.infer<typeof unlockFormSchema>>({
     resolver: zodResolver(unlockFormSchema),
@@ -44,26 +43,18 @@ export function EncryptionUnlockModal() {
     if (isEncryptionEnabled && !isUnlocked && !isLoading) {
       form.reset();
       setError(null);
-      setJustUnlocked(false);
-    }
-    // Reset justUnlocked flag when unlock state changes
-    if (isUnlocked) {
-      setJustUnlocked(false);
     }
   }, [isEncryptionEnabled, isUnlocked, isLoading, form]);
 
   const onUnlockSubmit = async (values: z.infer<typeof unlockFormSchema>) => {
     if (!isEncryptionEnabled) return;
-    
+
     setIsProcessing(true);
     setError(null);
-    setJustUnlocked(false);
-    
+
     try {
       const success = await unlockEncryption(values.code);
       if (success) {
-        // Immediately hide the modal by setting justUnlocked flag
-        setJustUnlocked(true);
         form.reset();
         // Show toast after a brief delay to ensure modal closes first
         setTimeout(() => {
@@ -82,42 +73,9 @@ export function EncryptionUnlockModal() {
     }
   };
 
-  // Show skeleton during loading phase (when we're checking encryption status)
-  // This prevents the modal from briefly flashing before appearing or disappearing
-  // Show skeleton if:
-  // 1. Currently loading (isLoading === true) - covers userData loading, session restoration, etc.
-  // 2. We just unlocked and are waiting for state to update
-  // This ensures skeleton shows BEFORE the unlock modal appears
-  if (isLoading || justUnlocked) {
-    return (
-      <Dialog open={true} onOpenChange={() => {}} modal={true}>
-        <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="sr-only">Loading encryption</DialogTitle>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-5 w-5 rounded" />
-              <Skeleton className="h-6 w-48" />
-            </div>
-            <Skeleton className="h-4 w-full mt-2" />
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-3 w-full" />
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-24" />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // Show modal when encryption is enabled but not unlocked, and not loading
-  // Also hide immediately if we just successfully unlocked
-  const shouldShow = isEncryptionEnabled && !isUnlocked && !isLoading && !justUnlocked;
+  // Show modal when encryption is enabled but not unlocked
+  // Hide when successfully unlocked
+  const shouldShow = isEncryptionEnabled && !isUnlocked;
 
   // Don't allow closing the dialog without unlocking
   const handleOpenChange = (open: boolean) => {
@@ -136,96 +94,127 @@ export function EncryptionUnlockModal() {
 
   return (
     <Dialog open={true} onOpenChange={handleOpenChange} modal={true}>
-      <DialogContent 
-        className="sm:max-w-md [&>button]:hidden" 
+      <DialogContent
+        className="sm:max-w-md [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <Lock className="h-5 w-5 text-destructive" />
-            <DialogTitle>Unlock Encryption Required</DialogTitle>
-          </div>
-          <DialogDescription>
-            Your data is encrypted. Enter your encryption code or recovery code to access your financial data.
-          </DialogDescription>
+          {isLoading ? (
+            <>
+              <DialogTitle>Loading encryption</DialogTitle>
+              <DialogDescription className="sr-only">
+                Please wait while we load your encryption settings.
+              </DialogDescription>
+              <div className="flex items-center gap-2 mt-2">
+                <Skeleton className="h-5 w-5 rounded" />
+                <Skeleton className="h-6 w-48" />
+              </div>
+              <Skeleton className="h-4 w-full mt-2" />
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-destructive" />
+                <DialogTitle>Unlock Encryption Required</DialogTitle>
+              </div>
+              <DialogDescription>
+                Your data is encrypted. Enter your encryption code or recovery code to access your financial data.
+              </DialogDescription>
+            </>
+          )}
         </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Unlock Failed</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {remainingAttempts < maxUnlockAttempts && remainingAttempts > 0 && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Unlock Attempts</AlertTitle>
-            <AlertDescription>
-              {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {unlockAttempts >= maxUnlockAttempts && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Too Many Failed Attempts</AlertTitle>
-            <AlertDescription>
-              Please refresh the page to reset unlock attempts.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onUnlockSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Encryption Code or Recovery Code</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="Enter your encryption code or recovery code" 
-                      {...field} 
-                      autoFocus
-                      disabled={isProcessing || unlockAttempts >= maxUnlockAttempts}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    You can use either your main encryption code or one of your recovery codes.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2">
-              {unlockAttempts < maxUnlockAttempts ? (
-                <Button 
-                  type="submit" 
-                  disabled={isProcessing}
-                  className="w-full sm:w-auto"
-                >
-                  {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <LockOpen className="mr-2 h-4 w-4" />
-                  Unlock
-                </Button>
-              ) : (
-                <Button 
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="w-full sm:w-auto"
-                >
-                  Refresh Page
-                </Button>
-              )}
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-3 w-full" />
             </div>
-          </form>
-        </Form>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+        ) : (
+          <>
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Unlock Failed</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {remainingAttempts < maxUnlockAttempts && remainingAttempts > 0 && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Unlock Attempts</AlertTitle>
+                <AlertDescription>
+                  {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {unlockAttempts >= maxUnlockAttempts && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Too Many Failed Attempts</AlertTitle>
+                <AlertDescription>
+                  Please refresh the page to reset unlock attempts.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onUnlockSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Encryption Code or Recovery Code</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Enter your encryption code or recovery code"
+                          {...field}
+                          autoFocus
+                          disabled={isProcessing || unlockAttempts >= maxUnlockAttempts}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        You can use either your main encryption code or one of your recovery codes.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2">
+                  {unlockAttempts < maxUnlockAttempts ? (
+                    <Button
+                      type="submit"
+                      disabled={isProcessing}
+                      className="w-full sm:w-auto"
+                    >
+                      {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <LockOpen className="mr-2 h-4 w-4" />
+                      Unlock
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => window.location.reload()}
+                      className="w-full sm:w-auto"
+                    >
+                      Refresh Page
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

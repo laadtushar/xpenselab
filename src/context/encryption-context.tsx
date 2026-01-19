@@ -77,7 +77,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   const keyRef = useRef<CryptoKey | null>(null);
   // CRITICAL: Prevent concurrent encryption operations (change code, regenerate recovery codes)
   const [isEncryptionOperationInProgress, setIsEncryptionOperationInProgress] = useState(false);
-  const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [isRestoringSession, setIsRestoringSession] = useState(false);
   
   // Session storage keys
   const SESSION_STORAGE_KEY = 'xpenselab_unlock_session';
@@ -849,9 +849,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     let isMounted = true;
     
-    const restoreSession = async () => {
-      // Ensure isRestoringSession is true at the start
-      if (isMounted) setIsRestoringSession(true);
+  const restoreSession = async () => {
+    // Set restoring session flag when we actually start restoring
+    if (isMounted) setIsRestoringSession(true);
       
       if (!userId || !isEncryptionEnabled || isUnlocked || isLoadingUser || loadingUser) {
         if (isMounted) setIsRestoringSession(false);
@@ -926,9 +926,20 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       // If encryption is not enabled OR already unlocked, we don't need to restore
       if (!isEncryptionEnabled || isUnlocked) {
         if (isMounted) setIsRestoringSession(false);
+      } else {
+        // If encryption is enabled but not unlocked, and we have user data loaded,
+        // we should check if there's a session to restore. If not, clear isRestoringSession immediately
+        // to prevent skeleton from showing unnecessarily on first-time unlocks
+        const hasStoredSession = sessionStorage.getItem(SESSION_STORAGE_KEY) !== null;
+        const hasSessionId = sessionStorage.getItem('xpenselab_session_id') !== null;
+        if (!hasStoredSession || !hasSessionId) {
+          // No session to restore - clear the flag immediately
+          if (isMounted) setIsRestoringSession(false);
+        } else {
+          // There might be a session to restore - attempt it
+          restoreSession();
+        }
       }
-      // If encryption is enabled but not unlocked, keep isRestoringSession true
-      // until we check for a session (which happens in restoreSession)
     }
     // If userData is still loading, keep isRestoringSession true
     
@@ -941,13 +952,15 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   // This ensures we don't show the unlock modal during salt sync or state propagation
   useEffect(() => {
     if (isUnlocked && isRestoringSession) {
-      // Wait longer to ensure salt sync toast has appeared and all async operations complete
-      // Salt sync toast appears ~2 seconds after unlock, so we wait 2.5 seconds to be safe
-      // This ensures the skeleton shows throughout the entire unlock process
+      // For session restoration, wait longer to ensure salt sync toast appears
+      // For first-time unlocks, we can clear immediately since there's no salt sync needed
+      const isSessionRestore = sessionStorage.getItem(SESSION_STORAGE_KEY) !== null;
+      const delay = isSessionRestore ? 2500 : 100; // Much shorter delay for first-time unlocks
+
       const timeoutId = setTimeout(() => {
         setIsRestoringSession(false);
-      }, 2500);
-      
+      }, delay);
+
       return () => clearTimeout(timeoutId);
     }
   }, [isUnlocked, isRestoringSession]);
