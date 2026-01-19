@@ -9,7 +9,7 @@ import { useFinancials } from "@/context/financial-context";
 import { TransactionFilters } from "@/components/shared/transaction-filters";
 import type { Expense } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Receipt } from "lucide-react";
+import { Loader2, Receipt, PlusCircle } from "lucide-react";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableSkeleton } from "@/components/ui/skeletons";
@@ -112,6 +112,18 @@ export default function ExpensesPage() {
               )}
           </CardContent>
         </Card>
+
+        {/* Mobile Quick Add FAB - positioned above bottom nav */}
+        <div className="fixed bottom-20 right-4 md:hidden z-40">
+          <ExpenseForm
+            trigger={
+              <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+                <PlusCircle className="h-6 w-6" />
+                <span className="sr-only">Add Expense</span>
+              </Button>
+            }
+          />
+        </div>
       </div>
     </PullToRefresh>
   );

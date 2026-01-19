@@ -46,7 +46,11 @@ const formSchema = z.object({
   startDate: z.date({ required_error: "Start date is required." }),
 });
 
-export function AddRecurringTransactionDialog() {
+type AddRecurringTransactionDialogProps = {
+  trigger?: React.ReactNode;
+};
+
+export function AddRecurringTransactionDialog({ trigger }: AddRecurringTransactionDialogProps = {}) {
   const [open, setOpen] = useState(false);
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -111,9 +115,11 @@ export function AddRecurringTransactionDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Recurring
-        </Button>
+        {trigger || (
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Recurring
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

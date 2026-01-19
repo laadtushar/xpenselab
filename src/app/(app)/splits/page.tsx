@@ -8,8 +8,9 @@ import { CreateGroupDialog } from '@/components/splits/create-group-dialog';
 import { GroupSelector } from '@/components/splits/group-selector';
 import { GroupDashboard } from '@/components/splits/group-dashboard';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import type { Group } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export default function SplitsPage() {
   const { user } = useUser();
@@ -77,6 +78,18 @@ export default function SplitsPage() {
           )}
         </div>
       )}
+
+      {/* Mobile Quick Add FAB - positioned above bottom nav */}
+      <div className="fixed bottom-20 right-4 md:hidden z-40">
+        <CreateGroupDialog
+          trigger={
+            <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+              <Users className="h-6 w-6" />
+              <span className="sr-only">Create Group</span>
+            </Button>
+          }
+        />
+      </div>
     </div>
   );
 }

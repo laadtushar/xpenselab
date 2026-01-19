@@ -9,9 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, or, and } from 'firebase/firestore';
 import type { Debt } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useEncryption } from '@/context/encryption-context';
+import { Button } from '@/components/ui/button';
 
 export default function DebtsPage() {
   const { user } = useUser();
@@ -86,6 +87,18 @@ export default function DebtsPage() {
             </Tabs>
         </CardContent>
       </Card>
+
+      {/* Mobile Quick Add FAB - positioned above bottom nav */}
+      <div className="fixed bottom-20 right-4 md:hidden z-40">
+        <AddDebtDialog
+          trigger={
+            <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+              <PlusCircle className="h-6 w-6" />
+              <span className="sr-only">Add Debt</span>
+            </Button>
+          }
+        />
+      </div>
     </div>
   );
 }

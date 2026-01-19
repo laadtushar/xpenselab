@@ -39,7 +39,11 @@ const formSchema = z.object({
   direction: z.enum(['iOwe', 'theyOwe'], { required_error: 'You must select who owes whom.'}),
 });
 
-export function AddDebtDialog() {
+type AddDebtDialogProps = {
+  trigger?: React.ReactNode;
+};
+
+export function AddDebtDialog({ trigger }: AddDebtDialogProps = {}) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
@@ -120,9 +124,11 @@ export function AddDebtDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" /> Add Debt
-        </Button>
+        {trigger || (
+          <Button>
+            <UserPlus className="mr-2 h-4 w-4" /> Add Debt
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

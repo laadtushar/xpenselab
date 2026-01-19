@@ -36,7 +36,11 @@ const formSchema = z.object({
   category: z.string().min(1, "Category is required."),
 });
 
-export function ExpenseForm() {
+type ExpenseFormProps = {
+  trigger?: React.ReactNode;
+};
+
+export function ExpenseForm({ trigger }: ExpenseFormProps = {}) {
   const [open, setOpen] = useState(false);
   const { addTransaction, expenseCategories, userData } = useFinancials();
   const { isEncryptionEnabled, isUnlocked } = useEncryption();
@@ -102,10 +106,12 @@ export function ExpenseForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Expense
-        </Button>
+        {trigger || (
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

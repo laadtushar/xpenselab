@@ -33,7 +33,11 @@ const formSchema = z.object({
   category: z.string().min(1, "Category is required."),
 });
 
-export function IncomeForm() {
+type IncomeFormProps = {
+  trigger?: React.ReactNode;
+};
+
+export function IncomeForm({ trigger }: IncomeFormProps = {}) {
   const [open, setOpen] = useState(false);
   const { addTransaction, incomeCategories } = useFinancials();
   const { isEncryptionEnabled, isUnlocked } = useEncryption();
@@ -76,10 +80,12 @@ export function IncomeForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Income
-        </Button>
+        {trigger || (
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Income
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

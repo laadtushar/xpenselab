@@ -39,7 +39,11 @@ const formSchema = z.object({
   members: z.array(memberSchema).min(1, 'At least one member is required.'),
 });
 
-export function CreateGroupDialog() {
+type CreateGroupDialogProps = {
+  trigger?: React.ReactNode;
+};
+
+export function CreateGroupDialog({ trigger }: CreateGroupDialogProps = {}) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
@@ -110,9 +114,11 @@ export function CreateGroupDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Users className="mr-2 h-4 w-4" /> Create Group
-        </Button>
+        {trigger || (
+          <Button>
+            <Users className="mr-2 h-4 w-4" /> Create Group
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg h-[90vh] sm:h-auto flex flex-col">
         <DialogHeader>

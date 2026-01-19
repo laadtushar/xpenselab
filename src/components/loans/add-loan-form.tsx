@@ -42,7 +42,11 @@ const formSchema = z.object({
   startDate: z.date({ required_error: "Start date is required." }),
 });
 
-export function AddLoanDialog() {
+type AddLoanDialogProps = {
+  trigger?: React.ReactNode;
+};
+
+export function AddLoanDialog({ trigger }: AddLoanDialogProps = {}) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
@@ -103,9 +107,11 @@ export function AddLoanDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Loan
-        </Button>
+        {trigger || (
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Loan
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
