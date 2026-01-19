@@ -289,7 +289,8 @@ export function generateRecoveryCode(): string {
       chars.charAt(Math.floor(Math.random() * chars.length))
     ).join('');
   }).join('-');
-  return code;
+  // Ensure uppercase format for consistency
+  return code.toUpperCase();
 }
 
 /**

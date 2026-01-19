@@ -192,13 +192,21 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       
       // Update user document
       const userRef = doc(firestore, 'users', userId);
+      
+      // First, update encryption status (may encrypt some User fields like monzoTokens)
       await setDocumentNonBlocking(userRef, {
         isEncrypted: true,
         encryptionEnabledAt: new Date().toISOString(),
-        recoveryCodeHashes: recoveryCodeHashes, // Store as plain hashes
-        recoveryCodeSalt: recoveryCodeSaltBase64,
-        encryptedMainCodes: encryptedMainCodes,
       }, { merge: true }, key);
+      
+      // Then, update recovery code fields separately WITHOUT encryption
+      // This ensures recovery code fields are always stored as plain text
+      // Recovery code fields are NOT in ENCRYPTION_FIELD_MAPS, but writing separately is safer
+      await updateDoc(userRef, {
+        recoveryCodeHashes: recoveryCodeHashes, // Plain hashes - needed for verification
+        recoveryCodeSalt: recoveryCodeSaltBase64, // Plain salt - needed for key derivation
+        encryptedMainCodes: encryptedMainCodes, // Already encrypted with recovery code keys
+      });
       
       toast({
         title: 'Encryption Enabled',
@@ -271,11 +279,36 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       if (!userDocData?.recoveryCodeHashes || !userDocData?.recoveryCodeSalt || !userDocData?.encryptedMainCodes) {
         // No recovery codes configured
         // If we got here, main code didn't work and recovery codes aren't available
-        throw new EncryptionError('Invalid encryption code or recovery code');
+        throw new EncryptionError('Invalid encryption code or recovery code. Recovery codes may not be configured for this account.');
       }
       
-      // Hash the input code to check against stored recovery code hashes
-      const inputHash = await hashRecoveryCode(code);
+      // Validate recovery code data structure
+      if (!Array.isArray(userDocData.recoveryCodeHashes) || userDocData.recoveryCodeHashes.length === 0) {
+        throw new EncryptionError('Recovery codes are not properly configured. Please regenerate recovery codes.');
+      }
+      
+      if (!Array.isArray(userDocData.encryptedMainCodes) || userDocData.encryptedMainCodes.length !== userDocData.recoveryCodeHashes.length) {
+        throw new EncryptionError('Recovery code data is corrupted. Please regenerate recovery codes.');
+      }
+      
+      // Normalize the recovery code: trim whitespace, remove all spaces, convert to uppercase
+      // Recovery codes are stored in uppercase format XXXX-XXXX-XXXX
+      // Users might enter with or without dashes, with spaces, etc.
+      let normalizedCode = code.trim().toUpperCase().replace(/\s+/g, '');
+      
+      // Remove any dashes first to get the raw code
+      const rawCode = normalizedCode.replace(/-/g, '');
+      
+      // Validate that we have exactly 12 alphanumeric characters
+      if (rawCode.length !== 12 || !/^[A-Z2-9]{12}$/.test(rawCode)) {
+        throw new EncryptionError('Invalid recovery code format. Recovery codes should be 12 characters (format: XXXX-XXXX-XXXX)');
+      }
+      
+      // Format with dashes: XXXX-XXXX-XXXX
+      normalizedCode = `${rawCode.slice(0, 4)}-${rawCode.slice(4, 8)}-${rawCode.slice(8, 12)}`;
+      
+      // Hash the normalized code to check against stored recovery code hashes
+      const inputHash = await hashRecoveryCode(normalizedCode);
       
       // Find matching recovery code hash
       const recoveryCodeIndex = userDocData.recoveryCodeHashes.findIndex(
@@ -283,7 +316,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       );
       
       if (recoveryCodeIndex === -1) {
-        throw new EncryptionError('Invalid encryption code or recovery code');
+        throw new EncryptionError('Invalid recovery code. Please check that you entered the code correctly.');
       }
       
       // Decrypt main code using recovery code
@@ -293,9 +326,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         recoveryCodeSalt[i] = recoveryCodeSaltBinary.charCodeAt(i);
       }
       
-      // Derive key from recovery code
+      // Derive key from recovery code (use normalized code)
       const encoder = new TextEncoder();
-      const codeBuffer = encoder.encode(code);
+      const codeBuffer = encoder.encode(normalizedCode);
       const keyMaterial = await crypto.subtle.importKey(
         'raw',
         codeBuffer,
@@ -335,17 +368,27 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         encrypted[i] = encryptedBinary.charCodeAt(i);
       }
       
-      const decrypted = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv: iv,
-        },
-        recoveryKey,
-        encrypted
-      );
+      let decrypted: ArrayBuffer;
+      try {
+        decrypted = await crypto.subtle.decrypt(
+          {
+            name: 'AES-GCM',
+            iv: iv,
+          },
+          recoveryKey,
+          encrypted
+        );
+      } catch (decryptError) {
+        throw new EncryptionError('Failed to decrypt main code with recovery code. The recovery code may be invalid.');
+      }
       
       const decoder = new TextDecoder();
       const mainCode = decoder.decode(decrypted);
+      
+      // Validate that we got a valid main code (should be a non-empty string)
+      if (!mainCode || mainCode.length < 8) {
+        throw new EncryptionError('Recovery code decryption failed. The recovery code may be invalid.');
+      }
       
       // Derive key from main code
       const key = await getEncryptionKey(mainCode);
