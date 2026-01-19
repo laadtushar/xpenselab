@@ -106,6 +106,7 @@ export default function DebtsPage() {
           }
         />
       </div>
+      </div>
     </PullToRefresh>
   );
 }

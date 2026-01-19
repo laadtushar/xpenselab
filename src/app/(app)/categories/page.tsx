@@ -87,6 +87,7 @@ export default function CategoriesPage() {
           </PopoverContent>
         </Popover>
       </div>
+      </div>
     </PullToRefresh>
   );
 }
