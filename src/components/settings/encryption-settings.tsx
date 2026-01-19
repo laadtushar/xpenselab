@@ -64,6 +64,7 @@ export function EncryptionSettings() {
     disableEncryption,
     lockEncryption,
     regenerateRecoveryCodes,
+    unencryptAllData,
     validateCode,
     isCryptoAvailable,
   } = useEncryption();
@@ -77,7 +78,9 @@ export function EncryptionSettings() {
   const [recoveryCodesDialogOpen, setRecoveryCodesDialogOpen] = useState(false);
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
+  const [unencryptDialogOpen, setUnencryptDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [unencryptProgress, setUnencryptProgress] = useState<{ unencrypted: number; failed: number } | null>(null);
 
   // Initialize all forms unconditionally (Rules of Hooks)
   const enableForm = useForm<z.infer<typeof enableFormSchema>>({
@@ -112,6 +115,7 @@ export function EncryptionSettings() {
       mainCode: "",
     },
   });
+
 
   // Check browser compatibility
   if (!isCryptoAvailable) {
@@ -529,6 +533,20 @@ export function EncryptionSettings() {
     }
   };
 
+  const onUnencryptSubmit = async () => {
+    setIsProcessing(true);
+    setUnencryptProgress(null);
+    try {
+      const result = await unencryptAllData();
+      setUnencryptDialogOpen(false);
+      setUnencryptProgress({ unencrypted: result.unencrypted, failed: result.failed });
+    } catch (error: any) {
+      // Error toast is already shown by unencryptAllData
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -695,6 +713,49 @@ export function EncryptionSettings() {
                   </DialogFooter>
                 </form>
               </Form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={unencryptDialogOpen} onOpenChange={setUnencryptDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <LockOpen className="mr-2 h-4 w-4" />
+                Unencrypt All Data
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Unencrypt All Data</DialogTitle>
+                <DialogDescription>
+                  This will decrypt all your encrypted data and store it unencrypted. Your data will no longer be encrypted.
+                </DialogDescription>
+              </DialogHeader>
+              <Alert variant="destructive" className="my-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Warning</AlertTitle>
+                <AlertDescription>
+                  This action will permanently remove encryption from all your data. Your data will be stored in plain text. This action cannot be undone.
+                </AlertDescription>
+              </Alert>
+              {unencryptProgress && (
+                <Alert>
+                  <AlertDescription>
+                    Unencryption completed: {unencryptProgress.unencrypted} documents unencrypted. {unencryptProgress.failed > 0 ? `${unencryptProgress.failed} documents failed.` : ''}
+                  </AlertDescription>
+                </Alert>
+              )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => {
+                  setUnencryptDialogOpen(false);
+                  setUnencryptProgress(null);
+                }}>
+                  Cancel
+                </Button>
+                <Button type="button" disabled={isProcessing} variant="destructive" onClick={onUnencryptSubmit}>
+                  {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Unencrypt All Data
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 

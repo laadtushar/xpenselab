@@ -37,10 +37,12 @@ export type User = {
     totalProcessed: number;
     status: 'pending' | 'in-progress' | 'completed' | 'failed';
   };
-  // Recovery codes: array of recovery code hashes (plain SHA-256 hashes)
+  // Recovery codes: array of recovery code hashes (SHA-256 hashes)
   recoveryCodeHashes?: string[]; // SHA-256 hashes of recovery codes
   recoveryCodeSalt?: string; // Base64-encoded salt for deriving recovery code keys
   encryptedMainCodes?: string[]; // Main code encrypted with each recovery code's key
+  // Encryption salt: stored in Firestore for cross-browser compatibility
+  encryptionSalt?: string; // Base64-encoded salt for deriving main encryption key
 };
 
 export type Transaction = {

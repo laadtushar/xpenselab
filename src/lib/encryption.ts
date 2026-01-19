@@ -203,17 +203,39 @@ export async function initializeEncryption(code: string): Promise<{
 /**
  * Get encryption key from code (derives on-demand)
  * This should be called each time encryption/decryption is needed
+ * 
+ * If salt is not in localStorage, it will try to fetch from Firestore via the provided callback
  */
-export async function getEncryptionKey(code: string): Promise<CryptoKey> {
+export async function getEncryptionKey(
+  code: string,
+  fetchSaltFromFirestore?: () => Promise<string | null>
+): Promise<CryptoKey> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      throw new EncryptionError('Encryption not initialized');
+    let stored = localStorage.getItem(STORAGE_KEY);
+    let saltBase64: string | null = null;
+    
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      saltBase64 = parsed.salt;
+    }
+    
+    // If salt not in localStorage, try fetching from Firestore (for cross-browser compatibility)
+    if (!saltBase64 && fetchSaltFromFirestore) {
+      saltBase64 = await fetchSaltFromFirestore();
+      if (saltBase64) {
+        // Store in localStorage for future use
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          salt: saltBase64,
+          initialized: true,
+        }));
+      }
+    }
+    
+    if (!saltBase64) {
+      throw new EncryptionError('Encryption not initialized. Salt not found in localStorage or Firestore.');
     }
 
-    const { salt: saltBase64 } = JSON.parse(stored);
     const salt = new Uint8Array(base64ToArrayBuffer(saltBase64));
-
     return await deriveKey(code, salt);
   } catch (error) {
     if (error instanceof EncryptionError) {
@@ -303,6 +325,12 @@ export function generateRecoveryCodes(count: number = 10): string[] {
 /**
  * Hash a recovery code using SHA-256
  * Returns base64-encoded hash
+ * 
+ * SECURITY NOTE: Currently uses unsalted SHA-256. This is acceptable because:
+ * - Recovery codes are randomly generated (not user-chosen)
+ * - Large search space (28^12 ≈ 1.3 × 10^17 combinations)
+ * - Rate limiting (30 attempts max)
+ * - However, salted PBKDF2 would be more secure against offline brute force
  */
 export async function hashRecoveryCode(code: string): Promise<string> {
   const encoder = new TextEncoder();

@@ -316,6 +316,145 @@ Contributions are welcome! Please follow these guidelines:
 - **[Production Monitoring](./docs/PRODUCTION_MONITORING.md)** - Production setup and security
 - **[SaltEdge Testing](./docs/SALTEDGE_TESTING.md)** - SaltEdge integration testing guide
 
+## 🔄 Point-in-Time Recovery (PITR)
+
+XpenseLab supports Firestore Point-in-Time Recovery (PITR) to recover data from a specific timestamp. This is useful for recovering from data corruption, accidental deletions, or encryption issues.
+
+### Prerequisites
+
+1. **PITR must be enabled** for your Firestore database (7-day retention window)
+2. **Google Cloud CLI (gcloud)** must be installed
+3. **Cloud Storage bucket** for storing exports
+4. **Required IAM permissions**:
+   - `datastore.databases.export`
+   - `datastore.databases.import`
+   - `datastore.databases.get`
+
+### Installing Google Cloud CLI
+
+**Windows:**
+```powershell
+winget install Google.CloudSDK
+# Or download from: https://cloud.google.com/sdk/docs/install
+```
+
+**macOS:**
+```bash
+brew install --cask google-cloud-sdk
+```
+
+**Linux (Debian/Ubuntu):**
+```bash
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+sudo apt-get update && sudo apt-get install google-cloud-cli
+```
+
+**After installation:**
+```bash
+# Authenticate
+gcloud auth login
+
+# Set your project
+gcloud config set project studio-3845013162-4f4cd
+
+# Verify installation
+gcloud --version
+```
+
+### Checking PITR Status
+
+```bash
+gcloud firestore databases describe --database="(default)" --project="studio-3845013162-4f4cd"
+```
+
+Look for:
+- `pointInTimeRecoveryEnablement: POINT_IN_TIME_RECOVERY_ENABLED`
+- `earliestVersionTime`: Earliest recoverable timestamp
+- `versionRetentionPeriod`: Should be `604800s` (7 days)
+
+### Recovering Data
+
+#### Option 1: Using Recovery Scripts (Recommended)
+
+**PowerShell (Windows):**
+```powershell
+cd scripts
+.\recover-from-pitr.ps1
+```
+
+**Bash (macOS/Linux):**
+```bash
+cd scripts
+chmod +x recover-from-pitr.sh
+./recover-from-pitr.sh
+```
+
+The scripts are pre-configured to recover these collections:
+- `incomes`, `expenses`, `budgets`, `loans`, `recurringTransactions`
+- `categories`, `repayments`, `sharedExpenses`, `debts`
+
+#### Option 2: Manual Recovery
+
+**1. Export data from PITR:**
+```bash
+PROJECT_ID="studio-3845013162-4f4cd"
+BUCKET_NAME="studio-3845013162-4f4cd-pitr-exports"
+SNAPSHOT_TIME="2026-01-19T09:00:00.00Z"  # Adjust timestamp as needed
+EXPORT_PATH="gs://${BUCKET_NAME}/pitr-recovery-$(date +%Y%m%d-%H%M%S)"
+
+gcloud firestore export "${EXPORT_PATH}" \
+    --snapshot-time="${SNAPSHOT_TIME}" \
+    --collection-ids="expenses,incomes,budgets,loans,recurringTransactions" \
+    --database="(default)" \
+    --project="${PROJECT_ID}"
+```
+
+**2. Import recovered data:**
+
+**Option A: Import to current database (overwrites):**
+```bash
+gcloud firestore import "${EXPORT_PATH}" \
+    --database="(default)" \
+    --project="${PROJECT_ID}"
+```
+
+**Option B: Clone to new database (safer):**
+```bash
+gcloud firestore databases clone \
+    --source-database="projects/${PROJECT_ID}/databases/(default)" \
+    --snapshot-time="${SNAPSHOT_TIME}" \
+    --destination-database="recovered-$(date +%Y%m%d)" \
+    --project="${PROJECT_ID}"
+```
+
+### Important Notes
+
+- **Timestamp Format**: Must be RFC 3339 format at **minute granularity** (e.g., `2026-01-19T09:00:00.00Z`)
+- **PITR Window**: 7 days if enabled, 1 hour if disabled
+- **Encryption**: Recovered data retains its encryption state - you'll need the correct encryption key
+- **Costs**: Export operations and storage are charged
+- **Collections**: Use collection group IDs (e.g., `expenses`), not full paths (e.g., `users/{userId}/expenses`)
+
+### Troubleshooting
+
+**"snapshot-time is not within the PITR window"**
+- Check `earliestVersionTime` - you can't recover from before this time
+- Ensure timestamp is at minute granularity (whole minute)
+
+**"Permission denied"**
+- Ensure you have `datastore.databases.export` and `datastore.databases.import` permissions
+
+**"Bucket not found"**
+- Create a Cloud Storage bucket: `gsutil mb gs://your-bucket-name`
+- Ensure bucket is in the same project
+
+### Quick Reference
+
+- **Project ID**: `studio-3845013162-4f4cd`
+- **Database ID**: `(default)`
+- **Default Bucket**: `studio-3845013162-4f4cd-pitr-exports`
+
 ## 💬 Support
 
 - **Documentation**: Check the [docs](./docs/) folder for detailed guides
