@@ -156,6 +156,9 @@ export default function Home() {
                     Built by {siteConfig.author}. The source code is available on GitHub.
                 </p>
                 <div className="flex items-center gap-4">
+                    <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        Privacy & GDPR
+                    </Link>
                     {/* Add social links here if needed */}
                 </div>
             </div>

@@ -14,6 +14,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/comp
 import { cn } from "@/lib/utils";
 import { useEncryption } from '@/context/encryption-context';
 import { decryptDocument, detectDocumentType } from '@/lib/encryption-helpers';
+import { StatsCardSkeleton } from "@/components/ui/skeletons";
 
 
 function useSharedFinances() {
@@ -218,10 +219,7 @@ export function DashboardStats() {
     return (
       <div className="grid gap-4 md:grid-cols-3">
         {[...Array(3)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader><CardTitle className="text-sm font-medium">Loading...</CardTitle></CardHeader>
-            <CardContent><div className="h-10 flex items-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></CardContent>
-          </Card>
+          <StatsCardSkeleton key={i} />
         ))}
       </div>
     );

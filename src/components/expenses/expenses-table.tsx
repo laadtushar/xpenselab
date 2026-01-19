@@ -278,8 +278,40 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
         {expenses.length > 0 ? expenses.map((expense) => {
           const isEditing = editingId === expense.id;
           return (
-            <Card key={expense.id}>
-              <CardContent className="p-4 space-y-3">
+            <SwipeableItem
+              key={expense.id}
+              rightActions={[
+                {
+                  label: 'Delete',
+                  icon: <Trash2 className="h-5 w-5" />,
+                  action: () => deleteTransaction(expense.id, 'expense'),
+                  color: 'destructive',
+                },
+              ]}
+              leftActions={[
+                {
+                  label: 'Edit',
+                  icon: <Edit className="h-5 w-5" />,
+                  action: () => handleEditClick(expense),
+                  color: 'default',
+                },
+                {
+                  label: 'Duplicate',
+                  icon: <Copy className="h-5 w-5" />,
+                  action: () => {
+                    addTransaction({
+                      ...expense,
+                      id: undefined,
+                      description: `${expense.description} (Copy)`,
+                    } as any);
+                  },
+                  color: 'secondary',
+                },
+              ]}
+              disabled={isEditing}
+            >
+              <Card>
+                <CardContent className="p-4 space-y-3">
                 {/* Header: Desc & Amount */}
                 <div className="flex justify-between items-start gap-2">
                   <div className="space-y-1 w-full min-w-0">
@@ -356,6 +388,7 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
                 </div>
               </CardContent>
             </Card>
+            </SwipeableItem>
           )
         }) : (
           <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg">No expenses found.</div>

@@ -9,7 +9,12 @@ import { useFinancials } from "@/context/financial-context";
 import { TransactionFilters } from "@/components/shared/transaction-filters";
 import type { Expense } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Receipt } from "lucide-react";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableSkeleton } from "@/components/ui/skeletons";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -20,6 +25,11 @@ export default function ExpensesPage() {
   const { expenses, isLoading } = useFinancials();
   const [filters, setFilters] = useState({});
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: 'date', direction: 'descending' });
+  const router = useRouter();
+
+  const handleRefresh = async () => {
+    router.refresh();
+  };
 
   const filteredExpenses = useMemo(() => {
     let filtered = [...expenses];
@@ -63,38 +73,46 @@ export default function ExpensesPage() {
   }, [expenses, filters, sortDescriptor]);
 
   return (
-    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
-      <DashboardHeader title="Expenses">
-        <div className="hidden md:block">
-          <ExpenseForm />
-        </div>
-      </DashboardHeader>
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
+        <DashboardHeader title="Expenses">
+          <div className="hidden md:block">
+            <ExpenseForm />
+          </div>
+        </DashboardHeader>
 
-      <Card className="w-full min-w-0 max-w-full">
-        <CardHeader>
-          <CardTitle>Expense History</CardTitle>
-          <CardDescription>View, filter, and manage your expenses.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 w-full min-w-0 max-w-full">
-            <TransactionFilters onFilterChange={setFilters} type="expense" />
-            {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : filteredExpenses.length === 0 && expenses.length > 0 ? (
-                <div className="text-center text-muted-foreground py-12">
-                    <p>No expenses match your current filters.</p>
-                </div>
-            ) : filteredExpenses.length === 0 ? (
-                 <div className="text-center text-muted-foreground py-12">
-                    <p>No expenses recorded yet.</p>
-                    <p className="text-sm">Click "Add Expense" to get started.</p>
-                </div>
-            ) : (
-                <ExpensesTable expenses={filteredExpenses} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
-            )}
-        </CardContent>
-      </Card>
-    </div>
+        <Card className="w-full min-w-0 max-w-full">
+          <CardHeader>
+            <CardTitle>Expense History</CardTitle>
+            <CardDescription>View, filter, and manage your expenses.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 w-full min-w-0 max-w-full">
+              <TransactionFilters onFilterChange={setFilters} type="expense" />
+              {isLoading ? (
+                  <TableSkeleton rows={5} />
+              ) : filteredExpenses.length === 0 && expenses.length > 0 ? (
+                  <EmptyState
+                    icon={<Receipt className="h-12 w-12" />}
+                    title="No matching expenses"
+                    description="Try adjusting your filters to see more results."
+                  />
+              ) : filteredExpenses.length === 0 ? (
+                  <EmptyState
+                    icon={<Receipt className="h-12 w-12" />}
+                    title="No expenses yet"
+                    description="Start tracking your expenses by adding your first expense."
+                    action={
+                      <div className="md:hidden">
+                        <ExpenseForm />
+                      </div>
+                    }
+                  />
+              ) : (
+                  <ExpensesTable expenses={filteredExpenses} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
+              )}
+          </CardContent>
+        </Card>
+      </div>
+    </PullToRefresh>
   );
 }

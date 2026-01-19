@@ -36,6 +36,7 @@ const toolsNavItems = [
 const otherNavItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
   { href: '/integrations', label: 'Integrations', icon: Link2 },
+  { href: '/privacy', label: 'Privacy & GDPR', icon: FileText },
 ];
 
 export function MobileNavSheet({ children }: { children: React.ReactNode }) {
