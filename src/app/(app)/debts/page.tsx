@@ -9,10 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, or, and } from 'firebase/firestore';
 import type { Debt } from '@/lib/types';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useEncryption } from '@/context/encryption-context';
 import { Button } from '@/components/ui/button';
+import { PullToRefresh } from '@/components/ui/pull-to-refresh';
+import { useRouter } from 'next/navigation';
+import { ListSkeleton } from '@/components/ui/skeletons';
 
 export default function DebtsPage() {
   const { user } = useUser();
@@ -50,9 +53,15 @@ export default function DebtsPage() {
   const { data: settledDebts, isLoading: isLoadingSettled } = useCollection<Debt>(settledDebtsQuery, encryptionKeyForHooks);
 
   const isLoading = isLoadingTo || isLoadingFrom || isLoadingSettled;
+  const router = useRouter();
+
+  const handleRefresh = async () => {
+    router.refresh();
+  };
 
   return (
-    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Individual Debts">
         <div className="hidden md:block">
           <AddDebtDialog />
@@ -68,9 +77,7 @@ export default function DebtsPage() {
                     <TabsTrigger value="settled" className="text-xs sm:text-sm">History</TabsTrigger>
                 </TabsList>
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
+                    <ListSkeleton items={3} />
                 ) : (
                     <>
                         <TabsContent value="owed-by-others" className="w-full min-w-0 max-w-full">
@@ -99,6 +106,6 @@ export default function DebtsPage() {
           }
         />
       </div>
-    </div>
+    </PullToRefresh>
   );
 }

@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { useFinancials } from '@/context/financial-context';
 import { useEncryption } from '@/context/encryption-context';
+import { EmptyState } from '../ui/empty-state';
+import { Handshake } from 'lucide-react';
 
 interface DebtListProps {
   debts: Debt[];
@@ -63,14 +65,25 @@ export function DebtList({ debts, type }: DebtListProps) {
 
   if (debts.length === 0) {
     const messages = {
-      to: "Nobody owes you anything. Great!",
-      from: "You don't owe anyone anything. Great!",
-      settled: "No settled debts to show."
+      to: {
+        title: "Nobody owes you anything",
+        description: "Great! All your debts have been settled."
+      },
+      from: {
+        title: "You don't owe anyone anything",
+        description: "Great! You're all caught up."
+      },
+      settled: {
+        title: "No settled debts",
+        description: "Settled debts will appear here once you mark them as paid."
+      }
     };
     return (
-      <div className="text-center text-muted-foreground py-12">
-        <p>{messages[type]}</p>
-      </div>
+      <EmptyState
+        icon={<Handshake className="h-12 w-12" />}
+        title={messages[type].title}
+        description={messages[type].description}
+      />
     );
   }
 

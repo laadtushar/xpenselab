@@ -8,9 +8,13 @@ import { CreateGroupDialog } from '@/components/splits/create-group-dialog';
 import { GroupSelector } from '@/components/splits/group-selector';
 import { GroupDashboard } from '@/components/splits/group-dashboard';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import type { Group } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { PullToRefresh } from '@/components/ui/pull-to-refresh';
+import { useRouter } from 'next/navigation';
+import { ListSkeleton } from '@/components/ui/skeletons';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function SplitsPage() {
   const { user } = useUser();
@@ -33,9 +37,15 @@ export default function SplitsPage() {
     }
   }, [isLoadingGroups, groups, selectedGroupId]);
 
+  const router = useRouter();
+
+  const handleRefresh = async () => {
+    router.refresh();
+  };
 
   return (
-    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Expense Splits">
         <div className="hidden md:block">
           <CreateGroupDialog />
@@ -43,19 +53,18 @@ export default function SplitsPage() {
       </DashboardHeader>
 
       {isLoadingGroups && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <ListSkeleton items={2} />
       )}
 
       {!isLoadingGroups && !groups?.length && (
         <Card className="w-full min-w-0 max-w-full">
-          <CardContent className="py-12 text-center">
-            <h3 className="text-lg font-medium">Create a group to get started</h3>
-            <p className="text-muted-foreground mt-2 mb-4">
-              Create a group with friends or family to start splitting expenses.
-            </p>
-            <CreateGroupDialog />
+          <CardContent className="py-12">
+            <EmptyState
+              icon={<Users className="h-12 w-12" />}
+              title="Create a group to get started"
+              description="Create a group with friends or family to start splitting expenses."
+              action={<CreateGroupDialog />}
+            />
           </CardContent>
         </Card>
       )}
@@ -90,6 +99,7 @@ export default function SplitsPage() {
           }
         />
       </div>
-    </div>
+      </div>
+    </PullToRefresh>
   );
 }

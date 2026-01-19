@@ -9,11 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { Loader2, Trash2, ChevronDown } from 'lucide-react';
+import { Trash2, ChevronDown, CreditCard } from 'lucide-react';
 import { useFinancials } from '@/context/financial-context';
 import { useEncryption } from '@/context/encryption-context';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { ListSkeleton } from '../ui/skeletons';
+import { EmptyState } from '../ui/empty-state';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AddRepaymentDialog } from './repayment-form';
@@ -90,14 +92,13 @@ export function LoanList() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <ListSkeleton items={3} />
         ) : !loans || loans.length === 0 ? (
-          <div className="text-center text-muted-foreground py-12">
-            <p>You haven't added any loans yet.</p>
-            <p className="text-sm">Click "Add Loan" to get started.</p>
-          </div>
+          <EmptyState
+            icon={<CreditCard className="h-12 w-12" />}
+            title="No loans tracked"
+            description="Add your loans and EMIs to track repayments and manage your debt."
+          />
         ) : (
           <div className="w-full overflow-x-auto">
             <Table>

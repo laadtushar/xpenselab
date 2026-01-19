@@ -11,12 +11,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useRouter } from "next/navigation";
 
 export default function CategoriesPage() {
   const { deleteUnusedCategories } = useFinancials();
+  const router = useRouter();
+
+  const handleRefresh = async () => {
+    router.refresh();
+  };
 
   return (
-    <div className="w-full min-w-0 max-w-full">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="w-full min-w-0 max-w-full">
       <DashboardHeader title="Categories">
         <div className="hidden md:flex gap-2">
           <CategoryDialog type="income" />
@@ -79,6 +87,6 @@ export default function CategoriesPage() {
           </PopoverContent>
         </Popover>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }

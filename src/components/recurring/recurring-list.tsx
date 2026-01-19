@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Trash2, Repeat } from 'lucide-react';
 import { useFinancials } from '@/context/financial-context';
 import { useEncryption } from '@/context/encryption-context';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { ListSkeleton } from '../ui/skeletons';
+import { EmptyState } from '../ui/empty-state';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,14 +55,13 @@ export function RecurringTransactionList() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <ListSkeleton items={3} />
         ) : !recurringTxs || recurringTxs.length === 0 ? (
-          <div className="text-center text-muted-foreground py-12">
-            <p>You haven't scheduled any recurring transactions yet.</p>
-            <p className="text-sm">Click "Add Recurring" to get started.</p>
-          </div>
+          <EmptyState
+            icon={<Repeat className="h-12 w-12" />}
+            title="No recurring transactions"
+            description="Schedule income or expenses that occur regularly to automate your tracking."
+          />
         ) : (
           <div className="w-full">
             {/* Desktop View */}

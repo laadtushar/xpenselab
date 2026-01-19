@@ -9,10 +9,12 @@ import { useFinancials } from "@/context/financial-context";
 import { TransactionFilters } from "@/components/shared/transaction-filters";
 import type { Income } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, PlusCircle } from "lucide-react";
+import { PlusCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useRouter } from "next/navigation";
+import { TableSkeleton } from "@/components/ui/skeletons";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type SortDescriptor = {
   column: 'description' | 'amount' | 'date';
@@ -87,18 +89,24 @@ export default function IncomePage() {
           <CardContent className="space-y-4 w-full min-w-0 max-w-full">
             <TransactionFilters onFilterChange={setFilters} type="income" />
               {isLoading ? (
-                  <div className="flex justify-center items-center h-64">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
+                  <TableSkeleton rows={5} />
               ) : filteredIncomes.length === 0 && incomes.length > 0 ? (
-                   <div className="text-center text-muted-foreground py-12">
-                      <p>No income records match your current filters.</p>
-                  </div>
+                  <EmptyState
+                    icon={<DollarSign className="h-12 w-12" />}
+                    title="No matching income records"
+                    description="Try adjusting your filters to see more results."
+                  />
               ) : filteredIncomes.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-12">
-                      <p>No income recorded yet.</p>
-                      <p className="text-sm">Click "Add Income" to get started.</p>
-                  </div>
+                  <EmptyState
+                    icon={<DollarSign className="h-12 w-12" />}
+                    title="No income recorded yet"
+                    description="Start tracking your income by adding your first income entry."
+                    action={
+                      <div className="md:hidden">
+                        <IncomeForm />
+                      </div>
+                    }
+                  />
               ) : (
                   <IncomeTable incomes={filteredIncomes} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
               )}
