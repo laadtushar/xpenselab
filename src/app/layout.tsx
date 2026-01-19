@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { GeistSans } from 'geist/font/sans';
@@ -11,6 +11,12 @@ import { CookieConsent } from '@/components/cookie-consent';
 import { siteConfig } from '@/config/site';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: {
     default: siteConfig.name,
@@ -20,11 +26,6 @@ export const metadata: Metadata = {
   keywords: ["Next.js", "React", "Tailwind CSS", "Firebase", "Genkit", "Finance App", "Expense Tracker"],
   authors: [{ name: "XpenseLab" }],
   creator: "XpenseLab",
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
