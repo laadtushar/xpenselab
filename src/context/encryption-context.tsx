@@ -239,6 +239,81 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   /**
    * Unlock encryption with user code or recovery code
    */
+  // Helper function to test if a key can decrypt existing data
+  // Fetches a sample document directly from Firestore to ensure we test with actual data
+  const testKeyWithExistingData = useCallback(async (testKey: CryptoKey): Promise<boolean> => {
+    if (!userId || !firestore) return false;
+    
+    try {
+      // Try to fetch a sample income document
+      const incomesRef = collection(firestore, 'users', userId, 'incomes');
+      const incomesSnapshot = await getDocs(query(incomesRef, limit(1)));
+      
+      if (!incomesSnapshot.empty) {
+        const sampleDoc = incomesSnapshot.docs[0].data();
+        if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+          await decryptValue(sampleDoc.amount, testKey);
+          return true; // Successfully decrypted
+        }
+      }
+      
+      // Try expenses if no income found
+      const expensesRef = collection(firestore, 'users', userId, 'expenses');
+      const expensesSnapshot = await getDocs(query(expensesRef, limit(1)));
+      
+      if (!expensesSnapshot.empty) {
+        const sampleDoc = expensesSnapshot.docs[0].data();
+        if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+          await decryptValue(sampleDoc.amount, testKey);
+          return true; // Successfully decrypted
+        }
+      }
+      
+      // No encrypted data found - this is OK, user might not have data yet
+      return true;
+    } catch (error) {
+      // Decryption failed - key doesn't work
+      console.warn('Key decryption test failed:', error);
+      return false;
+    }
+  }, [userId, firestore]);
+  
+  // Helper function to derive key from salt (duplicates logic from encryption.ts)
+  const deriveKeyFromSalt = useCallback(async (code: string, saltBase64: string): Promise<CryptoKey> => {
+    const encoder = new TextEncoder();
+    const codeBuffer = encoder.encode(code);
+    const saltBuffer = base64ToArrayBuffer(saltBase64);
+    const salt = new Uint8Array(saltBuffer);
+    
+    if (salt.length !== 16) {
+      throw new EncryptionError(`Invalid salt length. Expected 16 bytes, got ${salt.length}`);
+    }
+    
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      codeBuffer,
+      'PBKDF2',
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    return await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt as BufferSource,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      {
+        name: 'AES-GCM',
+        length: 256,
+      },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }, []);
+
   const unlockEncryption = useCallback(async (code: string): Promise<boolean> => {
     if (!isEncryptionEnabled) {
       throw new EncryptionError('Encryption is not enabled');
@@ -272,81 +347,6 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         let key: CryptoKey | null = null;
         let saltUsed: 'localStorage' | 'firestore' | null = null;
         let decryptionTestPassed = false;
-        
-        // Helper function to test if a key can decrypt existing data
-        // Fetches a sample document directly from Firestore to ensure we test with actual data
-        const testKeyWithExistingData = async (testKey: CryptoKey): Promise<boolean> => {
-          if (!userId || !firestore) return false;
-          
-          try {
-            // Try to fetch a sample income document
-            const incomesRef = collection(firestore, 'users', userId, 'incomes');
-            const incomesSnapshot = await getDocs(query(incomesRef, limit(1)));
-            
-            if (!incomesSnapshot.empty) {
-              const sampleDoc = incomesSnapshot.docs[0].data();
-              if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
-                await decryptValue(sampleDoc.amount, testKey);
-                return true; // Successfully decrypted
-              }
-            }
-            
-            // Try expenses if no income found
-            const expensesRef = collection(firestore, 'users', userId, 'expenses');
-            const expensesSnapshot = await getDocs(query(expensesRef, limit(1)));
-            
-            if (!expensesSnapshot.empty) {
-              const sampleDoc = expensesSnapshot.docs[0].data();
-              if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
-                await decryptValue(sampleDoc.amount, testKey);
-                return true; // Successfully decrypted
-              }
-            }
-            
-            // No encrypted data found - this is OK, user might not have data yet
-            return true;
-          } catch (error) {
-            // Decryption failed - key doesn't work
-            console.warn('Key decryption test failed:', error);
-            return false;
-          }
-        };
-        
-        // Helper function to derive key from salt (duplicates logic from encryption.ts)
-        const deriveKeyFromSalt = async (code: string, saltBase64: string): Promise<CryptoKey> => {
-          const encoder = new TextEncoder();
-          const codeBuffer = encoder.encode(code);
-          const saltBuffer = base64ToArrayBuffer(saltBase64);
-          const salt = new Uint8Array(saltBuffer);
-          
-          if (salt.length !== 16) {
-            throw new EncryptionError(`Invalid salt length. Expected 16 bytes, got ${salt.length}`);
-          }
-          
-          const keyMaterial = await crypto.subtle.importKey(
-            'raw',
-            codeBuffer,
-            'PBKDF2',
-            false,
-            ['deriveBits', 'deriveKey']
-          );
-          
-          return await crypto.subtle.deriveKey(
-            {
-              name: 'PBKDF2',
-              salt: salt,
-              iterations: 100000,
-              hash: 'SHA-256',
-            },
-            keyMaterial,
-            {
-              name: 'AES-GCM',
-              length: 256,
-            },
-            false,
-            ['encrypt', 'decrypt']
-          );
-        };
         
         // First, try with localStorage salt (if available)
         const localStorageSalt = getSaltFromLocalStorage();
@@ -399,7 +399,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         }
         
         // If we successfully decrypted existing data, update Firestore salt if needed
-        if (decryptionTestPassed && saltUsed === 'localStorage' && localStorageSalt) {
+        if (decryptionTestPassed && saltUsed === 'localStorage' && localStorageSalt && userId && firestore) {
           // The localStorage salt works - update Firestore to match
           try {
             const userRef = doc(firestore, 'users', userId);
@@ -610,7 +610,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       }
       
       // If we successfully decrypted existing data, update Firestore salt if needed
-      if (saltUsed === 'localStorage' && localStorageSalt) {
+      if (saltUsed === 'localStorage' && localStorageSalt && userId && firestore) {
         // The localStorage salt works - update Firestore to match
         try {
           const userRef = doc(firestore, 'users', userId);
@@ -643,7 +643,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         error as Error
       );
     }
-  }, [isEncryptionEnabled, unlockAttempts, userId, firestore]);
+  }, [isEncryptionEnabled, unlockAttempts, userId, firestore, testKeyWithExistingData, deriveKeyFromSalt, toast]);
   
   /**
    * Lock encryption (clear key from memory)
