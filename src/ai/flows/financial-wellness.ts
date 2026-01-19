@@ -10,6 +10,7 @@ import { z } from 'genkit';
 
 const FinancialWellnessInputSchema = z.object({
   financialSummary: z.string().min(1, "Financial summary cannot be empty").describe("A summary of the user's financial data, including income, expenses, savings rate, and budget."),
+  currency: z.string().optional().describe("The user's default currency code (e.g., USD, EUR, GBP). Use this currency when mentioning amounts in your response."),
 });
 export type FinancialWellnessInput = z.infer<typeof FinancialWellnessInputSchema>;
 
@@ -48,6 +49,8 @@ const prompt = ai.definePrompt({
   output: { schema: FinancialWellnessOutputSchema },
   prompt: `You are a financial wellness coach. Your goal is to analyze a user's financial data summary to provide a "Financial Wellness Score" out of 100 and offer actionable advice.
 
+IMPORTANT: When mentioning monetary amounts in your response, use the user's currency ({{currency}}). Do NOT default to dollars or any other currency. Match the currency format shown in the financial summary.
+
 Consider the following factors in your analysis based on the provided summary:
 - Savings Rate: (totalIncome - totalExpenses) / totalIncome. A higher savings rate is better.
 - Spending vs. Budget: How close are they to their budget goal?
@@ -59,6 +62,8 @@ User's Financial Summary:
 \`\`\`
 {{{financialSummary}}}
 \`\`\`
+
+User's Currency: {{currency}}
 `,
 });
 

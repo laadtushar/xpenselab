@@ -20,6 +20,7 @@ const BudgetingAssistanceInputSchema = z.object({
     .describe(
       'A record of spending categories and the amount spent in each category.'
     ),
+  currency: z.string().optional().describe("The user's default currency code (e.g., USD, EUR, GBP). Use this currency when mentioning amounts in your response."),
 });
 export type BudgetingAssistanceInput = z.infer<typeof BudgetingAssistanceInputSchema>;
 
@@ -62,10 +63,14 @@ const budgetingAssistancePrompt = ai.definePrompt({
   output: { schema: BudgetingAssistanceOutputSchema },
   prompt: `You are a personal finance advisor. Analyze the user's financial data and provide an assessment of their spending habits. Determine if budget corrections are needed and offer personalized recommendations.
 
-Monthly Income: {{monthlyIncome}}
-Monthly Expenses: {{monthlyExpenses}}
-Budget Goal: {{budgetGoal}}
-Spending Categories: {{spendingCategories}}
+IMPORTANT: When mentioning monetary amounts in your response, use the user's currency ({{currency}}). Do NOT default to dollars or any other currency. Format amounts using the user's currency code.
+
+Monthly Income: {{monthlyIncome}} {{currency}}
+Monthly Expenses: {{monthlyExpenses}} {{currency}}
+Budget Goal: {{budgetGoal}} {{currency}}
+Spending Categories: {{spendingCategories}} (all amounts are in {{currency}})
+
+User's Currency: {{currency}}
 
 Assessment:
 Recommendations: `,

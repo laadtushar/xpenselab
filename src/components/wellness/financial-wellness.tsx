@@ -11,6 +11,7 @@ import { checkFinancialWellness, FinancialWellnessOutput } from "@/ai/flows/fina
 import { Progress } from "../ui/progress";
 import { startOfMonth, endOfMonth, isWithinInterval, differenceInDays } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { formatCurrency } from "@/lib/utils";
 
 
 export function FinancialWellness() {
@@ -42,15 +43,18 @@ export function FinancialWellness() {
     const totalExpenses = expenses.reduce((acc, t) => acc + t.amount, 0);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
+    const currency = userData?.currency || 'USD';
+    
     const financialSummary = `
-        Total Income: ${totalIncome.toFixed(2)}
-        Total Expenses: ${totalExpenses.toFixed(2)}
+        Total Income: ${formatCurrency(totalIncome, currency)}
+        Total Expenses: ${formatCurrency(totalExpenses, currency)}
         Savings Rate: ${savingsRate.toFixed(2)}%
-        Monthly Budget: ${budget?.amount ? budget.amount.toFixed(2) : 'Not set'}
+        Monthly Budget: ${budget?.amount ? formatCurrency(budget.amount, currency) : 'Not set'}
     `;
 
     const response = await makeWellnessRequest({
       financialSummary,
+      currency,
     });
 
     if (response) {

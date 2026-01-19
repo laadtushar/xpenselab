@@ -13,10 +13,11 @@ import { predictiveForecast, PredictiveForecastOutput } from "@/ai/flows/predict
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { ForecastChart } from "./forecast-chart";
 import { isSameDay, differenceInDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export function ForecastGenerator() {
   const [result, setResult] = useState<PredictiveForecastOutput | null>(null);
-  const [scenario, setScenario] = useState("Add a $50 monthly subscription for a gym.");
+  const [scenario, setScenario] = useState("");
   const { toast } = useToast();
   const { transactions, incomes, expenses, userData, canMakeAiRequest } = useFinancials();
   const { makeRequest: makeForecastRequest, isLoading } = useAiRequest(predictiveForecast);
@@ -57,16 +58,19 @@ export function ForecastGenerator() {
       return typeof description === 'string' && description.match(/subscription|monthly|yearly/i);
     });
 
+    const currency = userData?.currency || 'USD';
+    
     const analysis = `
-      Current Balance: ${currentBalance.toFixed(2)}
-      Average Daily Income: ${avgDailyIncome.toFixed(2)}
-      Average Daily Expense: ${avgDailyExpense.toFixed(2)}
+      Current Balance: ${formatCurrency(currentBalance, currency)}
+      Average Daily Income: ${formatCurrency(avgDailyIncome, currency)}
+      Average Daily Expense: ${formatCurrency(avgDailyExpense, currency)}
       Potential Recurring Expenses: ${recurringExpenses.map(t => t.description).join(', ')}
     `;
 
     const response = await makeForecastRequest({
       financialSummary: analysis,
       userScenario: scenario,
+      currency,
     });
 
     if (response) {
@@ -126,7 +130,7 @@ export function ForecastGenerator() {
             id="scenario"
             value={scenario}
             onChange={(e) => setScenario(e.target.value)}
-            placeholder="e.g., What if I get a 10% raise?"
+            placeholder={`e.g., What if I get a 10% raise?`}
             disabled={isLoading}
           />
         </div>

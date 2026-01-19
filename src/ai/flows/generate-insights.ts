@@ -10,6 +10,7 @@ import { z } from 'genkit';
 
 const GenerateInsightsInputSchema = z.object({
   financialSummary: z.string().min(1, "Financial summary cannot be empty").describe("A summary of the user's financial data including income, expenses, and top spending categories."),
+  currency: z.string().optional().describe("The user's default currency code (e.g., USD, EUR, GBP). Use this currency when mentioning amounts in your response."),
 });
 export type GenerateInsightsInput = z.infer<typeof GenerateInsightsInputSchema>;
 
@@ -44,6 +45,8 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateInsightsOutputSchema },
   prompt: `You are a helpful and friendly personal finance expert. Your goal is to analyze a user's financial summary to provide them with a clear, concise overview of their financial habits and offer actionable advice.
 
+IMPORTANT: When mentioning monetary amounts in your response, use the user's currency ({{currency}}). Do NOT default to dollars or any other currency. Match the currency format shown in the financial summary.
+
 Analyze the provided summary of the user's financial data.
 
 Based on your analysis, provide:
@@ -52,6 +55,8 @@ Based on your analysis, provide:
 
 Here is the user's financial summary:
 {{{financialSummary}}}
+
+User's Currency: {{currency}}
 
 Provide your response in the required JSON format.`,
 });

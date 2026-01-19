@@ -57,7 +57,10 @@ export function InsightsGenerator() {
       Top Spending Categories: ${topCategories}
     `;
 
-    const response = await makeInsightsRequest({ financialSummary: summary });
+    const response = await makeInsightsRequest({ 
+      financialSummary: summary,
+      currency: userData?.currency || 'USD'
+    });
 
     if (response) {
       if (response.success && response.data) {

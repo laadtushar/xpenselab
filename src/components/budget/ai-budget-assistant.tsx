@@ -57,11 +57,14 @@ export function AiBudgetAssistant() {
 
     setResult(null);
 
+    const currency = userData?.currency || 'USD';
+    
     const response = await makeBudgetingRequest({
       monthlyIncome: financialData.monthlyIncome,
       monthlyExpenses: financialData.monthlyExpenses,
       budgetGoal: budget.amount,
       spendingCategories: financialData.spendingCategories,
+      currency,
     });
 
     if (response) {
