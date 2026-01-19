@@ -96,8 +96,12 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   // Helper to encrypt code for session storage
   const encryptCodeForSession = useCallback(async (code: string, userId: string): Promise<string> => {
     // Create a session-specific key from user ID + a random session ID
-    const sessionId = sessionStorage.getItem('xpenselab_session_id') || crypto.randomUUID();
-    sessionStorage.setItem('xpenselab_session_id', sessionId);
+    // IMPORTANT: Always check for existing session ID first to maintain consistency across reloads
+    let sessionId = sessionStorage.getItem('xpenselab_session_id');
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem('xpenselab_session_id', sessionId);
+    }
     
     const encoder = new TextEncoder();
     const keyMaterial = encoder.encode(`${userId}:${sessionId}`);
@@ -217,7 +221,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       setEncryptionKey(null);
       keyRef.current = null;
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      sessionStorage.removeItem('xpenselab_session_id');
+      // Don't remove session ID on logout - it's needed for session restoration
+      // Only clear it if explicitly logging out or switching users
+      // sessionStorage.removeItem('xpenselab_session_id');
     }
   }, [user]);
   
@@ -852,12 +858,23 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       try {
         const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
         if (!storedSession) {
+          console.log('No stored session found');
+          if (isMounted) setIsRestoringSession(false);
+          return;
+        }
+        
+        // Check if session ID exists - if not, we can't decrypt
+        const sessionId = sessionStorage.getItem('xpenselab_session_id');
+        if (!sessionId) {
+          console.warn('Session ID missing, cannot restore session');
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
           if (isMounted) setIsRestoringSession(false);
           return;
         }
         
         const code = await decryptCodeFromSession(storedSession, userId);
         if (!code) {
+          console.warn('Failed to decrypt session code');
           if (isMounted) setIsRestoringSession(false);
           return;
         }
@@ -867,10 +884,13 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
           const success = await unlockEncryption(code);
           if (success && isMounted) {
             console.log('Session restored successfully');
+          } else if (!success && isMounted) {
+            console.warn('Unlock returned false, clearing session');
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
           }
         } catch (error) {
           // If unlock fails, clear the session
-          console.warn('Failed to restore session:', error);
+          console.warn('Failed to restore session - unlock failed:', error);
           sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
       } catch (error) {
@@ -882,16 +902,18 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     };
     
     // Only restore if we have user data loaded and encryption is enabled
-    if (userId && isEncryptionEnabled && !isUnlocked && !isLoadingUser && !loadingUser) {
+    // Wait for userData to be loaded (isEncryptionEnabled depends on userData)
+    if (userId && userData && isEncryptionEnabled && !isUnlocked && !isLoadingUser && !loadingUser) {
       restoreSession();
-    } else if (!isLoadingUser && !loadingUser) {
+    } else if (!isLoadingUser && !loadingUser && userData !== undefined) {
+      // Only set to false if we've actually loaded user data (not just waiting)
       setIsRestoringSession(false);
     }
     
     return () => {
       isMounted = false;
     };
-  }, [userId, isEncryptionEnabled, isUnlocked, isLoadingUser, loadingUser, decryptCodeFromSession, unlockEncryption]);
+  }, [userId, userData, isEncryptionEnabled, isUnlocked, isLoadingUser, loadingUser, decryptCodeFromSession, unlockEncryption]);
   
   /**
    * Change encryption code (requires old and new codes)
