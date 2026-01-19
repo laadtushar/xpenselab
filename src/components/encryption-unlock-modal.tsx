@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useEncryption } from '@/context/encryption-context';
 import { useToast } from '@/hooks/use-toast';
 
@@ -69,6 +70,34 @@ export function EncryptionUnlockModal() {
     }
   };
 
+  // Show skeleton during loading phase (when we're checking encryption status)
+  // This prevents the modal from briefly flashing before disappearing
+  if (isLoading) {
+    return (
+      <Dialog open={true} onOpenChange={() => {}} modal={true}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5 rounded" />
+              <Skeleton className="h-6 w-48" />
+            </div>
+            <Skeleton className="h-4 w-full mt-2" />
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // Show modal when encryption is enabled but not unlocked, and not loading
   const shouldShow = isEncryptionEnabled && !isUnlocked && !isLoading;
 
@@ -80,6 +109,7 @@ export function EncryptionUnlockModal() {
     }
   };
 
+  // Don't show anything if encryption is not enabled or already unlocked
   if (!shouldShow) {
     return null;
   }
