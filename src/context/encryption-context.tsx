@@ -211,53 +211,6 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
   
-  // Restore unlock session on mount
-  useEffect(() => {
-    const restoreSession = async () => {
-      if (!userId || !isEncryptionEnabled || isUnlocked) {
-        setIsRestoringSession(false);
-        return;
-      }
-      
-      try {
-        const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (!storedSession) {
-          setIsRestoringSession(false);
-          return;
-        }
-        
-        const code = await decryptCodeFromSession(storedSession, userId);
-        if (!code) {
-          setIsRestoringSession(false);
-          return;
-        }
-        
-        // Try to unlock with the restored code
-        try {
-          const success = await unlockEncryption(code);
-          if (success) {
-            console.log('Session restored successfully');
-          }
-        } catch (error) {
-          // If unlock fails, clear the session
-          console.warn('Failed to restore session:', error);
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        }
-      } catch (error) {
-        console.warn('Failed to restore unlock session:', error);
-        sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      } finally {
-        setIsRestoringSession(false);
-      }
-    };
-    
-    if (userId && isEncryptionEnabled && !isUnlocked && !isLoading) {
-      restoreSession();
-    } else {
-      setIsRestoringSession(false);
-    }
-  }, [userId, isEncryptionEnabled, isUnlocked, isLoading, decryptCodeFromSession]);
-  
   // Clear key from memory on unmount or when user logs out
   useEffect(() => {
     if (!user) {
@@ -619,6 +572,17 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         keyRef.current = key;
         setUnlockAttempts(0);
         
+        // Store encrypted code in sessionStorage for automatic re-unlock on page reload
+        if (userId) {
+          try {
+            const encryptedCode = await encryptCodeForSession(code, userId);
+            sessionStorage.setItem(SESSION_STORAGE_KEY, encryptedCode);
+          } catch (error) {
+            console.warn('Failed to store unlock session:', error);
+            // Don't fail unlock if session storage fails
+          }
+        }
+        
         return true;
       } catch (mainCodeError) {
         // Main code derivation failed (wrong code, salt mismatch, or encryption not initialized)
@@ -840,6 +804,17 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       keyRef.current = key;
       setUnlockAttempts(0);
       
+      // Store encrypted main code in sessionStorage for automatic re-unlock on page reload
+      if (userId) {
+        try {
+          const encryptedCode = await encryptCodeForSession(mainCode, userId);
+          sessionStorage.setItem(SESSION_STORAGE_KEY, encryptedCode);
+        } catch (error) {
+          console.warn('Failed to store unlock session:', error);
+          // Don't fail unlock if session storage fails
+        }
+      }
+      
       return true;
     } catch (error) {
       setUnlockAttempts(prev => prev + 1);
@@ -851,7 +826,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         error as Error
       );
     }
-  }, [isEncryptionEnabled, unlockAttempts, userId, firestore, testKeyWithExistingData, deriveKeyFromSalt, toast]);
+  }, [isEncryptionEnabled, unlockAttempts, userId, firestore, testKeyWithExistingData, deriveKeyFromSalt, toast, encryptCodeForSession]);
   
   /**
    * Lock encryption (clear key from memory)
@@ -860,7 +835,63 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     setEncryptionKey(null);
     keyRef.current = null;
     setUnlockAttempts(0);
+    // Clear session storage when manually locking
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
   }, []);
+  
+  // Restore unlock session on mount (after unlockEncryption is defined)
+  useEffect(() => {
+    let isMounted = true;
+    
+    const restoreSession = async () => {
+      if (!userId || !isEncryptionEnabled || isUnlocked || isLoadingUser || loadingUser) {
+        if (isMounted) setIsRestoringSession(false);
+        return;
+      }
+      
+      try {
+        const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (!storedSession) {
+          if (isMounted) setIsRestoringSession(false);
+          return;
+        }
+        
+        const code = await decryptCodeFromSession(storedSession, userId);
+        if (!code) {
+          if (isMounted) setIsRestoringSession(false);
+          return;
+        }
+        
+        // Try to unlock with the restored code
+        try {
+          const success = await unlockEncryption(code);
+          if (success && isMounted) {
+            console.log('Session restored successfully');
+          }
+        } catch (error) {
+          // If unlock fails, clear the session
+          console.warn('Failed to restore session:', error);
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      } catch (error) {
+        console.warn('Failed to restore unlock session:', error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } finally {
+        if (isMounted) setIsRestoringSession(false);
+      }
+    };
+    
+    // Only restore if we have user data loaded and encryption is enabled
+    if (userId && isEncryptionEnabled && !isUnlocked && !isLoadingUser && !loadingUser) {
+      restoreSession();
+    } else if (!isLoadingUser && !loadingUser) {
+      setIsRestoringSession(false);
+    }
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [userId, isEncryptionEnabled, isUnlocked, isLoadingUser, loadingUser, decryptCodeFromSession, unlockEncryption]);
   
   /**
    * Change encryption code (requires old and new codes)
