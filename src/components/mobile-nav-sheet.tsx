@@ -13,12 +13,9 @@ import { SplitIcon } from '@/components/icons/split-icon';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
+// Note: Dashboard, Income, Expenses, Budget are in bottom nav, so only show additional items here
 const personalNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/income', label: 'Income', icon: Wallet },
-  { href: '/expenses', label: 'Expenses', icon: ArrowLeftRight },
   { href: '/recurring', label: 'Recurring', icon: Repeat },
-  { href: '/budget', label: 'Budget', icon: PiggyBank },
   { href: '/categories', label: 'Categories', icon: Shapes },
 ];
 
@@ -37,8 +34,8 @@ const toolsNavItems = [
 ];
 
 const otherNavItems = [
-  { href: '/integrations', label: 'Integrations', icon: Link2 },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/integrations', label: 'Integrations', icon: Link2 },
 ];
 
 export function MobileNavSheet({ children }: { children: React.ReactNode }) {
@@ -104,10 +101,10 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
           <SheetTitle className="text-xl font-semibold">More</SheetTitle>
         </SheetHeader>
         <div className="mt-6 space-y-6 overflow-y-auto pb-4">
-          {renderNavSection(personalNavItems, 'Personal')}
+          {personalNavItems.length > 0 && renderNavSection(personalNavItems, 'Personal')}
           {renderNavSection(sharedNavItems, 'Shared')}
           {renderNavSection(toolsNavItems, 'Tools & Reports')}
-          {renderNavSection(otherNavItems)}
+          {renderNavSection(otherNavItems, 'Settings & More')}
         </div>
       </SheetContent>
     </Sheet>

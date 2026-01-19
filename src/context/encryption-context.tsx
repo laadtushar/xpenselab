@@ -241,8 +241,11 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
    */
   // Helper function to test if a key can decrypt existing data
   // Fetches a sample document directly from Firestore to ensure we test with actual data
-  const testKeyWithExistingData = useCallback(async (testKey: CryptoKey): Promise<boolean> => {
-    if (!userId || !firestore) return false;
+  // Returns: { success: boolean, hasData: boolean, error?: Error }
+  const testKeyWithExistingData = useCallback(async (testKey: CryptoKey): Promise<{ success: boolean; hasData: boolean; error?: Error }> => {
+    if (!userId || !firestore) return { success: false, hasData: false };
+    
+    let hasEncryptedData = false;
     
     try {
       // Try to fetch a sample income document
@@ -250,10 +253,11 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       const incomesSnapshot = await getDocs(query(incomesRef, limit(1)));
       
       if (!incomesSnapshot.empty) {
-        const sampleDoc = incomesSnapshot.docs[0].data();
+        const sampleDoc = incomesSnapshot.docs[0].data() as any;
         if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+          hasEncryptedData = true;
           await decryptValue(sampleDoc.amount, testKey);
-          return true; // Successfully decrypted
+          return { success: true, hasData: true }; // Successfully decrypted
         }
       }
       
@@ -262,19 +266,24 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       const expensesSnapshot = await getDocs(query(expensesRef, limit(1)));
       
       if (!expensesSnapshot.empty) {
-        const sampleDoc = expensesSnapshot.docs[0].data();
+        const sampleDoc = expensesSnapshot.docs[0].data() as any;
         if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+          hasEncryptedData = true;
           await decryptValue(sampleDoc.amount, testKey);
-          return true; // Successfully decrypted
+          return { success: true, hasData: true }; // Successfully decrypted
         }
       }
       
       // No encrypted data found - this is OK, user might not have data yet
-      return true;
+      return { success: true, hasData: false };
     } catch (error) {
       // Decryption failed - key doesn't work
       console.warn('Key decryption test failed:', error);
-      return false;
+      return { 
+        success: false, 
+        hasData: hasEncryptedData,
+        error: error as Error
+      };
     }
   }, [userId, firestore]);
   
@@ -355,15 +364,25 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
             const testKey = await deriveKeyFromSalt(code, localStorageSalt);
             
             // Test if this key can decrypt existing data
-            const canDecrypt = await testKeyWithExistingData(testKey);
-            if (canDecrypt) {
+            const testResult = await testKeyWithExistingData(testKey);
+            if (testResult.success) {
               key = testKey;
               saltUsed = 'localStorage';
               decryptionTestPassed = true;
+            } else if (testResult.hasData) {
+              // localStorage salt failed decryption test AND we have data - clear it and try Firestore
+              // This means the salt is definitely wrong
+              console.warn('localStorage salt failed decryption test with existing data, clearing and trying Firestore salt');
+              clearEncryptionData();
+            } else {
+              // No data to test - use localStorage salt (it might be correct)
+              key = testKey;
+              saltUsed = 'localStorage';
             }
           } catch (error) {
-            // localStorage salt failed, continue to try Firestore salt
+            // localStorage salt derivation failed - clear it and try Firestore salt
             console.warn('Failed to use localStorage salt:', error);
+            clearEncryptionData();
           }
         }
         
@@ -374,16 +393,20 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
             saltUsed = 'firestore';
             
             // Test if this key can decrypt existing data
-            const canDecrypt = await testKeyWithExistingData(key);
-            if (!canDecrypt) {
-              // Firestore salt doesn't work - salt mismatch!
+            // CRITICAL: In production, if we have data and decryption fails, this is a real problem
+            const testResult = await testKeyWithExistingData(key);
+            if (!testResult.success && testResult.hasData) {
+              // We have encrypted data but can't decrypt it - salt mismatch!
+              // This should NOT happen in production - the salt should be correct
               throw new EncryptionError(
                 'The encryption salt in Firestore doesn\'t match the salt used to encrypt your data. ' +
                 'This usually happens when encryption was enabled in a different browser. ' +
                 'Please use a recovery code to unlock, or try unlocking from the browser where encryption was originally enabled.'
               );
+            } else if (testResult.success) {
+              decryptionTestPassed = true;
             }
-            decryptionTestPassed = true;
+            // If no data exists, allow unlock (user might not have data yet)
           } catch (firestoreError) {
             // If it's already an EncryptionError about salt mismatch, re-throw it
             if (firestoreError instanceof EncryptionError && firestoreError.message.includes('salt')) {
@@ -583,8 +606,16 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         try {
           const testKey = await deriveKeyFromSalt(mainCode, localStorageSalt);
           // Test if this key can decrypt existing data
-          const canDecrypt = await testKeyWithExistingData(testKey);
-          if (canDecrypt) {
+          const testResult = await testKeyWithExistingData(testKey);
+          if (testResult.success) {
+            key = testKey;
+            saltUsed = 'localStorage';
+          } else if (testResult.hasData) {
+            // localStorage salt failed with existing data - clear it
+            console.warn('localStorage salt failed decryption test with recovery code, clearing');
+            clearEncryptionData();
+          } else {
+            // No data to test - use localStorage salt
             key = testKey;
             saltUsed = 'localStorage';
           }
@@ -599,14 +630,17 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         saltUsed = 'firestore';
         
         // Test if this key can decrypt existing data
-        const canDecrypt = await testKeyWithExistingData(key);
-        if (!canDecrypt) {
+        // CRITICAL: Recovery code worked, so main code is correct - if decryption fails, it's a salt issue
+        const testResult = await testKeyWithExistingData(key);
+        if (!testResult.success && testResult.hasData) {
+          // Recovery code worked but can't decrypt data - salt mismatch
+          // This is a real problem that should be fixed
           throw new EncryptionError(
-            'The encryption salt in Firestore doesn\'t match the salt used to encrypt your data. ' +
-            'Recovery code worked, but the main encryption salt is incorrect. ' +
+            'Recovery code worked, but the encryption salt in Firestore doesn\'t match the salt used to encrypt your data. ' +
             'Please unlock from the browser where encryption was originally enabled to sync the correct salt.'
           );
         }
+        // If no data exists or test passed, allow unlock
       }
       
       // If we successfully decrypted existing data, update Firestore salt if needed
