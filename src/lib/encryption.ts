@@ -276,3 +276,47 @@ export function isWebCryptoAvailable(): boolean {
          typeof crypto.subtle !== 'undefined' &&
          typeof crypto.getRandomValues !== 'undefined';
 }
+
+/**
+ * Generate a random recovery code
+ * Format: XXXX-XXXX-XXXX (12 characters, grouped)
+ */
+export function generateRecoveryCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude ambiguous chars (0, O, I, 1)
+  const groups = [4, 4, 4];
+  const code = groups.map(groupSize => {
+    return Array.from({ length: groupSize }, () => 
+      chars.charAt(Math.floor(Math.random() * chars.length))
+    ).join('');
+  }).join('-');
+  return code;
+}
+
+/**
+ * Generate multiple recovery codes
+ */
+export function generateRecoveryCodes(count: number = 10): string[] {
+  return Array.from({ length: count }, () => generateRecoveryCode());
+}
+
+/**
+ * Hash a recovery code using SHA-256
+ * Returns base64-encoded hash
+ */
+export async function hashRecoveryCode(code: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(code);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return arrayBufferToBase64(hashBuffer);
+}
+
+/**
+ * Verify a recovery code against a stored hash
+ */
+export async function verifyRecoveryCode(
+  code: string,
+  storedHash: string
+): Promise<boolean> {
+  const computedHash = await hashRecoveryCode(code);
+  return computedHash === storedHash;
+}

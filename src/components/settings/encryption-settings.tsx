@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, LockOpen, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock, LockOpen, Shield, AlertTriangle, CheckCircle2, Download, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,10 @@ const changeCodeFormSchema = z.object({
   path: ["confirmNewCode"],
 });
 
+const regenerateRecoveryCodesFormSchema = z.object({
+  mainCode: z.string().min(1, "Encryption code is required"),
+});
+
 export function EncryptionSettings() {
   const {
     isEncryptionEnabled,
@@ -59,6 +63,7 @@ export function EncryptionSettings() {
     changeEncryptionCode,
     disableEncryption,
     lockEncryption,
+    regenerateRecoveryCodes,
     validateCode,
     isCryptoAvailable,
   } = useEncryption();
@@ -69,7 +74,44 @@ export function EncryptionSettings() {
   const [changeCodeDialogOpen, setChangeCodeDialogOpen] = useState(false);
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
   const [migrationDialogOpen, setMigrationDialogOpen] = useState(false);
+  const [recoveryCodesDialogOpen, setRecoveryCodesDialogOpen] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Initialize all forms unconditionally (Rules of Hooks)
+  const enableForm = useForm<z.infer<typeof enableFormSchema>>({
+    resolver: zodResolver(enableFormSchema),
+    defaultValues: {
+      code: "",
+      confirmCode: "",
+      understandRisk: false,
+    },
+  });
+
+  const unlockForm = useForm<z.infer<typeof unlockFormSchema>>({
+    resolver: zodResolver(unlockFormSchema),
+    defaultValues: {
+      code: "",
+    },
+  });
+
+  const changeCodeForm = useForm<z.infer<typeof changeCodeFormSchema>>({
+    resolver: zodResolver(changeCodeFormSchema),
+    defaultValues: {
+      oldCode: "",
+      newCode: "",
+      confirmNewCode: "",
+      understandRisk: false,
+    },
+  });
+
+  const regenerateRecoveryCodesForm = useForm<z.infer<typeof regenerateRecoveryCodesFormSchema>>({
+    resolver: zodResolver(regenerateRecoveryCodesFormSchema),
+    defaultValues: {
+      mainCode: "",
+    },
+  });
 
   // Check browser compatibility
   if (!isCryptoAvailable) {
@@ -100,28 +142,22 @@ export function EncryptionSettings() {
 
   // State 1: Encryption Not Enabled
   if (!isEncryptionEnabled) {
-    const enableForm = useForm<z.infer<typeof enableFormSchema>>({
-      resolver: zodResolver(enableFormSchema),
-      defaultValues: {
-        code: "",
-        confirmCode: "",
-        understandRisk: false,
-      },
-    });
-
     const onEnableSubmit = async (values: z.infer<typeof enableFormSchema>) => {
       setIsProcessing(true);
       try {
-        await enableEncryption(values.code);
+        const result = await enableEncryption(values.code);
         setEnableDialogOpen(false);
         enableForm.reset();
         
-        // Show migration prompt if user has existing data
+        // Show recovery codes dialog
+        setRecoveryCodes(result.recoveryCodes);
+        setRecoveryCodesDialogOpen(true);
+        
+        // Show migration prompt if user has existing data (after recovery codes dialog)
         if (hasExistingData) {
-          // Show migration dialog after a short delay
           setTimeout(() => {
             setMigrationDialogOpen(true);
-          }, 500);
+          }, 1000);
         }
       } catch (error: any) {
         toast({
@@ -159,8 +195,7 @@ export function EncryptionSettings() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Important</AlertTitle>
             <AlertDescription>
-              If you lose your encryption code, your encrypted data cannot be recovered. 
-              Make sure to store your encryption code in a safe place.
+              Recovery codes will be generated after enabling encryption. Save them securely as a backup if you forget your main encryption code.
             </AlertDescription>
           </Alert>
 
@@ -175,7 +210,7 @@ export function EncryptionSettings() {
               <DialogHeader>
                 <DialogTitle>Enable Encryption</DialogTitle>
                 <DialogDescription>
-                  Create an encryption code to protect your financial data. This code will be used to encrypt and decrypt your data.
+                  Create an encryption code to protect your financial data. Recovery codes will be generated for backup.
                 </DialogDescription>
               </DialogHeader>
               <Form {...enableForm}>
@@ -190,7 +225,7 @@ export function EncryptionSettings() {
                           <Input type="password" placeholder="Enter encryption code (min 8 characters)" {...field} />
                         </FormControl>
                         <FormDescription>
-                          Choose a strong code that you can remember. This cannot be recovered if lost.
+                          Choose a strong code that you can remember. Recovery codes will be provided as backup.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -222,7 +257,7 @@ export function EncryptionSettings() {
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="text-sm font-normal">
-                            I understand that I cannot recover my data if I lose this code
+                            I understand that I should save my recovery codes securely
                           </FormLabel>
                         </div>
                       </FormItem>
@@ -241,6 +276,93 @@ export function EncryptionSettings() {
               </Form>
             </DialogContent>
           </Dialog>
+          
+          {/* Recovery Codes Dialog */}
+          <Dialog open={recoveryCodesDialogOpen} onOpenChange={setRecoveryCodesDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Save Your Recovery Codes</DialogTitle>
+                <DialogDescription>
+                  These recovery codes can be used to unlock your encryption if you forget your main code. Save them in a secure location.
+                </DialogDescription>
+              </DialogHeader>
+              {recoveryCodes && (
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Important</AlertTitle>
+                    <AlertDescription>
+                      These codes will only be shown once. Download or copy them now. You can regenerate new codes later if needed.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="bg-muted p-4 rounded-md space-y-2">
+                    {recoveryCodes.map((code, index) => (
+                      <div key={index} className="font-mono text-sm flex items-center justify-between">
+                        <span>{code}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(code);
+                            toast({
+                              title: "Copied",
+                              description: "Recovery code copied to clipboard",
+                            });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const content = recoveryCodes.join('\n');
+                        const blob = new Blob([content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'xpenselab-recovery-codes.txt';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        toast({
+                          title: "Downloaded",
+                          description: "Recovery codes saved to file",
+                        });
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(recoveryCodes.join('\n'));
+                        toast({
+                          title: "Copied",
+                          description: "All recovery codes copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy All
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button onClick={() => setRecoveryCodesDialogOpen(false)}>
+                  I've Saved My Codes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     );
@@ -248,13 +370,6 @@ export function EncryptionSettings() {
 
   // State 2: Encryption Enabled but Not Unlocked
   if (!isUnlocked) {
-    const unlockForm = useForm<z.infer<typeof unlockFormSchema>>({
-      resolver: zodResolver(unlockFormSchema),
-      defaultValues: {
-        code: "",
-      },
-    });
-
     const onUnlockSubmit = async (values: z.infer<typeof unlockFormSchema>) => {
       setIsProcessing(true);
       try {
@@ -309,7 +424,7 @@ export function EncryptionSettings() {
               <DialogHeader>
                 <DialogTitle>Unlock Encryption</DialogTitle>
                 <DialogDescription>
-                  Enter your encryption code to decrypt and access your data.
+                  Enter your encryption code or recovery code to decrypt and access your data.
                 </DialogDescription>
               </DialogHeader>
               <Form {...unlockForm}>
@@ -319,10 +434,13 @@ export function EncryptionSettings() {
                     name="code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Encryption Code</FormLabel>
+                        <FormLabel>Encryption Code or Recovery Code</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Enter your encryption code" {...field} autoFocus />
+                          <Input type="password" placeholder="Enter your encryption code or recovery code" {...field} autoFocus />
                         </FormControl>
+                        <FormDescription>
+                          You can use either your main encryption code or one of your recovery codes.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -342,7 +460,7 @@ export function EncryptionSettings() {
           </Dialog>
 
           <div className="text-sm text-muted-foreground">
-            <p>Forgot your code? Unfortunately, there is no way to recover encrypted data without the encryption code.</p>
+            <p>Forgot your code? You can use one of your recovery codes to unlock your data.</p>
           </div>
         </CardContent>
       </Card>
@@ -350,16 +468,6 @@ export function EncryptionSettings() {
   }
 
   // State 3: Encryption Enabled and Unlocked
-  const changeCodeForm = useForm<z.infer<typeof changeCodeFormSchema>>({
-    resolver: zodResolver(changeCodeFormSchema),
-    defaultValues: {
-      oldCode: "",
-      newCode: "",
-      confirmNewCode: "",
-      understandRisk: false,
-    },
-  });
-
   const onChangeCodeSubmit = async (values: z.infer<typeof changeCodeFormSchema>) => {
     setIsProcessing(true);
     try {
@@ -395,6 +503,25 @@ export function EncryptionSettings() {
       toast({
         title: "Failed to Disable Encryption",
         description: error.message || "An error occurred while disabling encryption.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const onRegenerateRecoveryCodes = async (values: z.infer<typeof regenerateRecoveryCodesFormSchema>) => {
+    setIsProcessing(true);
+    try {
+      const result = await regenerateRecoveryCodes(values.mainCode);
+      setRegenerateDialogOpen(false);
+      regenerateRecoveryCodesForm.reset();
+      setRecoveryCodes(result.recoveryCodes);
+      setRecoveryCodesDialogOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "Failed to Regenerate Recovery Codes",
+        description: error.message || "An error occurred while regenerating recovery codes.",
         variant: "destructive",
       });
     } finally {
@@ -519,6 +646,58 @@ export function EncryptionSettings() {
             Lock Encryption
           </Button>
 
+          <Dialog open={regenerateDialogOpen} onOpenChange={setRegenerateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                Regenerate Recovery Codes
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Regenerate Recovery Codes</DialogTitle>
+                <DialogDescription>
+                  Generate new recovery codes. Your old recovery codes will no longer work.
+                </DialogDescription>
+              </DialogHeader>
+              <Alert variant="destructive" className="my-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Warning</AlertTitle>
+                <AlertDescription>
+                  Regenerating recovery codes will invalidate all existing recovery codes. Make sure to save the new codes securely.
+                </AlertDescription>
+              </Alert>
+              <Form {...regenerateRecoveryCodesForm}>
+                <form onSubmit={regenerateRecoveryCodesForm.handleSubmit(onRegenerateRecoveryCodes)} className="space-y-4">
+                  <FormField
+                    control={regenerateRecoveryCodesForm.control}
+                    name="mainCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Encryption Code</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Enter your encryption code" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Enter your encryption code to verify your identity before regenerating recovery codes.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setRegenerateDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isProcessing}>
+                      {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Regenerate Codes
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
           {hasExistingData && (
             <Button variant="outline" className="w-full" onClick={() => setMigrationDialogOpen(true)}>
               Encrypt Existing Data
@@ -529,6 +708,93 @@ export function EncryptionSettings() {
             open={migrationDialogOpen} 
             onOpenChange={setMigrationDialogOpen} 
           />
+
+          {/* Recovery Codes Dialog */}
+          <Dialog open={recoveryCodesDialogOpen} onOpenChange={setRecoveryCodesDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Save Your Recovery Codes</DialogTitle>
+                <DialogDescription>
+                  These recovery codes can be used to unlock your encryption if you forget your main code. Save them in a secure location.
+                </DialogDescription>
+              </DialogHeader>
+              {recoveryCodes && (
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Important</AlertTitle>
+                    <AlertDescription>
+                      These codes will only be shown once. Download or copy them now. You can regenerate new codes later if needed.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="bg-muted p-4 rounded-md space-y-2">
+                    {recoveryCodes.map((code, index) => (
+                      <div key={index} className="font-mono text-sm flex items-center justify-between">
+                        <span>{code}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(code);
+                            toast({
+                              title: "Copied",
+                              description: "Recovery code copied to clipboard",
+                            });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const content = recoveryCodes.join('\n');
+                        const blob = new Blob([content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'xpenselab-recovery-codes.txt';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        toast({
+                          title: "Downloaded",
+                          description: "Recovery codes saved to file",
+                        });
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(recoveryCodes.join('\n'));
+                        toast({
+                          title: "Copied",
+                          description: "All recovery codes copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy All
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button onClick={() => setRecoveryCodesDialogOpen(false)}>
+                  I've Saved My Codes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Dialog open={disableDialogOpen} onOpenChange={setDisableDialogOpen}>
             <DialogTrigger asChild>
