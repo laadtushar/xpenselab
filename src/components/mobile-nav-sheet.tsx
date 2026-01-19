@@ -55,8 +55,14 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(href);
   };
 
+  type NavItem = {
+    href: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  };
+
   const renderNavSection = (
-    items: typeof personalNavItems,
+    items: NavItem[],
     title?: string
   ) => (
     <div className="space-y-1">
@@ -91,20 +97,21 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
       </SheetTrigger>
       <SheetContent 
         side="bottom" 
-        className="h-[85vh] max-h-[600px] rounded-t-2xl pb-safe-area-inset-bottom"
+        className="h-[85vh] max-h-[600px] rounded-t-2xl pb-safe-area-inset-bottom flex flex-col"
         closeClassName="hidden"
       >
-        <div className="flex items-center justify-center mb-4">
+        <div className="flex items-center justify-center mb-4 shrink-0">
           <div className="h-1.5 w-12 bg-muted rounded-full" />
         </div>
-        <SheetHeader className="text-left pb-4 border-b">
+        <SheetHeader className="text-left pb-4 border-b shrink-0">
           <SheetTitle className="text-xl font-semibold">More</SheetTitle>
         </SheetHeader>
-        <div className="mt-6 space-y-6 overflow-y-auto pb-4">
+        <div className="mt-6 space-y-6 overflow-y-auto pb-8 flex-1 min-h-0">
           {personalNavItems.length > 0 && renderNavSection(personalNavItems, 'Personal')}
           {renderNavSection(sharedNavItems, 'Shared')}
           {renderNavSection(toolsNavItems, 'Tools & Reports')}
-          {renderNavSection(otherNavItems, 'Settings & More')}
+          {/* Settings & More section - ensure it's always visible */}
+          {otherNavItems.length > 0 && renderNavSection(otherNavItems, 'Settings & More')}
         </div>
       </SheetContent>
     </Sheet>

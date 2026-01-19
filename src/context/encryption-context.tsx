@@ -33,6 +33,8 @@ interface EncryptionContextType {
   hasExistingData: boolean;
   isLoading: boolean;
   encryptionKey: CryptoKey | null;
+  unlockAttempts: number;
+  maxUnlockAttempts: number;
   
   // Functions
   enableEncryption: (code: string) => Promise<{ recoveryCodes: string[] }>;
@@ -1193,6 +1195,8 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     hasExistingData,
     isLoading,
     encryptionKey,
+    unlockAttempts,
+    maxUnlockAttempts,
     enableEncryption,
     unlockEncryption,
     changeEncryptionCode,
@@ -1210,6 +1214,8 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     hasExistingData,
     isLoading,
     encryptionKey,
+    unlockAttempts,
+    maxUnlockAttempts,
     enableEncryption,
     unlockEncryption,
     changeEncryptionCode,

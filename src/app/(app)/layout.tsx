@@ -14,6 +14,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
+import { EncryptionUnlockModal } from '@/components/encryption-unlock-modal';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -121,6 +122,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
         <MobileBottomNav />
+        <EncryptionUnlockModal />
       </SidebarProvider>
       </FinancialProvider>
     </EncryptionProvider>
