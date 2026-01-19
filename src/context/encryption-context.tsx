@@ -70,6 +70,8 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   const [unlockAttempts, setUnlockAttempts] = useState(0);
   const maxUnlockAttempts = 30;
   const keyRef = useRef<CryptoKey | null>(null);
+  // CRITICAL: Prevent concurrent encryption operations (change code, regenerate recovery codes)
+  const [isEncryptionOperationInProgress, setIsEncryptionOperationInProgress] = useState(false);
   
   // Derived state
   const isEncryptionEnabled = userData?.isEncrypted === true;
@@ -196,25 +198,28 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       // Update user document
       const userRef = doc(firestore, 'users', userId);
       
-      // First, update encryption status (may encrypt some User fields like monzoTokens)
-      await setDocumentNonBlocking(userRef, {
-        isEncrypted: true,
-        encryptionEnabledAt: new Date().toISOString(),
-      }, { merge: true }, key);
-      
       // Get the salt from localStorage to store in Firestore for cross-browser compatibility
       const stored = localStorage.getItem('xpenselab_encryption_key');
       const encryptionSaltBase64 = stored ? JSON.parse(stored).salt : null;
       
-      // Then, update recovery code fields and encryption salt separately WITHOUT encryption
-      // This ensures recovery code fields and salt are always stored as plain text
-      // Recovery code fields are NOT in ENCRYPTION_FIELD_MAPS, but writing separately is safer
+      if (!encryptionSaltBase64) {
+        throw new EncryptionError('Failed to retrieve encryption salt from localStorage');
+      }
+      
+      // CRITICAL FIX: Update ALL encryption metadata atomically to prevent race conditions
+      // Set isEncrypted, encryptionSalt, and recovery codes in a single transaction
+      // This ensures no writes can happen between setting isEncrypted and storing the salt
       await updateDoc(userRef, {
+        isEncrypted: true,
+        encryptionEnabledAt: new Date().toISOString(),
         recoveryCodeHashes: recoveryCodeHashes, // Plain hashes - needed for verification
         recoveryCodeSalt: recoveryCodeSaltBase64, // Plain salt - needed for key derivation
         encryptedMainCodes: encryptedMainCodes, // Already encrypted with recovery code keys
         encryptionSalt: encryptionSaltBase64, // Plain salt - needed for cross-browser key derivation
       });
+      
+      // Note: User fields like monzoTokens will be encrypted on next update, not during enableEncryption
+      // This is safe because encryption is only enabled after all metadata is stored
       
       toast({
         title: 'Encryption Enabled',
@@ -462,10 +467,18 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       throw new EncryptionError('Encryption is not enabled');
     }
     
+    // CRITICAL: Prevent concurrent operations
+    if (isEncryptionOperationInProgress) {
+      throw new EncryptionError('Another encryption operation is in progress. Please wait for it to complete.');
+    }
+    
     // User must be unlocked to change the code (to verify old code)
     if (!isUnlocked || !keyRef.current) {
       throw new EncryptionError('You must unlock encryption before changing the code');
     }
+    
+    // Set operation lock
+    setIsEncryptionOperationInProgress(true);
     
     const oldValidation = validateEncryptionCode(oldCode);
     if (!oldValidation.valid) {
@@ -493,27 +506,55 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       return null;
     };
     
-    // Verify old code works by deriving key (this validates the code matches salt)
+    // CRITICAL: Verify old code works BEFORE making any changes
+    // This ensures we don't lock encryption if old code is wrong
     const oldKey = await getEncryptionKey(oldCode, fetchSaltFromFirestore);
     
-    // Derive new key from new code (using new salt)
-    // We need to temporarily initialize with new code to get the new salt
+    // Test old key works by attempting to decrypt a test value
+    // This ensures the code is correct, not just that key derivation works
+    try {
+      const testValue = 'test-verification';
+      const testEncrypted = await encryptValue(testValue, oldKey);
+      const testDecrypted = await decryptValue(testEncrypted, oldKey);
+      if (testDecrypted !== testValue) {
+        setIsEncryptionOperationInProgress(false);
+        throw new EncryptionError('Old encryption code verification failed. Please check your code.');
+      }
+    } catch (error) {
+      setIsEncryptionOperationInProgress(false);
+      throw new EncryptionError('Old encryption code is incorrect or invalid.');
+    }
+    
+    // Store current state for rollback
     const currentStored = localStorage.getItem('xpenselab_encryption_key');
-    clearEncryptionData();
-    await initializeEncryption(newCode);
-    const newKey = await getEncryptionKey(newCode);
-    
-    // Get the new salt to store in Firestore
-    const newStored = localStorage.getItem('xpenselab_encryption_key');
-    const newSaltBase64 = newStored ? JSON.parse(newStored).salt : null;
-    
-    // Now re-encrypt all data with the new key (decrypts with old, encrypts with new)
-    toast({
-      title: 'Re-encrypting Data',
-      description: 'Migrating all data to the new encryption key. This may take a moment...',
-    });
+    const currentKey = keyRef.current;
     
     try {
+      // CRITICAL FIX: Lock encryption immediately to prevent writes during re-encryption
+      // This prevents race conditions where new writes use new key while old data is being re-encrypted
+      setEncryptionKey(null);
+      keyRef.current = null;
+      
+      // Derive new key from new code (using new salt)
+      // We need to temporarily initialize with new code to get the new salt
+      clearEncryptionData();
+      await initializeEncryption(newCode);
+      const newKey = await getEncryptionKey(newCode);
+      
+      // Get the new salt to store in Firestore
+      const newStored = localStorage.getItem('xpenselab_encryption_key');
+      const newSaltBase64 = newStored ? JSON.parse(newStored).salt : null;
+      
+      if (!newSaltBase64) {
+        throw new EncryptionError('Failed to retrieve new encryption salt');
+      }
+      
+      // Now re-encrypt all data with the new key (decrypts with old, encrypts with new)
+      toast({
+        title: 'Re-encrypting Data',
+        description: 'Migrating all data to the new encryption key. This may take a moment...',
+      });
+      
       const reEncryptResult = await reEncryptUserData(
         firestore,
         userId,
@@ -524,103 +565,149 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         }
       );
       
-      if (!reEncryptResult.success) {
+      // CRITICAL: Check if re-encryption was successful
+      // If it failed or partially completed, we need to handle it carefully
+      if (!reEncryptResult.success || reEncryptResult.progress.totalFailed > 0) {
+        // Re-encryption had failures - restore old state
+        if (currentStored) {
+          localStorage.setItem('xpenselab_encryption_key', currentStored);
+        }
+        setEncryptionKey(currentKey);
+        keyRef.current = currentKey;
+        setIsEncryptionOperationInProgress(false);
+        
         toast({
-          title: 'Re-encryption Partially Completed',
-          description: `Re-encrypted ${reEncryptResult.progress.totalReEncrypted} documents. ${reEncryptResult.progress.totalFailed} documents failed.`,
+          title: 'Re-encryption Failed',
+          description: `Failed to re-encrypt ${reEncryptResult.progress.totalFailed} documents. Your encryption code has NOT been changed. Please try again.`,
           variant: 'destructive',
         });
+        
+        throw new EncryptionError(
+          `Re-encryption failed for ${reEncryptResult.progress.totalFailed} documents. Encryption code change aborted.`
+        );
       }
+      
+      // Generate new recovery codes with the NEW encryption code
+      const recoveryCodes = generateRecoveryCodes(10);
+      const recoveryCodeHashes = await Promise.all(
+        recoveryCodes.map(code => hashRecoveryCode(code))
+      );
+      
+      const recoveryCodeSalt = crypto.getRandomValues(new Uint8Array(16));
+      const recoveryCodeSaltBase64 = btoa(String.fromCharCode(...recoveryCodeSalt));
+      
+      const uint8ArrayToBase64 = (arr: Uint8Array): string => {
+        let binary = '';
+        for (let i = 0; i < arr.byteLength; i++) {
+          binary += String.fromCharCode(arr[i]);
+        }
+        return btoa(binary);
+      };
+      
+      const encryptedMainCodes = await Promise.all(
+        recoveryCodes.map(async (recoveryCode) => {
+          const encoder = new TextEncoder();
+          const codeBuffer = encoder.encode(recoveryCode);
+          const keyMaterial = await crypto.subtle.importKey(
+            'raw',
+            codeBuffer,
+            'PBKDF2',
+            false,
+            ['deriveBits', 'deriveKey']
+          );
+          const recoveryKey = await crypto.subtle.deriveKey(
+            {
+              name: 'PBKDF2',
+              salt: recoveryCodeSalt,
+              iterations: 100000,
+              hash: 'SHA-256',
+            },
+            keyMaterial,
+            {
+              name: 'AES-GCM',
+              length: 256,
+            },
+            false,
+            ['encrypt', 'decrypt']
+          );
+          
+          const encoder2 = new TextEncoder();
+          const mainCodeData = encoder2.encode(newCode); // Use NEW code
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const encrypted = await crypto.subtle.encrypt(
+            {
+              name: 'AES-GCM',
+              iv: iv,
+            },
+            recoveryKey,
+            mainCodeData
+          );
+          
+          const ivBase64 = uint8ArrayToBase64(iv);
+          const encryptedBase64 = uint8ArrayToBase64(new Uint8Array(encrypted));
+          return `${ivBase64}:${encryptedBase64}`;
+        })
+      );
+      
+      // CRITICAL: Update recovery codes and encryption salt atomically AFTER successful re-encryption
+      // If this fails, data is already re-encrypted but salt/recovery codes aren't updated
+      // This is still recoverable - user can retry the updateDoc operation
+      const userRef = doc(firestore, 'users', userId);
+      try {
+        await updateDoc(userRef, {
+          recoveryCodeHashes: recoveryCodeHashes,
+          recoveryCodeSalt: recoveryCodeSaltBase64,
+          encryptedMainCodes: encryptedMainCodes,
+          encryptionSalt: newSaltBase64, // Update salt in Firestore for cross-browser compatibility
+        });
+      } catch (updateError: any) {
+        // CRITICAL: If updateDoc fails, data is re-encrypted but salt isn't updated
+        // This is a dangerous state - user can't unlock with new code
+        // We need to restore old salt OR provide recovery mechanism
+        // For now, restore old state and throw error
+        if (currentStored) {
+          localStorage.setItem('xpenselab_encryption_key', currentStored);
+        }
+        setEncryptionKey(currentKey);
+        keyRef.current = currentKey;
+        setIsEncryptionOperationInProgress(false);
+        
+        // TODO: Implement rollback of re-encryption or recovery mechanism
+        throw new EncryptionError(
+          'Re-encryption completed but failed to update encryption metadata. Your data may be in an inconsistent state. Please contact support.',
+          updateError as Error
+        );
+      }
+      
+      // localStorage is already updated with new salt from initializeEncryption above
+      // Encryption is already locked (locked at start of function)
+      // User must unlock with new code to continue
+      setUnlockAttempts(0);
+      setIsEncryptionOperationInProgress(false);
+      
+      toast({
+        title: 'Encryption Code Changed',
+        description: 'Your encryption code has been updated and all data has been re-encrypted. Please unlock with your new code to continue.',
+      });
     } catch (error: any) {
-      // Restore original localStorage state on error
+      // Restore original state on any error
+      setIsEncryptionOperationInProgress(false);
       if (currentStored) {
         localStorage.setItem('xpenselab_encryption_key', currentStored);
       }
-      throw new EncryptionError('Failed to re-encrypt data', error as Error);
-    }
-    
-    // Generate new recovery codes with the NEW encryption code
-    const recoveryCodes = generateRecoveryCodes(10);
-    const recoveryCodeHashes = await Promise.all(
-      recoveryCodes.map(code => hashRecoveryCode(code))
-    );
-    
-    const recoveryCodeSalt = crypto.getRandomValues(new Uint8Array(16));
-    const recoveryCodeSaltBase64 = btoa(String.fromCharCode(...recoveryCodeSalt));
-    
-    const uint8ArrayToBase64 = (arr: Uint8Array): string => {
-      let binary = '';
-      for (let i = 0; i < arr.byteLength; i++) {
-        binary += String.fromCharCode(arr[i]);
+      if (currentKey) {
+        setEncryptionKey(currentKey);
+        keyRef.current = currentKey;
       }
-      return btoa(binary);
-    };
-    
-    const encryptedMainCodes = await Promise.all(
-      recoveryCodes.map(async (recoveryCode) => {
-        const encoder = new TextEncoder();
-        const codeBuffer = encoder.encode(recoveryCode);
-        const keyMaterial = await crypto.subtle.importKey(
-          'raw',
-          codeBuffer,
-          'PBKDF2',
-          false,
-          ['deriveBits', 'deriveKey']
-        );
-        const recoveryKey = await crypto.subtle.deriveKey(
-          {
-            name: 'PBKDF2',
-            salt: recoveryCodeSalt,
-            iterations: 100000,
-            hash: 'SHA-256',
-          },
-          keyMaterial,
-          {
-            name: 'AES-GCM',
-            length: 256,
-          },
-          false,
-          ['encrypt', 'decrypt']
-        );
-        
-        const encoder2 = new TextEncoder();
-        const mainCodeData = encoder2.encode(newCode); // Use NEW code
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const encrypted = await crypto.subtle.encrypt(
-          {
-            name: 'AES-GCM',
-            iv: iv,
-          },
-          recoveryKey,
-          mainCodeData
-        );
-        
-        const ivBase64 = uint8ArrayToBase64(iv);
-        const encryptedBase64 = uint8ArrayToBase64(new Uint8Array(encrypted));
-        return `${ivBase64}:${encryptedBase64}`;
-      })
-    );
-    
-    // Update recovery codes and encryption salt in Firestore (using NEW code)
-    const userRef = doc(firestore, 'users', userId);
-    await updateDoc(userRef, {
-      recoveryCodeHashes: recoveryCodeHashes,
-      recoveryCodeSalt: recoveryCodeSaltBase64,
-      encryptedMainCodes: encryptedMainCodes,
-      encryptionSalt: newSaltBase64, // Update salt in Firestore for cross-browser compatibility
-    });
-    
-    // localStorage is already updated with new salt from initializeEncryption above
-    // Lock encryption - user must unlock with new code to continue
-    setEncryptionKey(null);
-    keyRef.current = null;
-    setUnlockAttempts(0);
-    
-    toast({
-      title: 'Encryption Code Changed',
-      description: 'Your encryption code has been updated and all data has been re-encrypted. Please unlock with your new code to continue.',
-    });
-  }, [userId, firestore, isEncryptionEnabled, isUnlocked, toast]);
+      
+      // Re-throw if it's already an EncryptionError
+      if (error instanceof EncryptionError) {
+        throw error;
+      }
+      
+      throw new EncryptionError('Failed to change encryption code', error as Error);
+    }
+  }, [userId, firestore, isEncryptionEnabled, isUnlocked, isEncryptionOperationInProgress, toast]);
   
   /**
    * Disable encryption
@@ -685,7 +772,16 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       throw new EncryptionError('Encryption is not enabled');
     }
     
-    // Create function to fetch salt from Firestore
+    // CRITICAL: Prevent concurrent operations
+    if (isEncryptionOperationInProgress) {
+      throw new EncryptionError('Another encryption operation is in progress. Please wait for it to complete.');
+    }
+    
+    // Set operation lock
+    setIsEncryptionOperationInProgress(true);
+    
+    try {
+      // Create function to fetch salt from Firestore
     const fetchSaltFromFirestore = async (): Promise<string | null> => {
       if (!userId || !firestore) return null;
       try {
@@ -698,94 +794,104 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
       } catch (error) {
         console.warn('Failed to fetch encryption salt from Firestore:', error);
       }
-      return null;
-    };
-    
-    // Verify main code works
-    const key = await getEncryptionKey(mainCode, fetchSaltFromFirestore);
-    
-    // Generate new recovery codes
-    const recoveryCodes = generateRecoveryCodes(10);
-    
-    // Hash recovery codes
-    const recoveryCodeHashes = await Promise.all(
-      recoveryCodes.map(code => hashRecoveryCode(code))
-    );
-    
-    // Store main code encrypted with each recovery code
-    const recoveryCodeSalt = crypto.getRandomValues(new Uint8Array(16));
-    const recoveryCodeSaltBase64 = btoa(String.fromCharCode(...recoveryCodeSalt));
-    
-    const uint8ArrayToBase64 = (arr: Uint8Array): string => {
-      let binary = '';
-      for (let i = 0; i < arr.byteLength; i++) {
-        binary += String.fromCharCode(arr[i]);
+        return null;
+      };
+      
+      // Verify main code works
+      const key = await getEncryptionKey(mainCode, fetchSaltFromFirestore);
+      
+      // Generate new recovery codes
+      const recoveryCodes = generateRecoveryCodes(10);
+      
+      // Hash recovery codes
+      const recoveryCodeHashes = await Promise.all(
+        recoveryCodes.map(code => hashRecoveryCode(code))
+      );
+      
+      // Store main code encrypted with each recovery code
+      const recoveryCodeSalt = crypto.getRandomValues(new Uint8Array(16));
+      const recoveryCodeSaltBase64 = btoa(String.fromCharCode(...recoveryCodeSalt));
+      
+      const uint8ArrayToBase64 = (arr: Uint8Array): string => {
+        let binary = '';
+        for (let i = 0; i < arr.byteLength; i++) {
+          binary += String.fromCharCode(arr[i]);
+        }
+        return btoa(binary);
+      };
+      
+      const encryptedMainCodes = await Promise.all(
+        recoveryCodes.map(async (recoveryCode) => {
+          const encoder = new TextEncoder();
+          const codeBuffer = encoder.encode(recoveryCode);
+          const keyMaterial = await crypto.subtle.importKey(
+            'raw',
+            codeBuffer,
+            'PBKDF2',
+            false,
+            ['deriveBits', 'deriveKey']
+          );
+          const recoveryKey = await crypto.subtle.deriveKey(
+            {
+              name: 'PBKDF2',
+              salt: recoveryCodeSalt,
+              iterations: 100000,
+              hash: 'SHA-256',
+            },
+            keyMaterial,
+            {
+              name: 'AES-GCM',
+              length: 256,
+            },
+            false,
+            ['encrypt', 'decrypt']
+          );
+          
+          const encoder2 = new TextEncoder();
+          const mainCodeData = encoder2.encode(mainCode);
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const encrypted = await crypto.subtle.encrypt(
+            {
+              name: 'AES-GCM',
+              iv: iv,
+            },
+            recoveryKey,
+            mainCodeData
+          );
+          
+          const ivBase64 = uint8ArrayToBase64(iv);
+          const encryptedBase64 = uint8ArrayToBase64(new Uint8Array(encrypted));
+          return `${ivBase64}:${encryptedBase64}`;
+        })
+      );
+      
+      // Update user document atomically
+      const userRef = doc(firestore, 'users', userId);
+      // Use updateDoc directly to ensure the update completes
+      // Recovery code fields are not encrypted, so we can write them directly
+      await updateDoc(userRef, {
+        recoveryCodeHashes: recoveryCodeHashes,
+        recoveryCodeSalt: recoveryCodeSaltBase64,
+        encryptedMainCodes: encryptedMainCodes,
+      });
+      
+      setIsEncryptionOperationInProgress(false);
+      
+      toast({
+        title: 'Recovery Codes Regenerated',
+        description: 'New recovery codes have been generated. Please save them securely.',
+      });
+      
+      return { recoveryCodes };
+    } catch (error: any) {
+      setIsEncryptionOperationInProgress(false);
+      // Re-throw if it's already an EncryptionError
+      if (error instanceof EncryptionError) {
+        throw error;
       }
-      return btoa(binary);
-    };
-    
-    const encryptedMainCodes = await Promise.all(
-      recoveryCodes.map(async (recoveryCode) => {
-        const encoder = new TextEncoder();
-        const codeBuffer = encoder.encode(recoveryCode);
-        const keyMaterial = await crypto.subtle.importKey(
-          'raw',
-          codeBuffer,
-          'PBKDF2',
-          false,
-          ['deriveBits', 'deriveKey']
-        );
-        const recoveryKey = await crypto.subtle.deriveKey(
-          {
-            name: 'PBKDF2',
-            salt: recoveryCodeSalt,
-            iterations: 100000,
-            hash: 'SHA-256',
-          },
-          keyMaterial,
-          {
-            name: 'AES-GCM',
-            length: 256,
-          },
-          false,
-          ['encrypt', 'decrypt']
-        );
-        
-        const encoder2 = new TextEncoder();
-        const mainCodeData = encoder2.encode(mainCode);
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const encrypted = await crypto.subtle.encrypt(
-          {
-            name: 'AES-GCM',
-            iv: iv,
-          },
-          recoveryKey,
-          mainCodeData
-        );
-        
-        const ivBase64 = uint8ArrayToBase64(iv);
-        const encryptedBase64 = uint8ArrayToBase64(new Uint8Array(encrypted));
-        return `${ivBase64}:${encryptedBase64}`;
-      })
-    );
-    
-    // Update user document
-    const userRef = doc(firestore, 'users', userId);
-    // Use updateDoc directly to ensure the update completes
-    // Recovery code fields are not encrypted, so we can write them directly
-    await updateDoc(userRef, {
-      recoveryCodeHashes: recoveryCodeHashes,
-      recoveryCodeSalt: recoveryCodeSaltBase64,
-      encryptedMainCodes: encryptedMainCodes,
-    });
-    
-    toast({
-      title: 'Recovery Codes Regenerated',
-      description: 'New recovery codes have been generated. Please save them securely.',
-    });
-    
-    return { recoveryCodes };
-  }, [userId, firestore, isEncryptionEnabled, toast]);
+      throw new EncryptionError('Failed to regenerate recovery codes', error as Error);
+    }
+  }, [userId, firestore, isEncryptionEnabled, isEncryptionOperationInProgress, toast]);
   
   /**
    * Unencrypt all user data

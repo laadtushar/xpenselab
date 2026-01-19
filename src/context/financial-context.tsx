@@ -58,6 +58,14 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const userId = user?.uid;
   const { toast } = useToast();
   const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+  
+  // CRITICAL: Validate encryption state before writes
+  // If encryption is enabled but not unlocked, block all writes to prevent data leakage
+  const validateEncryptionState = useCallback(() => {
+    if (isEncryptionEnabled && !isUnlocked) {
+      throw new Error('Encryption is enabled but not unlocked. Please unlock encryption before adding or modifying data.');
+    }
+  }, [isEncryptionEnabled, isUnlocked]);
 
   // Data References
   const userDocRef = useMemoFirebase(() => userId ? doc(firestore, 'users', userId) : null, [firestore, userId]);
@@ -170,11 +178,13 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'userId'>) => {
     if (!userId) return;
+    // CRITICAL: Validate encryption state before write
+    validateEncryptionState();
     const ref = transaction.type === 'income' ? incomesRef : expensesRef;
     if (ref) {
       addDocumentNonBlocking(ref, { ...transaction, userId }, encryptionKeyForHooks);
     }
-  }, [userId, incomesRef, expensesRef, encryptionKeyForHooks]);
+  }, [userId, incomesRef, expensesRef, encryptionKeyForHooks, validateEncryptionState]);
   
   // Handle Recurring Transactions
   useEffect(() => {
@@ -267,6 +277,8 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   // Actions
   const updateTransaction = (id: string, type: 'income' | 'expense', data: Partial<Omit<Transaction, 'id' | 'userId'>>) => {
     if (!userId || !firestore) return;
+    // CRITICAL: Validate encryption state before write
+    validateEncryptionState();
     const path = type === 'income' ? `users/${userId}/incomes/${id}` : `users/${userId}/expenses/${id}`;
     updateDocumentNonBlocking(doc(firestore, path), data, encryptionKeyForHooks);
   };
@@ -294,6 +306,8 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
   const setBudget = (newBudget: { amount: number }) => {
     if (!userId || !firestore || !budgetsRef) return;
+    // CRITICAL: Validate encryption state before write
+    validateEncryptionState();
     const currentMonth = format(new Date(), "yyyy-MM");
     const existingBudget = budgetsData?.find(b => b.month === currentMonth);
 
@@ -313,11 +327,15 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
   const addCategory = async (category: Omit<Category, 'id' | 'userId'>) => {
     if (!categoriesRef || !userId) return;
+    // CRITICAL: Validate encryption state before write
+    validateEncryptionState();
     addDocumentNonBlocking(categoriesRef, { ...category, userId }, encryptionKeyForHooks);
   };
 
   const updateCategory = (category: Category) => {
     if (!userId || !firestore) return;
+    // CRITICAL: Validate encryption state before write
+    validateEncryptionState();
     const docRef = doc(firestore, "users", userId, "categories", category.id);
     const { id, ...categoryData } = category;
     setDocumentNonBlocking(docRef, categoryData, { merge: true }, encryptionKeyForHooks);
@@ -373,6 +391,13 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = (data: Partial<UserData> & { saltEdgeCustomerId?: FieldValue | undefined; saltEdgeConnections?: FieldValue | undefined }) => {
     if (!userDocRef || !firestore || !userId) return;
+    // CRITICAL: Validate encryption state before write (unless updating non-encrypted fields only)
+    // Note: Some User fields are encrypted (monzoTokens, saltEdgeCustomerId, saltEdgeConnections)
+    // If updating encrypted fields, validate encryption state
+    const hasEncryptedFields = 'monzoTokens' in data || 'saltEdgeCustomerId' in data || 'saltEdgeConnections' in data;
+    if (hasEncryptedFields) {
+      validateEncryptionState();
+    }
 
     const updates: any = {};
     

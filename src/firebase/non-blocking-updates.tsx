@@ -34,7 +34,9 @@ export async function setDocumentNonBlocking(
       dataToWrite = await encryptDocument(data, docType, encryptionKey);
     } catch (error) {
       console.error('Failed to encrypt document before write:', error);
-      // Continue with unencrypted data rather than failing
+      // SECURITY: Fail-safe - prevent unencrypted writes when encryption is required
+      // Re-throw error to prevent data leakage
+      throw new Error(`Encryption failed for document at ${docRef.path}. Data will not be written unencrypted. Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   
@@ -75,7 +77,9 @@ export async function addDocumentNonBlocking(
       console.error('Failed to encrypt document before write:', error);
       console.error('Document data:', data);
       console.error('Collection path:', colRef.path);
-      // Continue with unencrypted data rather than failing
+      // SECURITY: Fail-safe - prevent unencrypted writes when encryption is required
+      // Re-throw error to prevent data leakage
+      throw new Error(`Encryption failed for document in collection ${colRef.path}. Data will not be written unencrypted. Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
   } else {
     // Log when encryption key is not provided but encryption might be expected
@@ -124,7 +128,9 @@ export async function updateDocumentNonBlocking(
       dataToWrite = await encryptDocument(data, docType, encryptionKey);
     } catch (error) {
       console.error('Failed to encrypt document before update:', error);
-      // Continue with unencrypted data rather than failing
+      // SECURITY: Fail-safe - prevent unencrypted writes when encryption is required
+      // Re-throw error to prevent data leakage
+      throw new Error(`Encryption failed for document at ${docRef.path}. Data will not be written unencrypted. Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   
