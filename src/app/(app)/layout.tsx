@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { doc, getDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -114,9 +115,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 w-full overflow-x-hidden p-4 sm:p-6 lg:p-8">
-          {children}
+        <main className="flex-1 w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8 max-w-full pb-20 md:pb-4">
+          <div className="w-full max-w-full min-w-0">
+            {children}
+          </div>
         </main>
+        <MobileBottomNav />
       </SidebarProvider>
       </FinancialProvider>
     </EncryptionProvider>

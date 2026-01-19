@@ -94,8 +94,16 @@ export function useCollection<T = any>(
               const docType = detectDocumentType(docData, path);
               docData = await decryptDocument(docData, docType, encryptionKey);
             } catch (error) {
-              console.error('Failed to decrypt document:', error);
+              // Log error with context but don't throw - allows graceful degradation
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              console.error(`Failed to decrypt document ${doc.id} in ${path}:`, {
+                error: errorMessage,
+                docType: detectDocumentType(docData, path),
+                hint: 'This may indicate the encryption code is incorrect or the salt doesn\'t match. ' +
+                      'Please verify your encryption code in settings.',
+              });
               // Continue with encrypted data rather than failing
+              // The document will remain encrypted until the correct key is provided
             }
           }
           

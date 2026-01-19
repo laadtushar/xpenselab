@@ -7,11 +7,15 @@ import { AddRecurringTransactionDialog } from "@/components/recurring/recurring-
 
 export default function RecurringPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Recurring Transactions">
-        <AddRecurringTransactionDialog />
+        <div className="hidden md:block">
+          <AddRecurringTransactionDialog />
+        </div>
       </DashboardHeader>
-      <RecurringTransactionList />
+      <div className="w-full min-w-0 max-w-full">
+        <RecurringTransactionList />
+      </div>
     </div>
   );
 }

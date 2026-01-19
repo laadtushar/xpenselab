@@ -75,49 +75,53 @@ export default function ReportsPage() {
 
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6 w-full min-w-0 max-w-full">
+      <div className="flex flex-col gap-4 w-full min-w-0 max-w-full">
         <DashboardHeader title="Reports" />
-        <DashboardFilters
-          dateRange={dateRange}
-          setDateRange={setDateRange}
-          categories={allCategories}
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          timeGrain={timeGrain}
-          setTimeGrain={setTimeGrain}
-        />
+        <div className="w-full min-w-0 max-w-full">
+          <DashboardFilters
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            categories={allCategories}
+            selectedCategories={selectedCategories}
+            setSelectedCategories={setSelectedCategories}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            timeGrain={timeGrain}
+            setTimeGrain={setTimeGrain}
+          />
+        </div>
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 w-full min-w-0 max-w-full">
         <SavingsRateCard transactions={filteredTransactions} isLoading={isLoading} />
         {/* Placeholder for future cards like 'Total Income', 'Total Expenses', 'Top Category' */}
       </div>
 
       {/* Main Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4 min-w-0">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 w-full min-w-0 max-w-full">
+        <div className="col-span-7 lg:col-span-4 min-w-0 w-full max-w-full">
           <FinancialTrendsChart transactions={filteredTransactions} isLoading={isLoading} timeGrain={timeGrain} />
         </div>
-        <div className="col-span-3 min-w-0">
+        <div className="col-span-7 lg:col-span-3 min-w-0 w-full max-w-full">
           <SpendingByCategoryChart transactions={filteredTransactions} isLoading={isLoading} />
         </div>
       </div>
 
       {/* Secondary Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4 min-w-0">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 w-full min-w-0 max-w-full">
+        <div className="col-span-7 lg:col-span-4 min-w-0 w-full max-w-full">
           <CategoryTrendChart transactions={filteredTransactions} isLoading={isLoading} timeGrain={timeGrain} />
         </div>
-        <div className="col-span-3 min-w-0">
+        <div className="col-span-7 lg:col-span-3 min-w-0 w-full max-w-full">
           <IncomeExpenseBarChart transactions={filteredTransactions} isLoading={isLoading} timeGrain={timeGrain} />
         </div>
       </div>
 
-      <ReportGenerator />
+      <div className="w-full min-w-0 max-w-full">
+        <ReportGenerator />
+      </div>
     </div>
   );
 }

@@ -195,10 +195,17 @@ export async function decryptDocument<T extends Record<string, any>>(
           }
         }
       } catch (error) {
-        // If decryption fails, log error but don't throw (allows graceful degradation)
-        console.error(`Failed to decrypt field ${field}:`, error);
-        // Keep encrypted value or set to null based on preference
-        // For now, we'll keep the encrypted value to allow retry
+        // If decryption fails, log error with more context but don't throw (allows graceful degradation)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Failed to decrypt field ${field} in ${docType}:`, {
+          error: errorMessage,
+          field,
+          docType,
+          docId: doc.id || 'unknown',
+          hint: 'This may indicate the encryption code is incorrect or the salt doesn\'t match. Please verify your encryption code.',
+        });
+        // Keep encrypted value to allow retry when correct key is provided
+        // Don't modify the field - leave it encrypted
       }
     }
   }

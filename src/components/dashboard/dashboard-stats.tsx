@@ -135,21 +135,21 @@ function useSharedFinances() {
 const StatComparisonCard = ({ title, value1, value2, description1, description2, tooltipContent }: { title: string, value1: string, value2: string, description1: string, description2: string, tooltipContent?: React.ReactNode }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <Card>
+      <Card className="w-full min-w-0 max-w-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center justify-between">
-            {title}
-            {tooltipContent && <HelpCircle className="h-3 w-3 text-muted-foreground" />}
+          <CardTitle className="text-sm font-medium flex items-center justify-between min-w-0">
+            <span className="truncate">{title}</span>
+            {tooltipContent && <HelpCircle className="h-3 w-3 text-muted-foreground shrink-0 ml-2" />}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-2xl font-bold truncate" title={value1}>{value1}</div>
+        <CardContent className="flex items-center justify-between gap-2 min-w-0 w-full">
+          <div className="min-w-0 flex-1">
+            <div className="text-xl sm:text-2xl font-bold truncate" title={value1}>{value1}</div>
             <p className="text-xs text-muted-foreground truncate" title={description1}>{description1}</p>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0 mx-2" />
-          <div className="min-w-0 text-right">
-            <div className="text-2xl font-bold truncate" title={value2}>{value2}</div>
+          <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0 mx-1 sm:mx-2" />
+          <div className="min-w-0 text-right flex-1">
+            <div className="text-xl sm:text-2xl font-bold truncate" title={value2}>{value2}</div>
             <p className="text-xs text-muted-foreground truncate" title={description2}>{description2}</p>
           </div>
         </CardContent>
@@ -162,18 +162,18 @@ const StatComparisonCard = ({ title, value1, value2, description1, description2,
 const StatCard = ({ title, value, description, icon: Icon, tooltip, valueColor }: { title: string, value: string, description: string, icon?: React.ElementType, tooltip?: React.ReactNode, valueColor?: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <div className="flex items-center gap-1">
+      <Card className="w-full min-w-0 max-w-full">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 min-w-0">
+          <CardTitle className="text-sm font-medium truncate min-w-0">{title}</CardTitle>
+          <div className="flex items-center gap-1 shrink-0">
             {tooltip && (
               <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
             )}
             {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className={cn("text-2xl font-bold truncate", valueColor)} title={value}>{value}</div>
+        <CardContent className="min-w-0">
+          <div className={cn("text-xl sm:text-2xl font-bold truncate", valueColor)} title={value}>{value}</div>
           <p className="text-xs text-muted-foreground truncate" title={description}>{description}</p>
         </CardContent>
       </Card>
@@ -229,7 +229,7 @@ export function DashboardStats() {
 
   return (
     <TooltipProvider>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 w-full min-w-0 max-w-full">
         <StatComparisonCard
           title="Income"
           value1={formatCurrency(actualIncome, userData?.currency)}
@@ -275,7 +275,7 @@ export function DashboardStats() {
             </div>
           }
         />
-        <div className="lg:col-span-3 grid md:grid-cols-2 gap-4">
+        <div className="lg:col-span-3 grid md:grid-cols-2 gap-4 w-full min-w-0 max-w-full">
           <StatCard
             title="You Are Owed"
             value={formatCurrency(youAreOwed, userData?.currency)}

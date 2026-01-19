@@ -7,11 +7,15 @@ import { AddLoanDialog } from "@/components/loans/add-loan-form";
 
 export default function LoansPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Loans & EMIs">
-        <AddLoanDialog />
+        <div className="hidden md:block">
+          <AddLoanDialog />
+        </div>
       </DashboardHeader>
-      <LoanList />
+      <div className="w-full min-w-0 max-w-full">
+        <LoanList />
+      </div>
     </div>
   );
 }

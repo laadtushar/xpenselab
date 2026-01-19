@@ -31,26 +31,26 @@ export function RecentTransactions() {
   }
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 max-w-full">
       <CardHeader>
         <CardTitle>Recent Transactions</CardTitle>
         <CardDescription>Your 5 most recent transactions.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="w-full min-w-0 max-w-full">
         <div className="space-y-4">
           {recentTransactions.length > 0 ? (
             recentTransactions.map((t) => (
-              <div key={t.id} className="flex items-center transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground -mx-2 px-2 py-1 rounded-md">
-                <Avatar className="h-9 w-9">
+              <div key={t.id} className="flex items-center transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground -mx-2 px-2 py-1 rounded-md min-w-0 w-full">
+                <Avatar className="h-9 w-9 shrink-0">
                   <AvatarFallback className={'bg-secondary'}>
                     {t.type === 'income' ? <TrendingUp className="h-4 w-4 text-primary" /> : <CategoryIcon categoryName={t.category} />}
                   </AvatarFallback>
                 </Avatar>
                 <div className="ml-4 space-y-1 min-w-0 flex-1">
                   <p className="text-sm font-medium leading-none truncate">{t.description}</p>
-                  <p className="text-sm text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</p>
+                  <p className="text-sm text-muted-foreground truncate">{format(new Date(t.date), 'MMM d, yyyy')}</p>
                 </div>
-                <div className={`ml-auto font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`ml-auto font-medium shrink-0 text-sm sm:text-base ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount, userData?.currency)}
                 </div>
               </div>

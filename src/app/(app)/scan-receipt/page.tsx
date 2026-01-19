@@ -6,9 +6,11 @@ import { ReceiptScanner } from "@/components/receipt-scanner/receipt-scanner";
 
 export default function ScanReceiptPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Scan Receipt" />
-      <ReceiptScanner />
+      <div className="w-full min-w-0 max-w-full">
+        <ReceiptScanner />
+      </div>
     </div>
   );
 }

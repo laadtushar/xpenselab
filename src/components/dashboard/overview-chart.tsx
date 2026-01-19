@@ -51,13 +51,13 @@ export function OverviewChart() {
   }
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 max-w-full">
       <CardHeader>
         <CardTitle>Last 7 Days</CardTitle>
         <CardDescription>Income vs. Expenses</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+      <CardContent className="w-full min-w-0 max-w-full overflow-x-auto">
+        <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[300px]">
           <BarChart accessibilityLayer data={data}>
             <XAxis
               dataKey="name"

@@ -51,18 +51,20 @@ export default function DebtsPage() {
   const isLoading = isLoadingTo || isLoadingFrom || isLoadingSettled;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Individual Debts">
-        <AddDebtDialog />
+        <div className="hidden md:block">
+          <AddDebtDialog />
+        </div>
       </DashboardHeader>
       
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="w-full min-w-0 max-w-full">
+        <CardContent className="pt-6 w-full min-w-0 max-w-full">
             <Tabs defaultValue="owed-by-others">
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="owed-by-others">Owed By Others</TabsTrigger>
-                    <TabsTrigger value="owed-to-others">Owed To Others</TabsTrigger>
-                    <TabsTrigger value="settled">History</TabsTrigger>
+                    <TabsTrigger value="owed-by-others" className="text-xs sm:text-sm">Owed By Others</TabsTrigger>
+                    <TabsTrigger value="owed-to-others" className="text-xs sm:text-sm">Owed To Others</TabsTrigger>
+                    <TabsTrigger value="settled" className="text-xs sm:text-sm">History</TabsTrigger>
                 </TabsList>
                 {isLoading ? (
                     <div className="flex justify-center items-center h-64">
@@ -70,13 +72,13 @@ export default function DebtsPage() {
                     </div>
                 ) : (
                     <>
-                        <TabsContent value="owed-by-others">
+                        <TabsContent value="owed-by-others" className="w-full min-w-0 max-w-full">
                            <DebtList debts={debtsToUser || []} type="to" />
                         </TabsContent>
-                        <TabsContent value="owed-to-others">
+                        <TabsContent value="owed-to-others" className="w-full min-w-0 max-w-full">
                            <DebtList debts={debtsFromUser || []} type="from" />
                         </TabsContent>
-                         <TabsContent value="settled">
+                         <TabsContent value="settled" className="w-full min-w-0 max-w-full">
                            <DebtList debts={settledDebts || []} type="settled" />
                         </TabsContent>
                     </>

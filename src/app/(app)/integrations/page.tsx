@@ -14,7 +14,7 @@ export default function IntegrationsPage() {
 
     if (isUserLoading) {
         return (
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
                 <DashboardHeader title="Integrations" />
                 <div className="flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -25,9 +25,9 @@ export default function IntegrationsPage() {
 
     if (!user) {
         return (
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
                 <DashboardHeader title="Integrations" />
-                <Card>
+                <Card className="w-full min-w-0 max-w-full">
                     <CardHeader>
                         <CardTitle>Authentication Required</CardTitle>
                         <CardDescription>Please log in to manage your integrations.</CardDescription>
@@ -38,20 +38,22 @@ export default function IntegrationsPage() {
     }
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
             <DashboardHeader title="Integrations" />
-            {FEATURES.isSaltEdgeEnabled ? (
-                <SaltEdgeTransactionImporter userId={user.uid} />
-            ) : (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>No Active Integrations</CardTitle>
-                        <CardDescription>
-                            Bank integrations are currently disabled. You can still import data via CSV in Settings.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            )}
+            <div className="w-full min-w-0 max-w-full">
+                {FEATURES.isSaltEdgeEnabled ? (
+                    <SaltEdgeTransactionImporter userId={user.uid} />
+                ) : (
+                    <Card className="w-full min-w-0 max-w-full">
+                        <CardHeader>
+                            <CardTitle>No Active Integrations</CardTitle>
+                            <CardDescription>
+                                Bank integrations are currently disabled. You can still import data via CSV in Settings.
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 }

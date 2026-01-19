@@ -17,7 +17,10 @@ import {
   generateRecoveryCodes,
   hashRecoveryCode,
   verifyRecoveryCode,
+  getSaltFromLocalStorage,
+  base64ToArrayBuffer,
 } from '@/lib/encryption';
+import { isEncrypted } from '@/lib/encryption-helpers';
 import { updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { unencryptAllUserData } from '@/lib/migration/unencrypt-all-data';
 import { reEncryptUserData } from '@/lib/migration/re-encrypt-data';
@@ -264,26 +267,173 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
           return null;
         };
         
-        const key = await getEncryptionKey(code, fetchSaltFromFirestore);
+        // CRITICAL FIX: Try localStorage salt first (if available), then Firestore salt
+        // This handles the case where Firestore salt is wrong but localStorage has the correct salt
+        let key: CryptoKey | null = null;
+        let saltUsed: 'localStorage' | 'firestore' | null = null;
+        let decryptionTestPassed = false;
         
-        // Test the key by encrypting/decrypting a test value
-        const testValue = 'test';
-        const encrypted = await encryptValue(testValue, key);
-        const decrypted = await decryptValue(encrypted, key);
+        // Helper function to derive key from salt (duplicates logic from encryption.ts)
+        const deriveKeyFromSalt = async (code: string, saltBase64: string): Promise<CryptoKey> => {
+          const encoder = new TextEncoder();
+          const codeBuffer = encoder.encode(code);
+          const saltBuffer = base64ToArrayBuffer(saltBase64);
+          const salt = new Uint8Array(saltBuffer);
+          
+          if (salt.length !== 16) {
+            throw new EncryptionError(`Invalid salt length. Expected 16 bytes, got ${salt.length}`);
+          }
+          
+          const keyMaterial = await crypto.subtle.importKey(
+            'raw',
+            codeBuffer,
+            'PBKDF2',
+            false,
+            ['deriveBits', 'deriveKey']
+          );
+          
+          return await crypto.subtle.deriveKey(
+            {
+              name: 'PBKDF2',
+              salt: salt,
+              iterations: 100000,
+              hash: 'SHA-256',
+            },
+            keyMaterial,
+            {
+              name: 'AES-GCM',
+              length: 256,
+            },
+            false,
+            ['encrypt', 'decrypt']
+          );
+        };
         
-        if (decrypted === testValue) {
-          // Main code is valid
-          setEncryptionKey(key);
-          keyRef.current = key;
-          setUnlockAttempts(0);
-          return true;
+        // First, try with localStorage salt (if available)
+        const localStorageSalt = getSaltFromLocalStorage();
+        if (localStorageSalt) {
+          try {
+            const testKey = await deriveKeyFromSalt(code, localStorageSalt);
+            
+            // Test if this key can decrypt existing data
+            if (incomesData && incomesData.length > 0) {
+              const sampleDoc = incomesData[0];
+              if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+                try {
+                  await decryptValue(sampleDoc.amount, testKey);
+                  key = testKey;
+                  saltUsed = 'localStorage';
+                  decryptionTestPassed = true;
+                } catch {
+                  // localStorage salt doesn't work, try Firestore salt
+                }
+              }
+            } else if (expensesData && expensesData.length > 0) {
+              const sampleDoc = expensesData[0];
+              if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+                try {
+                  await decryptValue(sampleDoc.amount, testKey);
+                  key = testKey;
+                  saltUsed = 'localStorage';
+                  decryptionTestPassed = true;
+                } catch {
+                  // localStorage salt doesn't work, try Firestore salt
+                }
+              }
+            } else {
+              // No existing data to test - use localStorage salt if available
+              key = testKey;
+              saltUsed = 'localStorage';
+            }
+          } catch (error) {
+            // localStorage salt failed, continue to try Firestore salt
+            console.warn('Failed to use localStorage salt:', error);
+          }
         }
-        // If decrypted !== testValue, main code didn't work, continue to recovery code check
+        
+        // If localStorage salt didn't work or isn't available, try Firestore salt
+        if (!key) {
+          try {
+            key = await getEncryptionKey(code, fetchSaltFromFirestore);
+            saltUsed = 'firestore';
+            
+            // Test if this key can decrypt existing data
+            if (incomesData && incomesData.length > 0) {
+              const sampleDoc = incomesData[0];
+              if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+                try {
+                  await decryptValue(sampleDoc.amount, key);
+                  decryptionTestPassed = true;
+                } catch (decryptError) {
+                  // Firestore salt doesn't work - salt mismatch!
+                  throw new EncryptionError(
+                    'The encryption salt in Firestore doesn\'t match the salt used to encrypt your data. ' +
+                    'This usually happens when encryption was enabled in a different browser. ' +
+                    'Please use a recovery code to unlock, or try unlocking from the browser where encryption was originally enabled.',
+                    decryptError as Error
+                  );
+                }
+              }
+            } else if (expensesData && expensesData.length > 0) {
+              const sampleDoc = expensesData[0];
+              if (sampleDoc.amount && typeof sampleDoc.amount === 'string' && isEncrypted(sampleDoc.amount)) {
+                try {
+                  await decryptValue(sampleDoc.amount, key);
+                  decryptionTestPassed = true;
+                } catch (decryptError) {
+                  throw new EncryptionError(
+                    'The encryption salt in Firestore doesn\'t match the salt used to encrypt your data. ' +
+                    'This usually happens when encryption was enabled in a different browser. ' +
+                    'Please use a recovery code to unlock, or try unlocking from the browser where encryption was originally enabled.',
+                    decryptError as Error
+                  );
+                }
+              }
+            }
+          } catch (firestoreError) {
+            // If it's already an EncryptionError about salt mismatch, re-throw it
+            if (firestoreError instanceof EncryptionError && firestoreError.message.includes('salt')) {
+              throw firestoreError;
+            }
+            // Otherwise, continue to recovery code check
+            throw firestoreError;
+          }
+        }
+        
+        if (!key) {
+          throw new EncryptionError('Failed to derive encryption key');
+        }
+        
+        // If we successfully decrypted existing data, update Firestore salt if needed
+        if (decryptionTestPassed && saltUsed === 'localStorage' && localStorageSalt) {
+          // The localStorage salt works - update Firestore to match
+          try {
+            const userRef = doc(firestore, 'users', userId);
+            await updateDoc(userRef, {
+              encryptionSalt: localStorageSalt,
+            });
+            console.log('Updated Firestore salt to match localStorage salt');
+          } catch (updateError) {
+            console.warn('Failed to update Firestore salt:', updateError);
+            // Don't throw - unlock can still proceed
+          }
+        }
+        
+        // Set the key
+        setEncryptionKey(key);
+        keyRef.current = key;
+        setUnlockAttempts(0);
+        
+        return true;
       } catch (mainCodeError) {
-        // Main code derivation failed (wrong code or encryption not initialized)
+        // Main code derivation failed (wrong code, salt mismatch, or encryption not initialized)
         // Check if it's because encryption is not initialized
         if (mainCodeError instanceof EncryptionError && mainCodeError.message.includes('not initialized')) {
           throw mainCodeError; // Re-throw initialization errors
+        }
+        // If it's a salt mismatch error, re-throw it
+        if (mainCodeError instanceof EncryptionError && mainCodeError.message.includes('salt')) {
+          throw mainCodeError;
         }
         // Otherwise, try recovery code below
       }

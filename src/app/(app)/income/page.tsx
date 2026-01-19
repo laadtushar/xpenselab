@@ -63,17 +63,19 @@ export default function IncomePage() {
   }, [incomes, filters, sortDescriptor]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Income">
-        <IncomeForm />
+        <div className="hidden md:block">
+          <IncomeForm />
+        </div>
       </DashboardHeader>
 
-      <Card>
+      <Card className="w-full min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>Income History</CardTitle>
           <CardDescription>View, filter, and manage your income.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 w-full min-w-0 max-w-full">
           <TransactionFilters onFilterChange={setFilters} type="income" />
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
