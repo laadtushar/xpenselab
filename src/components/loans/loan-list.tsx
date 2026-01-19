@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2, Trash2, ChevronDown } from 'lucide-react';
 import { useFinancials } from '@/context/financial-context';
+import { useEncryption } from '@/context/encryption-context';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -21,13 +22,15 @@ function RepaymentList({ loanId }: { loanId: string }) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { userData } = useFinancials();
+    const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+    const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
     const repaymentsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, 'users', user.uid, 'loans', loanId, 'repayments'), orderBy('date', 'desc'));
     }, [firestore, user, loanId]);
 
-    const { data: repayments, isLoading } = useCollection<Repayment>(repaymentsQuery);
+    const { data: repayments, isLoading } = useCollection<Repayment>(repaymentsQuery, encryptionKeyForHooks);
 
     if (isLoading) return <div className="p-4 text-center"><Loader2 className="h-4 w-4 animate-spin inline-block" /></div>;
     if (!repayments || repayments.length === 0) return <p className="p-4 text-sm text-muted-foreground">No repayments recorded yet.</p>;
@@ -62,13 +65,15 @@ export function LoanList() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { userData } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
   const loansQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'loans'), orderBy('startDate', 'desc'));
   }, [firestore, user]);
 
-  const { data: loans, isLoading } = useCollection<Loan>(loansQuery);
+  const { data: loans, isLoading } = useCollection<Loan>(loansQuery, encryptionKeyForHooks);
 
   const handleDelete = (id: string) => {
     if (!firestore || !user) return;

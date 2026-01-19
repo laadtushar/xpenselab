@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Group } from '@/lib/types';
+import { useEncryption } from '@/context/encryption-context';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -72,6 +73,7 @@ export function AddSharedExpenseDialog({ group }: AddSharedExpenseDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -123,8 +125,19 @@ export function AddSharedExpenseDialog({ group }: AddSharedExpenseDialogProps) {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore) return;
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add shared expenses.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const finalSplits = values.splits.filter(s => s.isIncluded).map(({userId, amount}) => ({userId, amount}));
+    const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
     try {
       const expensesCol = collection(firestore, 'groups', group.id, 'sharedExpenses');
@@ -135,7 +148,7 @@ export function AddSharedExpenseDialog({ group }: AddSharedExpenseDialogProps) {
         paidBy: values.paidBy,
         date: values.date.toISOString(),
         splits: finalSplits,
-      });
+      }, encryptionKeyForWrite);
 
       toast({
         title: 'Expense Added',

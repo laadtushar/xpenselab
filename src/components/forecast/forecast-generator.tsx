@@ -51,7 +51,11 @@ export function ForecastGenerator() {
     const avgDailyIncome = totalIncome / days;
     const avgDailyExpense = totalExpenses / days;
 
-    const recurringExpenses = transactions.filter(t => t.description.match(/subscription|monthly|yearly/i));
+    const recurringExpenses = transactions.filter(t => {
+      // Handle encrypted/decrypted descriptions safely
+      const description = t.description || '';
+      return typeof description === 'string' && description.match(/subscription|monthly|yearly/i);
+    });
 
     const analysis = `
       Current Balance: ${currentBalance.toFixed(2)}

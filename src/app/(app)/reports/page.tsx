@@ -60,8 +60,10 @@ export default function ReportsPage() {
       // 3. Search Check
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchDescription = t.description.toLowerCase().includes(query);
-        const matchAmount = t.amount.toString().includes(query);
+        // Handle encrypted/decrypted descriptions safely
+        const description = t.description || '';
+        const matchDescription = typeof description === 'string' && description.toLowerCase().includes(query);
+        const matchAmount = t.amount != null && t.amount.toString().includes(query);
         if (!matchDescription && !matchAmount) {
           return false;
         }

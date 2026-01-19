@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User as UserIcon, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useFinancials } from '@/context/financial-context';
+import { useEncryption } from '@/context/encryption-context';
 
 interface MemberBalancesProps {
   group: Group;
@@ -18,13 +19,15 @@ export function MemberBalances({ group }: MemberBalancesProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { userData } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
   const expensesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'groups', group.id, 'sharedExpenses'));
   }, [firestore, group.id]);
 
-  const { data: expenses, isLoading } = useCollection<SharedExpense>(expensesQuery);
+  const { data: expenses, isLoading } = useCollection<SharedExpense>(expensesQuery, encryptionKeyForHooks);
 
   const balances = useMemo((): MemberBalance[] => {
     if (!expenses) return [];

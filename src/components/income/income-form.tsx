@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useFinancials } from "@/context/financial-context";
+import { useEncryption } from "@/context/encryption-context";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -35,6 +36,7 @@ const formSchema = z.object({
 export function IncomeForm() {
   const [open, setOpen] = useState(false);
   const { addTransaction, incomeCategories } = useFinancials();
+  const { isEncryptionEnabled, isUnlocked } = useEncryption();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -48,6 +50,16 @@ export function IncomeForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add income.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     addTransaction({
       type: 'income',
       ...values,

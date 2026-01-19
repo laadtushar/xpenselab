@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon, LogOut } from 'lucide-react';
 import { useUser, useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { FinancialProvider } from '@/context/financial-context';
+import { EncryptionProvider } from '@/context/encryption-context';
 import { Button } from '@/components/ui/button';
 import { doc, getDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
@@ -80,8 +81,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <FinancialProvider>
-      <SidebarProvider>
+    <EncryptionProvider>
+      <FinancialProvider>
+        <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2 p-2">
@@ -116,6 +118,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </SidebarProvider>
-    </FinancialProvider>
+      </FinancialProvider>
+    </EncryptionProvider>
   );
 }

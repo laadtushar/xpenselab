@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFinancials } from "@/context/financial-context";
+import { useEncryption } from "@/context/encryption-context";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, Download } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -51,6 +52,7 @@ export function DataImporter() {
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<Log | null>(null);
   const { addTransaction, addCategory, expenseCategories, clearTransactions } = useFinancials();
+  const { isEncryptionEnabled, isUnlocked, encryptionKey } = useEncryption();
   const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,7 +249,30 @@ export function DataImporter() {
         }
         
         if (transactions.length > 0) {
-            transactions.forEach(t => addTransaction(t));
+          // Check if encryption is enabled but not unlocked
+          if (isEncryptionEnabled && !isUnlocked) {
+            toast({
+              title: 'Encryption Locked',
+              description: 'Please unlock encryption in settings to import data.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+          
+          // Additional check: if encryption is enabled, ensure we have the key
+          if (isEncryptionEnabled && !encryptionKey) {
+            console.error('[IMPORT ERROR] Encryption is enabled but encryption key is not available');
+            toast({
+              title: 'Encryption Error',
+              description: 'Encryption is enabled but the key is not available. Please unlock encryption and try again.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+          
+          transactions.forEach(t => addTransaction(t));
           toast({
             title: "Import Successful",
             description: `Successfully imported ${transactions.length} transactions.`,

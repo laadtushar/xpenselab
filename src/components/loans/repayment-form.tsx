@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { useEncryption } from '@/context/encryption-context';
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { addTransaction } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,17 +66,28 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore) return;
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add repayments.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const loanRef = doc(firestore, 'users', user.uid, 'loans', loan.id);
       const repaymentsCol = collection(loanRef, 'repayments');
+      const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
       
       // 1. Add the repayment document
       await addDocumentNonBlocking(repaymentsCol, {
         ...values,
         loanId: loan.id,
         date: values.date.toISOString(),
-      });
+      }, encryptionKeyForWrite);
 
       // 2. Add as an expense transaction for cash-flow tracking
       addTransaction({
@@ -100,7 +113,7 @@ export function AddRepaymentDialog({ loan }: AddRepaymentDialogProps) {
         })
       }
       
-      await updateDocumentNonBlocking(loanRef, loanUpdate);
+      await updateDocumentNonBlocking(loanRef, loanUpdate, encryptionKeyForWrite);
 
       toast({
         title: 'Repayment Recorded',

@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Group, Expense } from '@/lib/types';
+import { useEncryption } from '@/context/encryption-context';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -69,6 +70,7 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const groupsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
@@ -127,6 +129,16 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
 
   const onGroupSplitSubmit = async (values: z.infer<typeof groupSplitSchema>) => {
     if (!user || !firestore || !selectedGroup) return;
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to split expenses.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const totalSplit = values.splits.filter(s => s.isIncluded).reduce((sum, s) => sum + s.amount, 0);
     if (Math.abs(expense.amount - totalSplit) > 0.01) {
@@ -135,6 +147,7 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
     }
 
     const finalSplits = values.splits.filter(s => s.isIncluded).map(({userId, amount}) => ({userId, amount}));
+    const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
     try {
       const expensesCol = collection(firestore, 'groups', selectedGroup.id, 'sharedExpenses');
@@ -145,7 +158,7 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
         paidBy: user.uid, // Assume the user splitting the expense paid for it.
         date: expense.date,
         splits: finalSplits,
-      });
+      }, encryptionKeyForWrite);
 
       toast({
         title: 'Expense Split',
@@ -166,6 +179,16 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
 
   const onIndividualDebtSubmit = async (values: z.infer<typeof individualDebtSchema>) => {
     if (!user || !firestore) return;
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to create debts.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
      if (values.otherPartyEmail.toLowerCase() === user.email?.toLowerCase()) {
         toast({
@@ -181,6 +204,7 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
     const toUserId = values.direction === 'iOwe' ? otherPartyVirtualId : user.uid;
     const fromUserName = values.direction === 'iOwe' ? user.displayName || user.email : values.otherPartyName;
     const toUserName = values.direction === 'iOwe' ? values.otherPartyName : user.displayName || user.email;
+    const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
     try {
       const debtsCol = collection(firestore, 'debts');
@@ -193,7 +217,7 @@ export function SplitExpenseDialog({ expense }: SplitExpenseDialogProps) {
         description: expense.description,
         settled: false,
         createdBy: user.uid,
-      });
+      }, encryptionKeyForWrite);
 
       toast({
         title: 'Debt Recorded',

@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useFinancials } from '@/context/financial-context';
+import { useEncryption } from '@/context/encryption-context';
 
 interface SharedExpensesListProps {
   group: Group;
@@ -18,13 +19,15 @@ export function SharedExpensesList({ group }: SharedExpensesListProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { userData } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const expensesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'groups', group.id, 'sharedExpenses'), orderBy('date', 'desc'));
   }, [firestore, group.id]);
 
-  const { data: expenses, isLoading } = useCollection<SharedExpense>(expensesQuery);
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
+  const { data: expenses, isLoading } = useCollection<SharedExpense>(expensesQuery, encryptionKeyForHooks);
 
   const getMemberName = (userId: string) => {
     return group.memberDetails[userId]?.name || group.memberDetails[userId]?.email.split('@')[0] || 'Unknown';

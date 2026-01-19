@@ -11,6 +11,8 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { decryptDocument, detectDocumentType } from '@/lib/encryption-helpers';
+import type { CryptoKey } from '@/lib/encryption';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -49,10 +51,12 @@ export interface InternalQuery extends Query<DocumentData> {
  * @template T Optional type for document data. Defaults to any.
  * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
  * The Firestore CollectionReference or Query. Waits if null/undefined.
+ * @param {CryptoKey | null | undefined} encryptionKey - Optional encryption key for decrypting data
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    encryptionKey?: CryptoKey | null,
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
@@ -75,10 +79,27 @@ export function useCollection<T = any>(
     // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
-      (snapshot: QuerySnapshot<DocumentData>) => {
+      async (snapshot: QuerySnapshot<DocumentData>) => {
         const results: ResultItemType[] = [];
+        const path = memoizedTargetRefOrQuery.type === 'collection'
+          ? (memoizedTargetRefOrQuery as CollectionReference).path
+          : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+        
         for (const doc of snapshot.docs) {
-          results.push({ ...(doc.data() as T), id: doc.id });
+          let docData = { ...(doc.data() as T), id: doc.id };
+          
+          // Decrypt if encryption key is provided
+          if (encryptionKey) {
+            try {
+              const docType = detectDocumentType(docData, path);
+              docData = await decryptDocument(docData, docType, encryptionKey);
+            } catch (error) {
+              console.error('Failed to decrypt document:', error);
+              // Continue with encrypted data rather than failing
+            }
+          }
+          
+          results.push(docData);
         }
         setData(results);
         setError(null);
@@ -106,7 +127,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, [memoizedTargetRefOrQuery, encryptionKey]); // Re-run if the target query/reference or encryption key changes.
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
   }

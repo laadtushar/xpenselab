@@ -27,7 +27,12 @@ export default function IncomePage() {
     // @ts-ignore
     if (filters.search) {
         // @ts-ignore
-      filtered = filtered.filter(i => i.description.toLowerCase().includes(filters.search.toLowerCase()));
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(i => {
+        // Handle encrypted/decrypted descriptions safely
+        const description = i.description || '';
+        return typeof description === 'string' && description.toLowerCase().includes(searchLower);
+      });
     }
     // @ts-ignore
     if (filters.category) {

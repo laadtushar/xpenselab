@@ -9,16 +9,39 @@ import { Calendar as CalendarIcon, Download } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { useFinancials } from "@/context/financial-context";
+import { useEncryption } from "@/context/encryption-context";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ReportGenerator() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const { transactions } = useFinancials();
   const { toast } = useToast();
+  const { isEncryptionEnabled, isUnlocked } = useEncryption();
+  const [showExportWarning, setShowExportWarning] = useState(false);
 
   const handleDownloadCsv = () => {
     if (!dateRange?.from || !dateRange?.to) {
       toast({ title: "Please select a date range.", variant: "destructive" });
+      return;
+    }
+
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: "Encryption Locked",
+        description: "Please unlock encryption in settings to export data.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -32,10 +55,20 @@ export function ReportGenerator() {
       return;
     }
 
+    // Show warning if encryption is enabled
+    if (isEncryptionEnabled && isUnlocked) {
+      setShowExportWarning(true);
+      return;
+    }
+
+    downloadCsv(filteredTransactions);
+  };
+
+  const downloadCsv = (transactionsToExport: typeof transactions) => {
     const headers = ["ID", "Type", "Description", "Category", "Amount", "Date"];
     const csvRows = [
       headers.join(','),
-      ...filteredTransactions.map(t => [
+      ...transactionsToExport.map(t => [
         t.id,
         t.type,
         `"${t.description.replace(/"/g, '""')}"`,
@@ -112,7 +145,37 @@ export function ReportGenerator() {
         <div className="text-sm text-muted-foreground">
           Note: "Export as PDF" uses your browser's print functionality. Set the destination to "Save as PDF" for the best result.
         </div>
+        {isEncryptionEnabled && (
+          <div className="text-xs text-muted-foreground">
+            ⚠️ Exported CSV files will contain unencrypted data. Keep them secure.
+          </div>
+        )}
       </CardContent>
+      
+      <AlertDialog open={showExportWarning} onOpenChange={setShowExportWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Export Unencrypted Data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your data is encrypted in the database, but the exported CSV file will contain unencrypted data.
+              Make sure to store the exported file securely and delete it when no longer needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              const filteredTransactions = transactions.filter(t => {
+                const txDate = new Date(t.date);
+                return dateRange && txDate >= dateRange.from! && txDate <= dateRange.to!;
+              });
+              downloadCsv(filteredTransactions);
+              setShowExportWarning(false);
+            }}>
+              Continue Export
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

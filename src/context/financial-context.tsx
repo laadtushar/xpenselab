@@ -15,6 +15,7 @@ import { format, startOfMonth, endOfMonth, isWithinInterval, addDays, addWeeks, 
 import { defaultCategories } from '@/lib/default-categories';
 import { siteConfig } from '@/config/site';
 import { useToast } from '@/hooks/use-toast';
+import { useEncryption } from '@/context/encryption-context';
 
 const AI_REQUEST_LIMIT = siteConfig.limits.aiRequestsPerDay;
 
@@ -56,6 +57,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const userId = user?.uid;
   const { toast } = useToast();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   // Data References
   const userDocRef = useMemoFirebase(() => userId ? doc(firestore, 'users', userId) : null, [firestore, userId]);
@@ -65,13 +67,14 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const budgetsRef = useMemoFirebase(() => userId ? collection(firestore, 'users', userId, 'budgets') : null, [firestore, userId]);
   const recurringRef = useMemoFirebase(() => userId ? collection(firestore, 'users', userId, 'recurringTransactions') : null, [firestore, userId]);
 
-  // Data Fetching
-  const { data: userData, isLoading: isLoadingUser } = useDoc<UserData>(userDocRef);
-  const { data: incomesData, isLoading: loadingIncomes } = useCollection<Income>(incomesRef);
-  const { data: expensesData, isLoading: loadingExpenses } = useCollection<Expense>(expensesRef);
-  const { data: categoriesData, isLoading: loadingCategories } = useCollection<Category>(categoriesRef);
-  const { data: budgetsData, isLoading: loadingBudgets } = useCollection<Budget>(budgetsRef);
-  const { data: recurringData, isLoading: loadingRecurring } = useCollection<RecurringTransaction>(recurringRef);
+  // Data Fetching - pass encryption key if encryption is enabled and unlocked
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
+  const { data: userData, isLoading: isLoadingUser } = useDoc<UserData>(userDocRef, encryptionKeyForHooks);
+  const { data: incomesData, isLoading: loadingIncomes } = useCollection<Income>(incomesRef, encryptionKeyForHooks);
+  const { data: expensesData, isLoading: loadingExpenses } = useCollection<Expense>(expensesRef, encryptionKeyForHooks);
+  const { data: categoriesData, isLoading: loadingCategories } = useCollection<Category>(categoriesRef, encryptionKeyForHooks);
+  const { data: budgetsData, isLoading: loadingBudgets } = useCollection<Budget>(budgetsRef, encryptionKeyForHooks);
+  const { data: recurringData, isLoading: loadingRecurring } = useCollection<RecurringTransaction>(recurringRef, encryptionKeyForHooks);
   
   const incomes = useMemo(() => incomesData || [], [incomesData]);
   const expenses = useMemo(() => expensesData || [], [expensesData]);
@@ -157,7 +160,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
             }
         } else {
             // No duplicates found, just set the flag so we don't run this check again
-            await updateDocumentNonBlocking(doc(firestore, 'users', userId), { hasRunCategoryCleanup: true });
+            await updateDocumentNonBlocking(doc(firestore, 'users', userId), { hasRunCategoryCleanup: true }, encryptionKeyForHooks);
         }
     };
 
@@ -169,9 +172,9 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     const ref = transaction.type === 'income' ? incomesRef : expensesRef;
     if (ref) {
-      addDocumentNonBlocking(ref, { ...transaction, userId });
+      addDocumentNonBlocking(ref, { ...transaction, userId }, encryptionKeyForHooks);
     }
-  }, [userId, incomesRef, expensesRef]);
+  }, [userId, incomesRef, expensesRef, encryptionKeyForHooks]);
   
   // Handle Recurring Transactions
   useEffect(() => {
@@ -265,7 +268,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const updateTransaction = (id: string, type: 'income' | 'expense', data: Partial<Omit<Transaction, 'id' | 'userId'>>) => {
     if (!userId || !firestore) return;
     const path = type === 'income' ? `users/${userId}/incomes/${id}` : `users/${userId}/expenses/${id}`;
-    updateDocumentNonBlocking(doc(firestore, path), data);
+    updateDocumentNonBlocking(doc(firestore, path), data, encryptionKeyForHooks);
   };
 
   const deleteTransaction = (id: string, type: 'income' | 'expense') => {
@@ -302,22 +305,22 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
     if (existingBudget) {
       const docRef = doc(firestore, "users", userId, "budgets", existingBudget.id);
-      setDocumentNonBlocking(docRef, budgetData, { merge: true });
+      setDocumentNonBlocking(docRef, budgetData, { merge: true }, encryptionKeyForHooks);
     } else {
-      addDocumentNonBlocking(budgetsRef, budgetData);
+      addDocumentNonBlocking(budgetsRef, budgetData, encryptionKeyForHooks);
     }
   };
 
   const addCategory = async (category: Omit<Category, 'id' | 'userId'>) => {
     if (!categoriesRef || !userId) return;
-    addDocumentNonBlocking(categoriesRef, { ...category, userId });
+    addDocumentNonBlocking(categoriesRef, { ...category, userId }, encryptionKeyForHooks);
   };
 
   const updateCategory = (category: Category) => {
     if (!userId || !firestore) return;
     const docRef = doc(firestore, "users", userId, "categories", category.id);
     const { id, ...categoryData } = category;
-    setDocumentNonBlocking(docRef, categoryData, { merge: true });
+    setDocumentNonBlocking(docRef, categoryData, { merge: true }, encryptionKeyForHooks);
   };
 
   const deleteCategory = (id: string) => {
@@ -383,13 +386,13 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
     if (Object.keys(updates).length > 0) {
       const userRef = doc(firestore, "users", userId);
-      updateDocumentNonBlocking(userRef, updates);
+      updateDocumentNonBlocking(userRef, updates, encryptionKeyForHooks);
     }
 
     // Merge other data
     const { saltEdgeCustomerId, saltEdgeConnections, ...otherData } = data;
     if (Object.keys(otherData).length > 0 || (saltEdgeCustomerId !== undefined && saltEdgeCustomerId !== deleteField()) || (saltEdgeConnections !== undefined && saltEdgeConnections !== deleteField())) {
-      setDocumentNonBlocking(userDocRef, data, { merge: true });
+      setDocumentNonBlocking(userDocRef, data, { merge: true }, encryptionKeyForHooks);
     }
   };
 
@@ -418,12 +421,12 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     if (userData.lastAiRequestDate === today) {
         updateDocumentNonBlocking(userDocRef, {
             aiRequestCount: increment(1)
-        });
+        }, encryptionKeyForHooks);
     } else {
         updateDocumentNonBlocking(userDocRef, {
             aiRequestCount: 1,
             lastAiRequestDate: today
-        });
+        }, encryptionKeyForHooks);
     }
   }, [userDocRef, userData]);
 
@@ -456,7 +459,7 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     isLoadingCategories: loadingCategories,
     canMakeAiRequest,
     incrementAiRequestCount,
-  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory, deleteUnusedCategories]);
+  }), [transactions, incomes, expenses, currentMonthExpenses, addTransaction, budget, incomeCategories, expenseCategories, userData, loadingUser, loadingIncomes, loadingExpenses, loadingBudgets, loadingCategories, loadingRecurring, isLoadingUser, canMakeAiRequest, incrementAiRequestCount, deleteTransaction, updateTransaction, updateUser, setBudget, addCategory, updateCategory, deleteCategory, deleteUnusedCategories, encryptionKeyForHooks]);
 
   return (
     <FinancialContext.Provider value={value}>
@@ -478,10 +481,21 @@ export const useAiRequest = <T, U>(
   aiFlow: (input: T) => Promise<U>
 ) => {
   const { canMakeAiRequest, incrementAiRequestCount } = useFinancials();
+  const { isEncryptionEnabled, isUnlocked } = useEncryption();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const makeRequest = useCallback(async (input: T): Promise<U | null> => {
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: "Encryption Locked",
+        description: "Please unlock encryption in settings to use AI features.",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
     const { canRequest, reason } = canMakeAiRequest();
     if (!canRequest) {
       toast({
@@ -508,7 +522,7 @@ export const useAiRequest = <T, U>(
     } finally {
       setIsLoading(false);
     }
-  }, [aiFlow, canMakeAiRequest, incrementAiRequestCount, toast]);
+  }, [aiFlow, canMakeAiRequest, incrementAiRequestCount, toast, isEncryptionEnabled, isUnlocked]);
 
   return { makeRequest, isLoading };
 };

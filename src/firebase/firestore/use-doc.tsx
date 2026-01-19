@@ -10,6 +10,8 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { decryptDocument, detectDocumentType } from '@/lib/encryption-helpers';
+import type { CryptoKey } from '@/lib/encryption';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -36,10 +38,12 @@ export interface UseDocResult<T> {
  * @template T Optional type for document data. Defaults to any.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
  * The Firestore DocumentReference. Waits if null/undefined.
+ * @param {CryptoKey | null | undefined} encryptionKey - Optional encryption key for decrypting data
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
+  encryptionKey?: CryptoKey | null,
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
@@ -61,9 +65,22 @@ export function useDoc<T = any>(
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
+      async (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
+          let docData = { ...(snapshot.data() as T), id: snapshot.id };
+          
+          // Decrypt if encryption key is provided
+          if (encryptionKey) {
+            try {
+              const docType = detectDocumentType(docData, snapshot.ref.path);
+              docData = await decryptDocument(docData, docType, encryptionKey);
+            } catch (error) {
+              console.error('Failed to decrypt document:', error);
+              // Continue with encrypted data rather than failing
+            }
+          }
+          
+          setData(docData);
         } else {
           // Document does not exist
           setData(null);
@@ -87,7 +104,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+  }, [memoizedDocRef, encryptionKey]); // Re-run if the memoizedDocRef or encryption key changes.
 
   return { data, isLoading, error };
 }

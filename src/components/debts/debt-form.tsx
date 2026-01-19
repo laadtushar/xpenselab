@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { useEncryption } from '@/context/encryption-context';
 import {
   Dialog,
   DialogContent,
@@ -76,8 +77,19 @@ export function AddDebtDialog() {
     const fromUserName = values.direction === 'iOwe' ? user.displayName || user.email : values.otherPartyName;
     const toUserName = values.direction === 'iOwe' ? values.otherPartyName : user.displayName || user.email;
 
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add debts.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const debtsCol = collection(firestore, 'debts');
+      const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
       addDocumentNonBlocking(debtsCol, {
         fromUserId,
         toUserId,
@@ -87,7 +99,7 @@ export function AddDebtDialog() {
         description: values.description,
         settled: false,
         createdBy: user.uid,
-      });
+      }, encryptionKeyForWrite);
 
       toast({
         title: 'Debt Recorded',

@@ -27,7 +27,12 @@ export default function ExpensesPage() {
     // @ts-ignore
     if (filters.search) {
         // @ts-ignore
-      filtered = filtered.filter(e => e.description.toLowerCase().includes(filters.search.toLowerCase()));
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(e => {
+        // Handle encrypted/decrypted descriptions safely
+        const description = e.description || '';
+        return typeof description === 'string' && description.toLowerCase().includes(searchLower);
+      });
     }
     // @ts-ignore
     if (filters.category) {

@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2, Trash2 } from 'lucide-react';
 import { useFinancials } from '@/context/financial-context';
+import { useEncryption } from '@/context/encryption-context';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -28,13 +29,15 @@ export function RecurringTransactionList() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { userData } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
   const recurringQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'recurringTransactions'), orderBy('nextDueDate', 'asc'));
   }, [firestore, user]);
 
-  const { data: recurringTxs, isLoading } = useCollection<RecurringTransaction>(recurringQuery);
+  const { data: recurringTxs, isLoading } = useCollection<RecurringTransaction>(recurringQuery, encryptionKeyForHooks);
 
   const handleDelete = (id: string) => {
     if (!firestore || !user) return;

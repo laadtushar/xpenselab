@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { useEncryption } from '@/context/encryption-context';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ export function AddLoanDialog() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,16 +62,27 @@ export function AddLoanDialog() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore) return;
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add loans.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const loansCol = collection(firestore, 'users', user.uid, 'loans');
+      const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
       await addDocumentNonBlocking(loansCol, {
         ...values,
         userId: user.uid,
         amountRemaining: values.initialAmount,
         status: 'active',
         startDate: values.startDate.toISOString(),
-      });
+      }, encryptionKeyForWrite);
 
       toast({
         title: 'Loan Added',

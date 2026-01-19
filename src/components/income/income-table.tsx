@@ -2,6 +2,8 @@
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
+import { useEncryption } from "@/context/encryption-context";
+import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,8 @@ interface IncomeTableProps {
 
 export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTableProps) {
   const { deleteTransaction, isLoading, userData, addTransaction, incomeCategories, updateTransaction } = useFinancials();
+  const { isEncryptionEnabled, isUnlocked } = useEncryption();
+  const { toast } = useToast();
   const [newIncome, setNewIncome] = useState<Partial<Income>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Partial<Income>>({});
@@ -60,6 +64,16 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
   };
 
   const handleAddIncome = async () => {
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add income.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (newIncome.description && newIncome.amount && newIncome.date && newIncome.category) {
       await addTransaction({ ...newIncome, type: 'income' } as any);
       setNewIncome({});

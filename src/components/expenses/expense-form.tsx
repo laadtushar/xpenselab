@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useFinancials, useAiRequest } from "@/context/financial-context";
+import { useEncryption } from "@/context/encryption-context";
 import { categorizeExpense } from "@/ai/flows/categorize-expenses";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -38,6 +39,7 @@ const formSchema = z.object({
 export function ExpenseForm() {
   const [open, setOpen] = useState(false);
   const { addTransaction, expenseCategories, userData } = useFinancials();
+  const { isEncryptionEnabled, isUnlocked } = useEncryption();
   const { makeRequest: makeCategorizationRequest, isLoading: isCategorizing } = useAiRequest(categorizeExpense);
   const { toast } = useToast();
   const isPremium = userData?.tier === 'premium';
@@ -74,6 +76,16 @@ export function ExpenseForm() {
   }, [autoCategorize]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add expenses.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     addTransaction({
       type: 'expense',
       ...values,

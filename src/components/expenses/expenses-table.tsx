@@ -2,6 +2,8 @@
 "use client";
 
 import { useFinancials } from "@/context/financial-context";
+import { useEncryption } from "@/context/encryption-context";
+import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/icons/category-icon";
@@ -46,6 +48,8 @@ interface ExpensesTableProps {
 
 export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: ExpensesTableProps) {
   const { deleteTransaction, isLoading, userData, addTransaction, expenseCategories, updateTransaction } = useFinancials();
+  const { isEncryptionEnabled, isUnlocked } = useEncryption();
+  const { toast } = useToast();
   const [newExpense, setNewExpense] = useState<Partial<Expense>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Partial<Expense>>({});
@@ -61,6 +65,16 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
   };
 
   const handleAddExpense = async () => {
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add expenses.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (newExpense.description && newExpense.amount && newExpense.date && newExpense.category) {
       await addTransaction({ ...newExpense, type: 'expense' } as any);
       setNewExpense({});

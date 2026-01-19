@@ -8,6 +8,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
+import { useEncryption } from '@/context/encryption-context';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ export function AddRecurringTransactionDialog() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { incomeCategories, expenseCategories } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,15 +71,26 @@ export function AddRecurringTransactionDialog() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore) return;
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to add recurring transactions.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const recurringCol = collection(firestore, 'users', user.uid, 'recurringTransactions');
+      const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
       await addDocumentNonBlocking(recurringCol, {
         ...values,
         userId: user.uid,
         startDate: values.startDate.toISOString(),
         nextDueDate: values.startDate.toISOString(),
-      });
+      }, encryptionKeyForWrite);
 
       toast({
         title: 'Recurring Transaction Added',

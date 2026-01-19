@@ -29,6 +29,14 @@ export type User = {
     token_type: string;
     user_id: string;
   };
+  // Encryption fields
+  isEncrypted?: boolean; // Indicates encryption is enabled
+  encryptionEnabledAt?: string; // ISO string timestamp
+  migrationState?: {
+    lastProcessedId?: string;
+    totalProcessed: number;
+    status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  };
 };
 
 export type Transaction = {

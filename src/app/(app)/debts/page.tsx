@@ -11,10 +11,13 @@ import { collection, query, where, or, and } from 'firebase/firestore';
 import type { Debt } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
+import { useEncryption } from '@/context/encryption-context';
 
 export default function DebtsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
   const debtsOwedToUserQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -41,9 +44,9 @@ export default function DebtsPage() {
   }, [user, firestore]);
 
 
-  const { data: debtsToUser, isLoading: isLoadingTo } = useCollection<Debt>(debtsOwedToUserQuery);
-  const { data: debtsFromUser, isLoading: isLoadingFrom } = useCollection<Debt>(debtsOwedByUserQuery);
-  const { data: settledDebts, isLoading: isLoadingSettled } = useCollection<Debt>(settledDebtsQuery);
+  const { data: debtsToUser, isLoading: isLoadingTo } = useCollection<Debt>(debtsOwedToUserQuery, encryptionKeyForHooks);
+  const { data: debtsFromUser, isLoading: isLoadingFrom } = useCollection<Debt>(debtsOwedByUserQuery, encryptionKeyForHooks);
+  const { data: settledDebts, isLoading: isLoadingSettled } = useCollection<Debt>(settledDebtsQuery, encryptionKeyForHooks);
 
   const isLoading = isLoadingTo || isLoadingFrom || isLoadingSettled;
 

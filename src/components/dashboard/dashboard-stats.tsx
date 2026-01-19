@@ -12,18 +12,22 @@ import { formatCurrency } from "@/lib/utils";
 import * as React from "react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useEncryption } from '@/context/encryption-context';
+import { decryptDocument, detectDocumentType } from '@/lib/encryption-helpers';
 
 
 function useSharedFinances() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+  const encryptionKeyForHooks = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
 
   const groupsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return query(collection(firestore, 'groups'), where('members', 'array-contains', user.uid));
   }, [firestore, user?.uid]);
 
-  const { data: groups, isLoading: isLoadingGroups } = useCollection<Group>(groupsQuery);
+  const { data: groups, isLoading: isLoadingGroups } = useCollection<Group>(groupsQuery, encryptionKeyForHooks);
 
   const debtsOwedToUserQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -40,9 +44,9 @@ function useSharedFinances() {
     return query(collection(firestore, 'users', user.uid, 'loans'), where('status', '==', 'active'));
   }, [firestore, user?.uid]);
 
-  const { data: debtsToUser, isLoading: isLoadingDebtsTo } = useCollection<Debt>(debtsOwedToUserQuery);
-  const { data: debtsFromUser, isLoading: isLoadingDebtsFrom } = useCollection<Debt>(debtsOwedByUserQuery);
-  const { data: activeLoans, isLoading: isLoadingLoans } = useCollection<Loan>(loansQuery);
+  const { data: debtsToUser, isLoading: isLoadingDebtsTo } = useCollection<Debt>(debtsOwedToUserQuery, encryptionKeyForHooks);
+  const { data: debtsFromUser, isLoading: isLoadingDebtsFrom } = useCollection<Debt>(debtsOwedByUserQuery, encryptionKeyForHooks);
+  const { data: activeLoans, isLoading: isLoadingLoans } = useCollection<Loan>(loansQuery, encryptionKeyForHooks);
 
   const [groupBalances, setGroupBalances] = React.useState<{ [key: string]: number }>({});
   const [isLoadingGroupExpenses, setIsLoadingGroupExpenses] = React.useState(false);
@@ -51,12 +55,27 @@ function useSharedFinances() {
     if (!groups || !firestore || !user) return;
 
     setIsLoadingGroupExpenses(true);
-    const promises = groups.map(group => {
+    const promises = groups.map(async group => {
       const expensesQuery = query(collection(firestore, 'groups', group.id, 'sharedExpenses'));
-      return getDocs(expensesQuery).then(snapshot => ({
+      const snapshot = await getDocs(expensesQuery);
+      const expenses = await Promise.all(
+        snapshot.docs.map(async doc => {
+          let expenseData = doc.data() as SharedExpense;
+          // Decrypt if encryption is enabled and unlocked
+          if (encryptionKeyForHooks) {
+            try {
+              expenseData = await decryptDocument(expenseData, 'SharedExpense', encryptionKeyForHooks);
+            } catch (error) {
+              console.error('Failed to decrypt shared expense:', error);
+            }
+          }
+          return expenseData;
+        })
+      );
+      return {
         groupId: group.id,
-        expenses: snapshot.docs.map(doc => doc.data() as SharedExpense)
-      }));
+        expenses,
+      };
     });
 
     Promise.all(promises).then(results => {
@@ -79,7 +98,7 @@ function useSharedFinances() {
       setGroupBalances(newBalances);
       setIsLoadingGroupExpenses(false);
     });
-  }, [groups, firestore, user]);
+  }, [groups, firestore, user, encryptionKeyForHooks]);
 
   const { youOwe, youAreOwed, debtsOwedToUser, debtsOwedByUser, groupOwedToUser, groupOwedByUser, totalLoanAmount } = useMemo(() => {
     const debtsOwedToUser = debtsToUser?.reduce((sum, debt) => sum + debt.amount, 0) || 0;

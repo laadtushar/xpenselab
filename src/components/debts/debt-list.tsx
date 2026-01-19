@@ -10,6 +10,7 @@ import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { useFinancials } from '@/context/financial-context';
+import { useEncryption } from '@/context/encryption-context';
 
 interface DebtListProps {
   debts: Debt[];
@@ -29,6 +30,7 @@ export function DebtList({ debts, type }: DebtListProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { userData } = useFinancials();
+  const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
 
   const handleSettleDebt = (debtId: string) => {
     if (!firestore || !user) return;
@@ -37,9 +39,21 @@ export function DebtList({ debts, type }: DebtListProps) {
         toast({ title: "Action not allowed here", variant: "destructive" });
         return;
     }
+    
+    // Check if encryption is enabled but not unlocked
+    if (isEncryptionEnabled && !isUnlocked) {
+      toast({
+        title: 'Encryption Locked',
+        description: 'Please unlock encryption in settings to settle debts.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const docRef = doc(firestore, 'debts', debtId);
-    setDocumentNonBlocking(docRef, { settled: true }, { merge: true });
+    const encryptionKeyForWrite = isEncryptionEnabled && isUnlocked ? encryptionKey : null;
+    // Note: Only updating 'settled' field which is not encrypted, but still pass key for consistency
+    setDocumentNonBlocking(docRef, { settled: true }, { merge: true }, encryptionKeyForWrite);
     
     toast({
       title: 'Debt Settled',
