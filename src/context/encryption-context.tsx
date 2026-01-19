@@ -77,6 +77,11 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   const keyRef = useRef<CryptoKey | null>(null);
   // CRITICAL: Prevent concurrent encryption operations (change code, regenerate recovery codes)
   const [isEncryptionOperationInProgress, setIsEncryptionOperationInProgress] = useState(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+  
+  // Session storage keys
+  const SESSION_STORAGE_KEY = 'xpenselab_unlock_session';
+  const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
   
   // Derived state
   const isEncryptionEnabled = userData?.isEncrypted === true;
@@ -84,15 +89,182 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     if (!incomesData || !expensesData) return false;
     return (incomesData.length > 0) || (expensesData.length > 0);
   }, [incomesData, expensesData]);
-  const isLoading = loadingUser || isLoadingUser;
+  const isLoading = loadingUser || isLoadingUser || isRestoringSession;
   const isUnlocked = encryptionKey !== null && keyRef.current !== null;
   const isCryptoAvailable = isWebCryptoAvailable();
+  
+  // Helper to encrypt code for session storage
+  const encryptCodeForSession = useCallback(async (code: string, userId: string): Promise<string> => {
+    // Create a session-specific key from user ID + a random session ID
+    const sessionId = sessionStorage.getItem('xpenselab_session_id') || crypto.randomUUID();
+    sessionStorage.setItem('xpenselab_session_id', sessionId);
+    
+    const encoder = new TextEncoder();
+    const keyMaterial = encoder.encode(`${userId}:${sessionId}`);
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyMaterial,
+      'PBKDF2',
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const derivedKey = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      key,
+      {
+        name: 'AES-GCM',
+        length: 256,
+      },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    
+    const codeData = encoder.encode(code);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv,
+      },
+      derivedKey,
+      codeData
+    );
+    
+    const saltBase64 = btoa(String.fromCharCode(...salt));
+    const ivBase64 = btoa(String.fromCharCode(...iv));
+    const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+    
+    return JSON.stringify({
+      salt: saltBase64,
+      iv: ivBase64,
+      encrypted: encryptedBase64,
+      timestamp: Date.now(),
+    });
+  }, []);
+  
+  // Helper to decrypt code from session storage
+  const decryptCodeFromSession = useCallback(async (encryptedData: string, userId: string): Promise<string | null> => {
+    try {
+      const sessionId = sessionStorage.getItem('xpenselab_session_id');
+      if (!sessionId) return null;
+      
+      const data = JSON.parse(encryptedData);
+      const timestamp = data.timestamp;
+      
+      // Check if session is still valid (within duration)
+      if (Date.now() - timestamp > SESSION_DURATION) {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        return null;
+      }
+      
+      const encoder = new TextEncoder();
+      const keyMaterial = encoder.encode(`${userId}:${sessionId}`);
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyMaterial,
+        'PBKDF2',
+        false,
+        ['deriveBits', 'deriveKey']
+      );
+      
+      const salt = Uint8Array.from(atob(data.salt), c => c.charCodeAt(0));
+      const derivedKey = await crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: salt,
+          iterations: 100000,
+          hash: 'SHA-256',
+        },
+        key,
+        {
+          name: 'AES-GCM',
+          length: 256,
+        },
+        false,
+        ['encrypt', 'decrypt']
+      );
+      
+      const iv = Uint8Array.from(atob(data.iv), c => c.charCodeAt(0));
+      const encrypted = Uint8Array.from(atob(data.encrypted), c => c.charCodeAt(0));
+      
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: 'AES-GCM',
+          iv: iv,
+        },
+        derivedKey,
+        encrypted
+      );
+      
+      return new TextDecoder().decode(decrypted);
+    } catch (error) {
+      console.warn('Failed to decrypt session code:', error);
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+  }, []);
+  
+  // Restore unlock session on mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      if (!userId || !isEncryptionEnabled || isUnlocked) {
+        setIsRestoringSession(false);
+        return;
+      }
+      
+      try {
+        const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (!storedSession) {
+          setIsRestoringSession(false);
+          return;
+        }
+        
+        const code = await decryptCodeFromSession(storedSession, userId);
+        if (!code) {
+          setIsRestoringSession(false);
+          return;
+        }
+        
+        // Try to unlock with the restored code
+        try {
+          const success = await unlockEncryption(code);
+          if (success) {
+            console.log('Session restored successfully');
+          }
+        } catch (error) {
+          // If unlock fails, clear the session
+          console.warn('Failed to restore session:', error);
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      } catch (error) {
+        console.warn('Failed to restore unlock session:', error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } finally {
+        setIsRestoringSession(false);
+      }
+    };
+    
+    if (userId && isEncryptionEnabled && !isUnlocked && !isLoading) {
+      restoreSession();
+    } else {
+      setIsRestoringSession(false);
+    }
+  }, [userId, isEncryptionEnabled, isUnlocked, isLoading, decryptCodeFromSession]);
   
   // Clear key from memory on unmount or when user logs out
   useEffect(() => {
     if (!user) {
       setEncryptionKey(null);
       keyRef.current = null;
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      sessionStorage.removeItem('xpenselab_session_id');
     }
   }, [user]);
   

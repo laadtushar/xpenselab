@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useEncryption } from '@/context/encryption-context';
 import { decryptDocument, detectDocumentType } from '@/lib/encryption-helpers';
 import { StatsCardSkeleton } from "@/components/ui/skeletons";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 
 function useSharedFinances() {

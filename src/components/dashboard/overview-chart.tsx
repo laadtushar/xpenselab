@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useFinancials } from "@/context/financial-context"
 import { subDays, format, startOfDay } from "date-fns"
 import { Loader2 } from "lucide-react"
+import { ChartAnimationWrapper } from "@/components/ui/chart-animation-wrapper"
 
 const chartConfig = {
   income: { label: "Income", color: "hsl(var(--chart-2))" },
@@ -57,35 +58,37 @@ export function OverviewChart() {
         <CardDescription>Income vs. Expenses</CardDescription>
       </CardHeader>
       <CardContent className="w-full min-w-0 max-w-full overflow-x-auto">
-        <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[300px]">
-          <BarChart accessibilityLayer data={data}>
-            <XAxis
-              dataKey="name"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <YAxis 
+        <ChartAnimationWrapper>
+          <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[300px]">
+            <BarChart accessibilityLayer data={data}>
+              <XAxis
+                dataKey="name"
                 tickLine={false}
-                axisLine={false}
                 tickMargin={10}
-                tickFormatter={(value) => `$${value}`}
-            />
-            <ChartTooltip cursor={{fill: 'hsl(var(--accent))', radius: 'var(--radius)'}} content={<ChartTooltipContent indicator="dot" />} />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="income" radius={4}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="var(--color-income)" className="transition-opacity" opacity={1} />
-              ))}
-            </Bar>
-            <Bar dataKey="expenses" radius={4}>
+                axisLine={false}
+                tickFormatter={(value) => value.slice(0, 3)}
+              />
+              <YAxis 
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  tickFormatter={(value) => `$${value}`}
+              />
+              <ChartTooltip cursor={{fill: 'hsl(var(--accent))', radius: 'var(--radius)'}} content={<ChartTooltipContent indicator="dot" />} />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="income" radius={4} animationDuration={800}>
                 {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill="var(--color-expenses)" className="transition-opacity" opacity={1} />
+                  <Cell key={`cell-${index}`} fill="var(--color-income)" className="transition-opacity" opacity={1} />
                 ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+              </Bar>
+              <Bar dataKey="expenses" radius={4} animationDuration={800}>
+                  {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill="var(--color-expenses)" className="transition-opacity" opacity={1} />
+                  ))}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </ChartAnimationWrapper>
       </CardContent>
     </Card>
   )
