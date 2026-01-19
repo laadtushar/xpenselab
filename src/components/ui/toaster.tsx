@@ -14,16 +14,26 @@ import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
 function ToastWithCheckmark({ id, title, description, action, variant, open, ...props }: any) {
+  // Always call hooks in the same order, regardless of conditions
   const isSuccess = !variant || variant === 'default';
   const [showCheckmark, setShowCheckmark] = useState(false);
 
+  // Always call useEffect with consistent cleanup function
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    
     if (open && isSuccess) {
-      const timer = setTimeout(() => setShowCheckmark(true), 100);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setShowCheckmark(true), 100);
     } else {
       setShowCheckmark(false);
     }
+    
+    // Always return a cleanup function for consistency
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [open, isSuccess]);
   
   return (

@@ -301,9 +301,9 @@ export default function PrivacyPage() {
                       For requests that cannot be handled in-app, contact us at:
                     </p>
                     <Button variant="outline" size="sm" asChild>
-                      <a href="mailto:[Your Contact Email]?subject=GDPR Request">
+                      <a href="mailto:info@xpenselab.com?subject=GDPR Request">
                         <Mail className="h-4 w-4 mr-2" />
-                        [Your Contact Email]
+                        info@xpenselab.com
                       </a>
                     </Button>
                   </div>
@@ -463,9 +463,9 @@ export default function PrivacyPage() {
                   For questions about data protection or to exercise your rights:
                 </p>
                 <Button variant="outline" size="sm" asChild>
-                  <a href="mailto:[Your Contact Email]?subject=GDPR Request">
+                  <a href="mailto:info@xpenselab.com?subject=GDPR Request">
                     <Mail className="h-4 w-4 mr-2" />
-                    [Your Contact Email]
+                    info@xpenselab.com
                   </a>
                 </Button>
               </div>

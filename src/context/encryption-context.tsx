@@ -850,6 +850,9 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     let isMounted = true;
     
     const restoreSession = async () => {
+      // Ensure isRestoringSession is true at the start
+      if (isMounted) setIsRestoringSession(true);
+      
       if (!userId || !isEncryptionEnabled || isUnlocked || isLoadingUser || loadingUser) {
         if (isMounted) setIsRestoringSession(false);
         return;
@@ -880,40 +883,75 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         }
         
         // Try to unlock with the restored code
+        // Keep isRestoringSession true until unlock completes (including salt sync)
+        // This ensures isLoading stays true and skeleton shows instead of modal
         try {
+          console.log('Attempting to restore session with stored code...');
           const success = await unlockEncryption(code);
           if (success && isMounted) {
-            console.log('Session restored successfully');
+            console.log('Session restored successfully - waiting for isUnlocked to propagate');
+            // Don't clear isRestoringSession here - let the effect below handle it
+            // This ensures isUnlocked has propagated and salt sync toast has appeared
+            // before we clear isRestoringSession
           } else if (!success && isMounted) {
             console.warn('Unlock returned false, clearing session');
             sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            // Unlock failed, safe to clear restoring flag
+            if (isMounted) setIsRestoringSession(false);
           }
         } catch (error) {
           // If unlock fails, clear the session
           console.warn('Failed to restore session - unlock failed:', error);
           sessionStorage.removeItem(SESSION_STORAGE_KEY);
+          // Unlock failed, safe to clear restoring flag
+          if (isMounted) setIsRestoringSession(false);
         }
       } catch (error) {
         console.warn('Failed to restore unlock session:', error);
         sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      } finally {
         if (isMounted) setIsRestoringSession(false);
       }
+      // Note: We don't set isRestoringSession(false) in finally block for successful unlocks
+      // The effect below will handle it when isUnlocked becomes true
     };
     
     // Only restore if we have user data loaded and encryption is enabled
     // Wait for userData to be loaded (isEncryptionEnabled depends on userData)
     if (userId && userData && isEncryptionEnabled && !isUnlocked && !isLoadingUser && !loadingUser) {
+      // We have all conditions met - attempt to restore session
+      // isRestoringSession will be cleared by restoreSession() or the effect below
       restoreSession();
     } else if (!isLoadingUser && !loadingUser && userData !== undefined) {
-      // Only set to false if we've actually loaded user data (not just waiting)
-      setIsRestoringSession(false);
+      // User data is loaded - we can now determine if we need to restore
+      // If encryption is not enabled OR already unlocked, we don't need to restore
+      if (!isEncryptionEnabled || isUnlocked) {
+        if (isMounted) setIsRestoringSession(false);
+      }
+      // If encryption is enabled but not unlocked, keep isRestoringSession true
+      // until we check for a session (which happens in restoreSession)
     }
+    // If userData is still loading, keep isRestoringSession true
     
     return () => {
       isMounted = false;
     };
   }, [userId, userData, isEncryptionEnabled, isUnlocked, isLoadingUser, loadingUser, decryptCodeFromSession, unlockEncryption]);
+  
+  // Clear isRestoringSession when unlock completes
+  // This ensures we don't show the unlock modal during salt sync or state propagation
+  useEffect(() => {
+    if (isUnlocked && isRestoringSession) {
+      // Wait longer to ensure salt sync toast has appeared and all async operations complete
+      // Salt sync toast appears ~2 seconds after unlock, so we wait 2.5 seconds to be safe
+      // This ensures the skeleton shows throughout the entire unlock process
+      const timeoutId = setTimeout(() => {
+        setIsRestoringSession(false);
+      }, 2500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isUnlocked, isRestoringSession]);
+  
   
   /**
    * Change encryption code (requires old and new codes)

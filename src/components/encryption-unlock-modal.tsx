@@ -30,6 +30,7 @@ export function EncryptionUnlockModal() {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justUnlocked, setJustUnlocked] = useState(false);
 
   const form = useForm<z.infer<typeof unlockFormSchema>>({
     resolver: zodResolver(unlockFormSchema),
@@ -43,6 +44,11 @@ export function EncryptionUnlockModal() {
     if (isEncryptionEnabled && !isUnlocked && !isLoading) {
       form.reset();
       setError(null);
+      setJustUnlocked(false);
+    }
+    // Reset justUnlocked flag when unlock state changes
+    if (isUnlocked) {
+      setJustUnlocked(false);
     }
   }, [isEncryptionEnabled, isUnlocked, isLoading, form]);
 
@@ -51,15 +57,21 @@ export function EncryptionUnlockModal() {
     
     setIsProcessing(true);
     setError(null);
+    setJustUnlocked(false);
     
     try {
       const success = await unlockEncryption(values.code);
       if (success) {
+        // Immediately hide the modal by setting justUnlocked flag
+        setJustUnlocked(true);
         form.reset();
-        toast({
-          title: "Unlocked Successfully",
-          description: "Your encrypted data is now accessible.",
-        });
+        // Show toast after a brief delay to ensure modal closes first
+        setTimeout(() => {
+          toast({
+            title: "Unlocked Successfully",
+            description: "Your encrypted data is now accessible.",
+          });
+        }, 100);
       }
     } catch (error: any) {
       const errorMessage = error.message || "Failed to unlock encryption. Please check your code.";
@@ -71,12 +83,17 @@ export function EncryptionUnlockModal() {
   };
 
   // Show skeleton during loading phase (when we're checking encryption status)
-  // This prevents the modal from briefly flashing before disappearing
-  if (isLoading) {
+  // This prevents the modal from briefly flashing before appearing or disappearing
+  // Show skeleton if:
+  // 1. Currently loading (isLoading === true) - covers userData loading, session restoration, etc.
+  // 2. We just unlocked and are waiting for state to update
+  // This ensures skeleton shows BEFORE the unlock modal appears
+  if (isLoading || justUnlocked) {
     return (
       <Dialog open={true} onOpenChange={() => {}} modal={true}>
         <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
+            <DialogTitle className="sr-only">Loading encryption</DialogTitle>
             <div className="flex items-center gap-2">
               <Skeleton className="h-5 w-5 rounded" />
               <Skeleton className="h-6 w-48" />
@@ -99,7 +116,8 @@ export function EncryptionUnlockModal() {
   }
 
   // Show modal when encryption is enabled but not unlocked, and not loading
-  const shouldShow = isEncryptionEnabled && !isUnlocked && !isLoading;
+  // Also hide immediately if we just successfully unlocked
+  const shouldShow = isEncryptionEnabled && !isUnlocked && !isLoading && !justUnlocked;
 
   // Don't allow closing the dialog without unlocking
   const handleOpenChange = (open: boolean) => {

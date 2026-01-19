@@ -43,6 +43,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error | unknown, errorInfo: React.ErrorInfo) {
+    // Handle empty/null/undefined errors
+    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      const emptyError = new Error('An unknown error occurred (empty error object)');
+      emptyError.name = 'EmptyError';
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 Error Boundary caught an empty error object');
+        console.error('Error info:', errorInfo);
+      }
+      
+      if (this.props.onError) {
+        this.props.onError(emptyError, errorInfo);
+      }
+      return;
+    }
+    
     // Ensure we always have an Error object
     const errorObj = error instanceof Error 
       ? error 
