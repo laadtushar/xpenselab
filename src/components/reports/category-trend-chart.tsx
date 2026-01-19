@@ -167,8 +167,8 @@ export function CategoryTrendChart({ transactions, isLoading, timeGrain }: Categ
                     Top Categories Over Time
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={config} className="h-[300px] w-full">
+            <CardContent className="w-full min-w-0 max-w-full overflow-x-auto">
+                <ChartContainer config={config} className="h-[300px] w-full min-w-[300px]">
                     <BarChart accessibilityLayer data={data}>
                         <CartesianGrid vertical={false} />
                         <XAxis

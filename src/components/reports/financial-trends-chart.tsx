@@ -141,8 +141,8 @@ export function FinancialTrendsChart({ transactions, isLoading, timeGrain }: Fin
                     Income vs Expenses
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+            <CardContent className="w-full min-w-0 max-w-full overflow-x-auto">
+                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[300px]">
                     <AreaChart
                         accessibilityLayer
                         data={data}
