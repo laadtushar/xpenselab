@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, Settings } from 'lucide-react';
+import { LayoutDashboard, Wallet, ArrowLeftRight, PiggyBank, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileNavSheet } from '@/components/mobile-nav-sheet';
 
 const mainNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -69,19 +70,31 @@ export function MobileBottomNav() {
             <span className="text-[10px] font-medium leading-none">{label}</span>
           </Link>
         ))}
-        <Link
-          href="/settings"
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 px-2 py-2 transition-colors",
-            "hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
-            pathname.startsWith('/settings')
-              ? "text-primary bg-accent/50"
-              : "text-muted-foreground"
-          )}
-        >
-          <Settings className="h-5 w-5" />
-          <span className="text-[10px] font-medium leading-none">More</span>
-        </Link>
+        <MobileNavSheet>
+          <button
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 px-2 py-2 transition-colors w-full h-full",
+              "hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
+              pathname.startsWith('/categories') ||
+              pathname.startsWith('/splits') ||
+              pathname.startsWith('/debts') ||
+              pathname.startsWith('/loans') ||
+              pathname.startsWith('/recurring') ||
+              pathname.startsWith('/wellness') ||
+              pathname.startsWith('/forecast') ||
+              pathname.startsWith('/insights') ||
+              pathname.startsWith('/scan-receipt') ||
+              pathname.startsWith('/reports') ||
+              pathname.startsWith('/integrations') ||
+              pathname.startsWith('/settings')
+                ? "text-primary bg-accent/50"
+                : "text-muted-foreground"
+            )}
+          >
+            <MoreHorizontal className="h-5 w-5" />
+            <span className="text-[10px] font-medium leading-none">More</span>
+          </button>
+        </MobileNavSheet>
       </div>
     </nav>
   );
