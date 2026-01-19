@@ -3,8 +3,7 @@
 import React, { createContext, useContext, useMemo, useEffect, useCallback, useState, useRef } from 'react';
 import type { User as UserData } from '@/lib/types';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { collection } from 'firebase/firestore';
+import { doc, updateDoc, collection } from 'firebase/firestore';
 import {
   initializeEncryption,
   getEncryptionKey,
@@ -66,7 +65,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
   // Encryption state
   const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
   const [unlockAttempts, setUnlockAttempts] = useState(0);
-  const maxUnlockAttempts = 5;
+  const maxUnlockAttempts = 30;
   const keyRef = useRef<CryptoKey | null>(null);
   
   // Derived state
@@ -242,13 +241,22 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
           setUnlockAttempts(0);
           return true;
         }
+        // If decrypted !== testValue, main code didn't work, continue to recovery code check
       } catch (mainCodeError) {
-        // Main code failed, try recovery code
+        // Main code derivation failed (wrong code or encryption not initialized)
+        // Check if it's because encryption is not initialized
+        if (mainCodeError instanceof EncryptionError && mainCodeError.message.includes('not initialized')) {
+          throw mainCodeError; // Re-throw initialization errors
+        }
+        // Otherwise, try recovery code below
       }
       
-      // Try as recovery code
+      // Try as recovery code (only if main code didn't work)
+      // Check if recovery code data exists
       if (!userData?.recoveryCodeHashes || !userData?.recoveryCodeSalt || !userData?.encryptedMainCodes) {
-        throw new EncryptionError('Invalid encryption code');
+        // No recovery codes configured or userData is stale
+        // If we got here, main code didn't work and recovery codes aren't available
+        throw new EncryptionError('Invalid encryption code or recovery code');
       }
       
       // Hash the input code to check against stored recovery code hashes
@@ -533,11 +541,13 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     
     // Update user document
     const userRef = doc(firestore, 'users', userId);
-    await setDocumentNonBlocking(userRef, {
+    // Use updateDoc directly to ensure the update completes
+    // Recovery code fields are not encrypted, so we can write them directly
+    await updateDoc(userRef, {
       recoveryCodeHashes: recoveryCodeHashes,
       recoveryCodeSalt: recoveryCodeSaltBase64,
       encryptedMainCodes: encryptedMainCodes,
-    }, { merge: true }, key);
+    });
     
     toast({
       title: 'Recovery Codes Regenerated',

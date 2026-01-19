@@ -159,11 +159,14 @@ export function UIUXDashboard() {
                       {issue.element && (
                         <button
                           onClick={() => {
-                            issue.element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            issue.element?.style.outline = '2px solid red';
-                            setTimeout(() => {
-                              issue.element?.style.outline = '';
-                            }, 3000);
+                            const element = issue.element;
+                            if (element) {
+                              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              element.style.outline = '2px solid red';
+                              setTimeout(() => {
+                                element.style.outline = '';
+                              }, 3000);
+                            }
                           }}
                           className="mt-1 text-blue-600 hover:underline dark:text-blue-400"
                         >
