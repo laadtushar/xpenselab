@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, ArrowLeftRight, Wallet, X, UserPlus, CreditCard, Calendar, Users } from 'lucide-react';
+import { Plus, ArrowLeftRight, Wallet, X, UserPlus, CreditCard, Calendar, Users, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExpenseForm } from '@/components/expenses/expense-form';
 import { IncomeForm } from '@/components/income/income-form';
@@ -9,6 +9,7 @@ import { AddDebtDialog } from '@/components/debts/debt-form';
 import { AddLoanDialog } from '@/components/loans/add-loan-form';
 import { AddRecurringTransactionDialog } from '@/components/recurring/recurring-form';
 import { CreateGroupDialog } from '@/components/splits/create-group-dialog';
+import { CategoryDialog } from '@/components/categories/category-form';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePathname } from 'next/navigation';
@@ -258,6 +259,58 @@ export function MobileQuickAddFAB() {
           />
         ),
       });
+    } else if (pathname.startsWith('/categories')) {
+      // Categories page: Show both Income and Expense Category options
+      actionList.push(
+        {
+          label: 'Add Income Category',
+          icon: <Tag className="h-5 w-5" />,
+          component: (
+            <CategoryDialog
+              key="income-category"
+              type="income"
+            >
+              <Button
+                size="lg"
+                className={cn(
+                  "h-12 px-4 rounded-full shadow-xl gap-2 transition-all duration-200",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "border border-primary/20 backdrop-blur-sm",
+                  "animate-in slide-in-from-bottom-2 fade-in-0 slide-in-from-right-2"
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                <Tag className="h-5 w-5" />
+                <span className="font-medium">Add Income Category</span>
+              </Button>
+            </CategoryDialog>
+          ),
+        },
+        {
+          label: 'Add Expense Category',
+          icon: <Tag className="h-5 w-5" />,
+          component: (
+            <CategoryDialog
+              key="expense-category"
+              type="expense"
+            >
+              <Button
+                size="lg"
+                className={cn(
+                  "h-12 px-4 rounded-full shadow-xl gap-2 transition-all duration-200",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "border border-primary/20 backdrop-blur-sm",
+                  "animate-in slide-in-from-bottom-2 fade-in-0 slide-in-from-right-2 delay-75"
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                <Tag className="h-5 w-5" />
+                <span className="font-medium">Add Expense Category</span>
+              </Button>
+            </CategoryDialog>
+          ),
+        }
+      );
     } else {
       // Other pages (budget, categories, reports, etc.): Show both Income and Expense as default
       actionList.push(

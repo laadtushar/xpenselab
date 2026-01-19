@@ -54,10 +54,10 @@ function ToastWithCheckmark({
 }
 
 export function Toaster() {
+  // Call hook unconditionally at the top level - this is critical
   const { toasts } = useToast()
 
-  // Ensure stable rendering by always rendering ToastProvider and ToastViewport
-  // The toasts array will change, but React handles this correctly with keys
+  // Render toasts with stable keys - Radix UI handles hook order internally
   return (
     <ToastProvider>
       {toasts.map((toast) => (
