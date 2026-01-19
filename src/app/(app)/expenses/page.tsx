@@ -101,11 +101,6 @@ export default function ExpensesPage() {
                     icon={<Receipt className="h-12 w-12" />}
                     title="No expenses yet"
                     description="Start tracking your expenses by adding your first expense."
-                    action={
-                      <div className="md:hidden">
-                        <ExpenseForm />
-                      </div>
-                    }
                   />
               ) : (
                   <ExpensesTable expenses={filteredExpenses} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
@@ -113,17 +108,6 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
 
-        {/* Mobile Quick Add FAB - positioned above bottom nav */}
-        <div className="fixed bottom-20 right-4 md:hidden z-40">
-          <ExpenseForm
-            trigger={
-              <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-                <PlusCircle className="h-6 w-6" />
-                <span className="sr-only">Add Expense</span>
-              </Button>
-            }
-          />
-        </div>
       </div>
     </PullToRefresh>
   );

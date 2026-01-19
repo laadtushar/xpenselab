@@ -42,15 +42,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Mobile Quick Add FAB - positioned above bottom nav */}
-        <div className="fixed bottom-20 right-4 md:hidden z-40">
-          <Link href="/expenses">
-            <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-              <PlusCircle className="h-6 w-6" />
-              <span className="sr-only">Add Expense</span>
-            </Button>
-          </Link>
-        </div>
       </div>
     </PullToRefresh>
   );

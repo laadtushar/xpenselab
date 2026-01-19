@@ -14,6 +14,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
+import { MobileQuickAddFAB } from '@/components/mobile-quick-add-fab';
 import { EncryptionUnlockModal } from '@/components/encryption-unlock-modal';
 import { PageTransition } from '@/components/ui/page-transition';
 
@@ -125,6 +126,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
         <MobileBottomNav />
+        <MobileQuickAddFAB />
         <EncryptionUnlockModal />
       </SidebarProvider>
       </FinancialProvider>
