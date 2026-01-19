@@ -30,32 +30,50 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error | unknown): ErrorBoundaryState {
+    // Ensure we always have an Error object
+    const errorObj = error instanceof Error 
+      ? error 
+      : new Error(typeof error === 'string' ? error : 'An unknown error occurred');
+    
     return {
       hasError: true,
-      error,
+      error: errorObj,
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error | unknown, errorInfo: React.ErrorInfo) {
+    // Ensure we always have an Error object
+    const errorObj = error instanceof Error 
+      ? error 
+      : new Error(typeof error === 'string' ? error : JSON.stringify(error) || 'An unknown error occurred');
+    
+    // Extract error properties for better logging
+    const errorDetails = {
+      name: errorObj.name || 'Unknown Error',
+      message: errorObj.message || 'No error message',
+      stack: errorObj.stack || 'No stack trace',
+      componentStack: errorInfo?.componentStack || 'No component stack',
+      originalError: error, // Keep reference to original error
+    };
+
     // Only log detailed errors in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('🚨 Error Boundary caught an error:', {
-        error,
-        errorInfo,
-        componentStack: errorInfo.componentStack,
-      });
+      console.error('🚨 Error Boundary caught an error:', errorDetails);
+      // Also log the raw error object for debugging
+      console.error('Raw error object:', error);
+      console.error('Error info:', errorInfo);
     }
 
     // Call custom error handler if provided
     if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+      this.props.onError(errorObj, errorInfo);
     }
 
     // In production, send to error tracking service (Firebase Crashlytics, Sentry, etc.)
     // Example:
     // if (typeof window !== 'undefined' && (window as any).firebase?.crashlytics) {
-    //   (window as any).firebase.crashlytics().recordError(error);
+    //   (window as any).firebase.crashlytics().recordError(errorObj);
     // }
   }
 

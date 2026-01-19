@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Loader2, Trash2, Edit, Save, X } from "lucide-react";
+import { ArrowUpDown, Loader2, Trash2, Edit, Save, X, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import type { Expense } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { SwipeableItem } from "@/components/ui/swipeable-item";
 import {
   Select,
   SelectContent,
