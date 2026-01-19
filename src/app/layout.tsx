@@ -4,6 +4,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { GeistSans } from 'geist/font/sans';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
+import { WebVitals } from '@/components/web-vitals';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { UIUXDashboard } from '@/components/ui-ux-dashboard';
 import { siteConfig } from '@/config/site';
 
 export const metadata: Metadata = {
@@ -25,17 +28,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={GeistSans.className}>
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-        >
-            <FirebaseClientProvider>
-            {children}
-            </FirebaseClientProvider>
-            <Toaster />
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+          >
+              <FirebaseClientProvider>
+              {children}
+              </FirebaseClientProvider>
+              <Toaster />
+              <WebVitals />
+              <UIUXDashboard />
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
