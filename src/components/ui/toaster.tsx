@@ -11,33 +11,23 @@ import {
 } from "@/components/ui/toast"
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 
-function ToastWithCheckmark({ id, title, description, action, variant, open, ...props }: any) {
-  // Always call hooks in the same order, regardless of conditions
+// Pure presentational component - no hooks
+function ToastWithCheckmark({ 
+  id, 
+  title, 
+  description, 
+  action, 
+  variant, 
+  open, 
+  showCheckmark,
+  ...props 
+}: any) {
   const isSuccess = !variant || variant === 'default';
-  const [showCheckmark, setShowCheckmark] = useState(false);
-
-  // Always call useEffect with consistent cleanup function
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    
-    if (open && isSuccess) {
-      timer = setTimeout(() => setShowCheckmark(true), 100);
-    } else {
-      setShowCheckmark(false);
-    }
-    
-    // Always return a cleanup function for consistency
-    return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [open, isSuccess]);
   
   return (
-    <Toast key={id} {...props} variant={variant} open={open}>
+    <Toast {...props} variant={variant} open={open}>
       <div className="flex items-start gap-3">
         {isSuccess && (
           <div className={cn(
@@ -63,11 +53,70 @@ function ToastWithCheckmark({ id, title, description, action, variant, open, ...
 export function Toaster() {
   const { toasts } = useToast()
 
+  // Since TOAST_LIMIT = 1, get the current toast
+  const currentToast = toasts[0]
+
+  // Move all hooks to parent component to ensure stable hook order
+  // Always call hooks in the same order regardless of whether toast exists
+  const isSuccess = useMemo(() => {
+    const variant = currentToast?.variant;
+    return !variant || variant === 'default';
+  }, [currentToast?.variant]);
+
+  const [showCheckmark, setShowCheckmark] = useState(false);
+
+  // Always call useEffect with consistent cleanup function
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    
+    if (currentToast?.open && isSuccess) {
+      timer = setTimeout(() => setShowCheckmark(true), 100);
+    } else {
+      setShowCheckmark(false);
+    }
+    
+    // Always return a cleanup function for consistency
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [currentToast?.open, isSuccess]);
+
+  // Stable no-op callback for empty toast state
+  const noOpCallback = useCallback(() => {}, [])
+
+  // Always render the same component structure to maintain stable hook order
+  // Use open prop to control visibility instead of conditional rendering
+  const toastProps = useMemo(() => {
+    if (currentToast) {
+      return {
+        ...currentToast,
+        showCheckmark,
+      }
+    }
+    // Return default props when no toast exists - component stays mounted but hidden
+    return {
+      id: 'toast-singleton',
+      open: false,
+      title: '',
+      description: '',
+      variant: 'default' as const,
+      action: undefined,
+      onOpenChange: noOpCallback,
+      showCheckmark: false,
+    }
+  }, [currentToast, showCheckmark, noOpCallback])
+
   return (
     <ToastProvider>
-      {toasts.map(function (toast) {
-        return <ToastWithCheckmark key={toast.id} {...toast} />
-      })}
+      {/* Always render Toast component to maintain stable component structure */}
+      {/* Use stable key to prevent React from remounting when toast changes */}
+      {/* Radix UI handles open={false} gracefully without creating visible portals */}
+      <ToastWithCheckmark 
+        key="toast-singleton"
+        {...toastProps}
+      />
       <ToastViewport />
     </ToastProvider>
   )
