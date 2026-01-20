@@ -3,7 +3,7 @@ const { getAuth, signInWithEmailAndPassword } = require('firebase/auth');
 const { getFirestore, doc, getDoc } = require('firebase/firestore');
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDOL79smWOUYPwNlzPtVVioPbHFX04_yhU",
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
     authDomain: "studio-3845013162-4f4cd.firebaseapp.com",
     projectId: "studio-3845013162-4f4cd",
     storageBucket: "studio-3845013162-4f4cd.firebasestorage.app",
