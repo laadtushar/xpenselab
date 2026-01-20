@@ -101,11 +101,6 @@ export default function IncomePage() {
                     icon={<DollarSign className="h-12 w-12" />}
                     title="No income recorded yet"
                     description="Start tracking your income by adding your first income entry."
-                    action={
-                      <div className="md:hidden">
-                        <IncomeForm />
-                      </div>
-                    }
                   />
               ) : (
                   <IncomeTable incomes={filteredIncomes} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
@@ -113,17 +108,6 @@ export default function IncomePage() {
           </CardContent>
         </Card>
 
-        {/* Mobile Quick Add FAB - positioned above bottom nav */}
-        <div className="fixed bottom-20 right-4 md:hidden z-40">
-          <IncomeForm
-            trigger={
-              <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-                <PlusCircle className="h-6 w-6" />
-                <span className="sr-only">Add Income</span>
-              </Button>
-            }
-          />
-        </div>
       </div>
     </PullToRefresh>
   );

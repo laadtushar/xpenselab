@@ -87,18 +87,6 @@ export default function SplitsPage() {
           )}
         </div>
       )}
-
-      {/* Mobile Quick Add FAB - positioned above bottom nav */}
-      <div className="fixed bottom-20 right-4 md:hidden z-40">
-        <CreateGroupDialog
-          trigger={
-            <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-              <Users className="h-6 w-6" />
-              <span className="sr-only">Create Group</span>
-            </Button>
-          }
-        />
-      </div>
       </div>
     </PullToRefresh>
   );
