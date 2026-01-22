@@ -59,12 +59,16 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Allow Firebase Auth popups to work with COOP
+        // HTML pages - short cache to ensure updates are picked up
         source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',
             value: 'same-origin-allow-popups',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
           },
         ],
       },

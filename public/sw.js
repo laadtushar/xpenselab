@@ -55,6 +55,29 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
+        // Always try network first for HTML pages to get latest version
+        if (response && event.request.headers.get('accept')?.includes('text/html')) {
+          return fetch(event.request)
+            .then((networkResponse) => {
+              // If network response is newer, update cache and return it
+              if (networkResponse && networkResponse.status === 200) {
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    try {
+                      cache.put(event.request, responseToCache);
+                    } catch (error) {
+                      console.warn('Failed to cache:', event.request.url, error);
+                    }
+                  });
+                return networkResponse;
+              }
+              // Fallback to cached if network fails
+              return response;
+            })
+            .catch(() => response); // Use cache if network fails
+        }
+        
         // Return cached version or fetch from network
         return response || fetch(event.request).then((response) => {
           // Don't cache non-successful responses
