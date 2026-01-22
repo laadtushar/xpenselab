@@ -43,11 +43,8 @@ export function MobileQuickAddFAB() {
                      pathname.startsWith('/integrations') ||
                      pathname.startsWith('/settings');
 
-  if (!isMobile || !isAppRoute) {
-    return null;
-  }
-
   // Determine which actions to show based on current page
+  // CRITICAL: This hook must be called BEFORE any early returns to maintain hook order
   const actions = useMemo(() => {
     const actionList: FABAction[] = [];
 
@@ -367,6 +364,11 @@ export function MobileQuickAddFAB() {
 
     return actionList;
   }, [pathname]);
+
+  // Early return AFTER all hooks have been called
+  if (!isMobile || !isAppRoute) {
+    return null;
+  }
 
   return (
     <>
