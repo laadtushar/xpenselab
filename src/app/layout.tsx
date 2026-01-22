@@ -65,15 +65,30 @@ export default function RootLayout({
                     .then((registration) => {
                       console.log('SW registered: ', registration);
                       
+                      // Track registration errors
+                      let errorCount = 0;
+                      const MAX_ERRORS = 3;
+                      
                       // Check for updates every hour
-                      setInterval(() => {
-                        registration.update();
+                      const updateInterval = setInterval(() => {
+                        registration.update().catch((error) => {
+                          console.warn('SW update check failed:', error);
+                          errorCount++;
+                          if (errorCount >= MAX_ERRORS) {
+                            console.error('Too many SW errors, unregistering...');
+                            clearInterval(updateInterval);
+                            registration.unregister().catch(() => {});
+                          }
+                        });
                       }, 60 * 60 * 1000);
                       
                       // Check for updates on page focus
-                      window.addEventListener('focus', () => {
-                        registration.update();
-                      });
+                      const focusHandler = () => {
+                        registration.update().catch((error) => {
+                          console.warn('SW update on focus failed:', error);
+                        });
+                      };
+                      window.addEventListener('focus', focusHandler);
                       
                       // Listen for service worker updates
                       registration.addEventListener('updatefound', () => {
@@ -82,16 +97,36 @@ export default function RootLayout({
                           newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'activated') {
                               // New service worker activated, reload to get latest version
-                              if (confirm('A new version is available. Reload to update?')) {
+                              // Use a more user-friendly approach - auto-reload after short delay
+                              const shouldReload = confirm('A new version is available. Reload now? (Auto-reload in 5 seconds)');
+                              if (shouldReload) {
                                 window.location.reload();
+                              } else {
+                                // Auto-reload after 5 seconds
+                                setTimeout(() => {
+                                  window.location.reload();
+                                }, 5000);
                               }
                             }
                           });
                         }
                       });
+                      
+                      // Handle service worker errors
+                      navigator.serviceWorker.addEventListener('error', (event) => {
+                        console.error('Service Worker error:', event);
+                        errorCount++;
+                        if (errorCount >= MAX_ERRORS) {
+                          console.error('Too many SW errors, unregistering...');
+                          clearInterval(updateInterval);
+                          window.removeEventListener('focus', focusHandler);
+                          registration.unregister().catch(() => {});
+                        }
+                      });
                     })
                     .catch((registrationError) => {
-                      console.log('SW registration failed: ', registrationError);
+                      console.error('SW registration failed: ', registrationError);
+                      // Don't retry indefinitely - log and move on
                     });
                 });
               }
