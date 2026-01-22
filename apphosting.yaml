@@ -3,7 +3,7 @@ runConfig:
 
 env:
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: "xpenselab-1"
+    value: "studio-3845013162-4f4cd"
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     secret: NEXT_PUBLIC_FIREBASE_API_KEY
   - variable: GOOGLE_GENAI_API_KEY
