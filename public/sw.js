@@ -1,5 +1,5 @@
 // Service Worker for XpenseLab PWA
-const CACHE_NAME = 'xpenselab-v2';
+const CACHE_NAME = 'xpenselab-v3';
 const urlsToCache = [
   '/',
   '/dashboard',
@@ -39,6 +39,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.protocol === 'chrome-extension:' || url.protocol === 'chrome:' || url.protocol === 'moz-extension:') {
     return; // Let the browser handle these requests
+  }
+
+  // Always fetch manifest.json fresh (never cache)
+  if (url.pathname === '/manifest.json') {
+    event.respondWith(fetch(event.request));
+    return;
   }
 
   // Only cache same-origin requests
