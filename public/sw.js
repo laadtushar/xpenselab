@@ -1,5 +1,5 @@
 // Service Worker for XpenseLab PWA
-const CACHE_NAME = 'xpenselab-v1';
+const CACHE_NAME = 'xpenselab-v2';
 const urlsToCache = [
   '/',
   '/dashboard',
