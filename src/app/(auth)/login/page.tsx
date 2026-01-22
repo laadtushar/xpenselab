@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
-import { initiateGoogleSignInWithRedirect, initiateGitHubSignInWithRedirect, handleAuthRedirect } from '@/firebase/non-blocking-login';
+import { initiateGoogleSignInWithPopup, initiateGitHubSignInWithPopup } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -24,62 +24,54 @@ export default function LoginPage() {
     }
   }, [isUserLoading, user, router]);
 
-  // Handle OAuth redirect result when user returns from OAuth provider
-  useEffect(() => {
-    if (!auth || isUserLoading) return;
-    
-    handleAuthRedirect(auth)
-      .then((result) => {
+  const handleGoogleSignIn = () => {
+    if (!auth || isSigningIn) return;
+    setIsSigningIn(true);
+    initiateGoogleSignInWithPopup(auth)
+      .then(result => {
         if (result) {
-          toast({ 
-            title: 'Sign-in successful!', 
-            description: `Welcome, ${result.user.displayName || result.user.email}` 
-          });
-          router.push('/dashboard');
+          toast({ title: 'Sign-in successful!', description: `Welcome, ${result.user.displayName || result.user.email}` });
         }
       })
       .catch((error) => {
-        console.error('LoginPage: Redirect handling failed:', error);
+        console.error('LoginPage: Google Sign-In failed:', error);
+        // Ignore COOP-related errors as they're just warnings
         if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
           toast({
-            title: 'Sign-In Error',
+            title: 'Sign-In Failed',
             description: error.message || 'Could not complete sign-in process.',
             variant: 'destructive',
           });
         }
-      });
-  }, [auth, isUserLoading, router, toast]);
-
-  const handleGoogleSignIn = () => {
-    if (!auth || isSigningIn) return;
-    setIsSigningIn(true);
-    initiateGoogleSignInWithRedirect(auth)
-      .catch((error) => {
-        console.error('LoginPage: Google Sign-In redirect failed:', error);
-        toast({
-          title: 'Sign-In Failed',
-          description: error.message || 'Could not start sign-in process.',
-          variant: 'destructive',
-        });
+      })
+      .finally(() => {
         setIsSigningIn(false);
       });
-    // Note: setIsSigningIn(false) not needed here as redirect will navigate away
   };
 
   const handleGitHubSignIn = () => {
     if (!auth || isSigningIn) return;
     setIsSigningIn(true);
-    initiateGitHubSignInWithRedirect(auth)
+    initiateGitHubSignInWithPopup(auth)
+      .then(result => {
+         if (result) {
+          toast({ title: 'Sign-in successful!', description: `Welcome, ${result.user.displayName || result.user.email}` });
+        }
+      })
       .catch((error) => {
-        console.error('LoginPage: GitHub Sign-In redirect failed:', error);
-        toast({
-          title: 'Sign-In Failed',
-          description: error.message || 'Could not start sign-in process.',
-          variant: 'destructive',
-        });
+        console.error('LoginPage: GitHub Sign-In failed:', error);
+        // Ignore COOP-related errors as they're just warnings
+        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+          toast({
+            title: 'Sign-In Failed',
+            description: error.message || 'Could not start sign-in process.',
+            variant: 'destructive',
+          });
+        }
+      })
+       .finally(() => {
         setIsSigningIn(false);
       });
-    // Note: setIsSigningIn(false) not needed here as redirect will navigate away
   };
 
   if (isUserLoading || user) {

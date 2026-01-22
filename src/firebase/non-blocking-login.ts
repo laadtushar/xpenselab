@@ -6,8 +6,7 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   GithubAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   UserCredential
 } from 'firebase/auth';
 
@@ -26,25 +25,14 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   signInWithEmailAndPassword(authInstance, email, password);
 }
 
-/** Initiate Google sign-in via Redirect (avoids COOP issues). */
-export function initiateGoogleSignInWithRedirect(authInstance: Auth): Promise<void> {
+/** Initiate Google sign-in via Popup. */
+export function initiateGoogleSignInWithPopup(authInstance: Auth): Promise<UserCredential> {
   const provider = new GoogleAuthProvider();
-  return signInWithRedirect(authInstance, provider);
+  return signInWithPopup(authInstance, provider);
 }
 
-/** Initiate GitHub sign-in via Redirect (avoids COOP issues). */
-export function initiateGitHubSignInWithRedirect(authInstance: Auth): Promise<void> {
+/** Initiate GitHub sign-in via Popup. */
+export function initiateGitHubSignInWithPopup(authInstance: Auth): Promise<UserCredential> {
   const provider = new GithubAuthProvider();
-  return signInWithRedirect(authInstance, provider);
-}
-
-/** Handle redirect result after OAuth redirect. */
-export async function handleAuthRedirect(authInstance: Auth): Promise<UserCredential | null> {
-  try {
-    const result = await getRedirectResult(authInstance);
-    return result;
-  } catch (error) {
-    console.error('Auth redirect error:', error);
-    return null;
-  }
+  return signInWithPopup(authInstance, provider);
 }
