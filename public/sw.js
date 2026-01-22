@@ -110,11 +110,14 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Always try network first for HTML pages to get latest version
-        if (response && event.request.headers.get('accept')?.includes('text/html')) {
-          return fetch(event.request)
+        // For HTML pages, use stale-while-revalidate: serve from cache immediately, update in background
+        if (event.request.headers.get('accept')?.includes('text/html')) {
+          // Serve from cache immediately if available
+          const cachedResponse = response;
+          
+          // Fetch fresh version in background and update cache
+          const fetchPromise = fetch(event.request)
             .then((networkResponse) => {
-              // If network response is newer, update cache and return it
               if (networkResponse && networkResponse.status === 200) {
                 const responseToCache = networkResponse.clone();
                 caches.open(CACHE_NAME)
@@ -125,15 +128,16 @@ self.addEventListener('fetch', (event) => {
                       console.warn('Failed to cache:', event.request.url, error);
                     }
                   });
-                return networkResponse;
               }
-              // Fallback to cached if network fails
-              return response;
+              return networkResponse;
             })
-            .catch(() => response); // Use cache if network fails
+            .catch(() => null); // Ignore network errors in background update
+          
+          // Return cached version immediately, or fetch if no cache
+          return cachedResponse || fetchPromise;
         }
         
-        // Return cached version or fetch from network
+        // For other resources, use cache-first strategy
         return response || fetch(event.request).then((response) => {
           // Don't cache non-successful responses
           if (!response || response.status !== 200 || response.type !== 'basic') {
