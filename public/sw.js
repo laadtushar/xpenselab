@@ -35,6 +35,17 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
+  // Skip unsupported schemes (chrome-extension, chrome, etc.)
+  const url = new URL(event.request.url);
+  if (url.protocol === 'chrome-extension:' || url.protocol === 'chrome:' || url.protocol === 'moz-extension:') {
+    return; // Let the browser handle these requests
+  }
+
+  // Only cache same-origin requests
+  if (url.origin !== self.location.origin) {
+    return; // Don't cache cross-origin requests
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -50,7 +61,12 @@ self.addEventListener('fetch', (event) => {
 
           caches.open(CACHE_NAME)
             .then((cache) => {
-              cache.put(event.request, responseToCache);
+              // Only cache if the request URL is valid
+              try {
+                cache.put(event.request, responseToCache);
+              } catch (error) {
+                console.warn('Failed to cache:', event.request.url, error);
+              }
             });
 
           return response;
