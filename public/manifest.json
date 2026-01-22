@@ -15,19 +15,19 @@
       "name": "Add Expense",
       "short_name": "Add",
       "description": "Quickly add a new expense",
-      "url": "/expenses?action=add",
+      "url": "/expenses?action=add"
     },
     {
       "name": "Dashboard",
       "short_name": "Home",
       "description": "View your financial dashboard",
-      "url": "/dashboard",
+      "url": "/dashboard"
     },
     {
       "name": "Scan Receipt",
       "short_name": "Scan",
       "description": "Scan a receipt to add expense",
-      "url": "/scan-receipt",
+      "url": "/scan-receipt"
     }
   ],
   "share_target": {
