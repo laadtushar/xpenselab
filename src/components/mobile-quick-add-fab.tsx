@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, ArrowLeftRight, Wallet, X, UserPlus, CreditCard, Calendar, Users, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExpenseForm } from '@/components/expenses/expense-form';
@@ -22,6 +23,7 @@ type FABAction = {
 
 export function MobileQuickAddFAB() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isMobile = useIsMobile();
   const pathname = usePathname();
 
@@ -365,12 +367,18 @@ export function MobileQuickAddFAB() {
     return actionList;
   }, [pathname]);
 
+  // Ensure portal only renders on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Early return AFTER all hooks have been called
-  if (!isMobile || !isAppRoute) {
+  if (!isMobile || !isAppRoute || !mounted) {
     return null;
   }
 
-  return (
+  // Render via portal to avoid nesting issues and ensure proper positioning
+  const fabContent = (
     <>
       {/* Backdrop */}
       {isOpen && (
@@ -381,7 +389,8 @@ export function MobileQuickAddFAB() {
       )}
 
       {/* Speed Dial Container - Positioned on right side like traditional FAB */}
-      <div className="fixed bottom-20 right-2 z-[60] md:hidden">
+      {/* Using fixed positioning relative to viewport, rendered at root level via portal */}
+      <div className="fixed bottom-20 right-1 z-[60] md:hidden">
         {/* Action Buttons - Aligned to right, dynamically shown based on page */}
         {actions.length > 0 && (
           <div
@@ -429,4 +438,7 @@ export function MobileQuickAddFAB() {
       </div>
     </>
   );
+
+  // Use portal to render at document.body level to avoid nesting issues
+  return createPortal(fabContent, document.body);
 }
