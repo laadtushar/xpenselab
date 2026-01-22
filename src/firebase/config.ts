@@ -1,5 +1,12 @@
+// Clean and validate API key to prevent newline/whitespace issues
+const getCleanApiKey = (): string => {
+  const rawKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+  // Remove all whitespace, newlines, carriage returns, and BOM characters
+  return rawKey.trim().replace(/[\r\n\s\uFEFF]/g, "");
+};
+
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+  apiKey: getCleanApiKey(),
   authDomain: "studio-3845013162-4f4cd.firebaseapp.com",
   projectId: "studio-3845013162-4f4cd",
   storageBucket: "studio-3845013162-4f4cd.firebasestorage.app",
