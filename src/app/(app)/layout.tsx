@@ -16,7 +16,6 @@ import { Loader2 } from 'lucide-react';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { EncryptionUnlockModal } from '@/components/encryption-unlock-modal';
 import { PageTransition } from '@/components/ui/page-transition';
-import { initializeCapacitorAuth } from '@/lib/capacitor-auth';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -26,15 +25,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [isFirestoreCheckComplete, setIsFirestoreCheckComplete] = useState(false);
 
-  // Initialize Capacitor auth handler for OAuth redirects
-  useEffect(() => {
-    if (auth) {
-      initializeCapacitorAuth(auth, () => {
-        // On successful auth, refresh will happen automatically via useUser hook
-        router.refresh();
-      });
-    }
-  }, [auth, router]);
+  // Note: With @capacitor-firebase/authentication plugin, OAuth redirects are handled automatically
+  // No need for manual redirect handling
 
   useEffect(() => {
     if (isUserLoading) {

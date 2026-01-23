@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
-import { initiateGoogleSignInWithPopup, initiateGitHubSignInWithPopup, handleOAuthRedirect } from '@/firebase/non-blocking-login';
-import { initializeCapacitorAuth } from '@/lib/capacitor-auth';
+import { initiateGoogleSignInWithPopup, initiateGitHubSignInWithPopup } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,36 +26,8 @@ export default function LoginPage() {
     }
   }, [isUserLoading, user, router]);
 
-  // Initialize Capacitor auth handler for OAuth redirects (must be set up before redirect happens)
-  useEffect(() => {
-    if (auth) {
-      initializeCapacitorAuth(auth, () => {
-        // On successful auth, user state will update and redirect will happen
-        console.log('[Login] OAuth success callback triggered');
-        router.refresh();
-      });
-    }
-  }, [auth, router]);
-
-  // Handle OAuth redirect when app opens
-  useEffect(() => {
-    if (!auth) return;
-    
-    handleOAuthRedirect(auth)
-      .then((result) => {
-        if (result) {
-          toast({ 
-            title: 'Sign-in successful!', 
-            description: `Welcome, ${result.user.displayName || result.user.email}` 
-          });
-          router.push('/dashboard');
-        }
-      })
-      .catch((error) => {
-        // Ignore errors - redirect might not have happened
-        console.log('No OAuth redirect result:', error);
-      });
-  }, [auth, router, toast]);
+  // Note: With native plugin, OAuth redirects are handled automatically
+  // No need for manual redirect handling or listeners
 
   const handleGoogleSignIn = () => {
     if (!auth || isSigningIn) return;
@@ -69,12 +40,6 @@ export default function LoginPage() {
       })
       .catch((error) => {
         console.error('LoginPage: Google Sign-In failed:', error);
-        // If redirect was initiated, don't show error (redirect will handle it)
-        if (error.message === 'REDIRECT_INITIATED') {
-          // Redirect was initiated, wait for redirect result
-          // Keep isSigningIn true - it will be reset when user state changes
-          return;
-        }
         // Ignore COOP-related errors as they're just warnings
         if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
           toast({
@@ -98,12 +63,6 @@ export default function LoginPage() {
       })
       .catch((error) => {
         console.error('LoginPage: GitHub Sign-In failed:', error);
-        // If redirect was initiated, don't show error (redirect will handle it)
-        if (error.message === 'REDIRECT_INITIATED') {
-          // Redirect was initiated, wait for redirect result
-          // Keep isSigningIn true - it will be reset when user state changes
-          return;
-        }
         // Ignore COOP-related errors as they're just warnings
         if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
           toast({

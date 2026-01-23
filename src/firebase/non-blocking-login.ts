@@ -7,11 +7,11 @@ import {
   GoogleAuthProvider,
   GithubAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithCredential,
   UserCredential,
   getAuth
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): void {
@@ -34,140 +34,100 @@ function isNativePlatform(): boolean {
   return !!(window as any).Capacitor?.isNativePlatform();
 }
 
-/** Get redirect URL for OAuth */
-function getRedirectUrl(): string {
-  if (isNativePlatform()) {
-    return 'xpenselab://auth/callback';
-  }
-  return typeof window !== 'undefined' ? window.location.origin + '/auth/callback' : '';
-}
+// Removed getRedirectUrl() - not needed with native plugin
 
-/** Initiate Google sign-in (uses external browser in native, popup in web). */
+/** Initiate Google sign-in (uses native plugin in mobile, popup in web). */
 export async function initiateGoogleSignInWithPopup(authInstance: Auth): Promise<UserCredential> {
+  // For native apps, use @capacitor-firebase/authentication plugin (best practice)
+  if (isNativePlatform()) {
+    try {
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+      
+      console.log('[Auth] Using native Firebase Authentication plugin for Google sign-in');
+      
+      // Use native plugin - this handles OAuth flow natively
+      const result = await FirebaseAuthentication.signInWithGoogle();
+      
+      if (!result.credential?.idToken) {
+        throw new Error('No ID token received from native authentication');
+      }
+      
+      // Create credential from native result and sign in with Firebase Web SDK
+      // Use static method GoogleAuthProvider.credential()
+      const credential = GoogleAuthProvider.credential(result.credential.idToken);
+      
+      if (!credential) {
+        throw new Error('Failed to create credential from native authentication result');
+      }
+      
+      // Sign in with the credential
+      return await signInWithCredential(authInstance, credential);
+    } catch (error: any) {
+      console.error('[Auth] Native Google sign-in failed:', error);
+      // Fallback to web popup if native fails
+      console.warn('[Auth] Falling back to web popup');
+      const provider = new GoogleAuthProvider();
+      return signInWithPopup(authInstance, provider);
+    }
+  }
+  
+  // Use popup for web
   const provider = new GoogleAuthProvider();
-  
-  // For native apps, use external browser (Chrome Custom Tabs) to avoid Google's WebView blocking
-  if (isNativePlatform()) {
-    try {
-      // Import Browser plugin dynamically
-      const { Browser } = await import('@capacitor/browser');
-      
-      // Use our web callback URL as the redirect target
-      const webCallbackUrl = 'https://xpenselab.com/auth/callback';
-      
-      // Get the OAuth URL from our API route
-      // Always use full URL for native apps since we're in a WebView
-      const apiUrl = 'https://xpenselab.com/api/auth/google-url';
-      
-      console.log('Fetching OAuth URL from:', apiUrl);
-      const response = await fetch(`${apiUrl}?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch OAuth URL: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.url) {
-        console.error('API returned invalid data:', data);
-        throw new Error('Failed to get OAuth URL from API');
-      }
-      
-      console.log('Opening OAuth URL in external browser:', data.url);
-      
-      // Open in external browser (Chrome Custom Tabs on Android)
-      // This bypasses Google's WebView blocking policy
-      await Browser.open({ 
-        url: data.url
-      });
-      
-      // The authentication flow:
-      // 1. External browser opens Firebase handler URL
-      // 2. Firebase redirects to Google OAuth (in external browser - allowed by Google)
-      // 3. User authenticates with Google
-      // 4. Google redirects back to Firebase handler
-      // 5. Firebase processes auth and redirects to webCallbackUrl (https://xpenselab.com/auth/callback)
-      // 6. Our callback page processes getRedirectResult() and redirects to custom scheme (xpenselab://auth/callback)
-      // 7. App intercepts custom scheme via appUrlOpen listener
-      // 8. App calls getRedirectResult() to complete authentication
-      
-      throw new Error('REDIRECT_INITIATED');
-    } catch (error: any) {
-      if (error.message === 'REDIRECT_INITIATED') {
-        throw error;
-      }
-      // Fallback: use regular redirect (will likely be blocked by Google in WebView)
-      console.warn('Failed to open external browser, falling back to redirect:', error);
-      await signInWithRedirect(authInstance, provider);
-      throw new Error('REDIRECT_INITIATED');
-    }
-  }
-  
-  // Use popup for web
   return signInWithPopup(authInstance, provider);
 }
 
-/** Initiate GitHub sign-in (uses external browser in native, popup in web). */
+/** Initiate GitHub sign-in (uses native plugin in mobile, popup in web). */
 export async function initiateGitHubSignInWithPopup(authInstance: Auth): Promise<UserCredential> {
-  const provider = new GithubAuthProvider();
-  
-  // For native apps, use external browser (Chrome Custom Tabs) to avoid potential WebView issues
+  // For native apps, use @capacitor-firebase/authentication plugin (best practice)
   if (isNativePlatform()) {
     try {
-      // Import Browser plugin dynamically
-      const { Browser } = await import('@capacitor/browser');
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
       
-      // Use our web callback URL as the redirect target
-      const webCallbackUrl = 'https://xpenselab.com/auth/callback';
+      console.log('[Auth] Using native Firebase Authentication plugin for GitHub sign-in');
       
-      // Get the OAuth URL from our API route
-      // Always use full URL for native apps since we're in a WebView
-      const apiUrl = 'https://xpenselab.com/api/auth/github-url';
+      // Use native plugin - this handles OAuth flow natively
+      const result = await FirebaseAuthentication.signInWithGithub();
       
-      console.log('Fetching GitHub OAuth URL from:', apiUrl);
-      const response = await fetch(`${apiUrl}?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
+      // GitHub uses accessToken, but the plugin might return idToken
+      // Check both and use OAuthProvider for flexibility
+      const token = result.credential?.accessToken || result.credential?.idToken;
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch GitHub OAuth URL: ${response.status} ${response.statusText}`);
+      if (!token) {
+        throw new Error('No access token or ID token received from native authentication');
       }
       
-      const data = await response.json();
-      
-      if (!data.url) {
-        console.error('API returned invalid data:', data);
-        throw new Error('Failed to get GitHub OAuth URL from API');
-      }
-      
-      console.log('Opening GitHub OAuth URL in external browser:', data.url);
-      
-      // Open in external browser (Chrome Custom Tabs on Android)
-      await Browser.open({ 
-        url: data.url
+      // Create credential from native result and sign in with Firebase Web SDK
+      // GitHub uses accessToken, so use OAuthProvider
+      const { OAuthProvider } = await import('firebase/auth');
+      const provider = new OAuthProvider('github.com');
+      const credential = provider.credential({
+        accessToken: result.credential?.accessToken || token,
+        idToken: result.credential?.idToken
       });
       
-      throw new Error('REDIRECT_INITIATED');
-    } catch (error: any) {
-      if (error.message === 'REDIRECT_INITIATED') {
-        throw error;
+      if (!credential) {
+        throw new Error('Failed to create credential from native authentication result');
       }
-      // Fallback: use regular redirect
-      console.warn('Failed to open external browser for GitHub, falling back to redirect:', error);
-      await signInWithRedirect(authInstance, provider);
-      throw new Error('REDIRECT_INITIATED');
+      
+      // Sign in with the credential
+      return await signInWithCredential(authInstance, credential);
+    } catch (error: any) {
+      console.error('[Auth] Native GitHub sign-in failed:', error);
+      // Fallback to web popup if native fails
+      console.warn('[Auth] Falling back to web popup');
+      const provider = new GithubAuthProvider();
+      return signInWithPopup(authInstance, provider);
     }
   }
   
   // Use popup for web
+  const provider = new GithubAuthProvider();
   return signInWithPopup(authInstance, provider);
 }
 
-/** Handle OAuth redirect result (call this on app startup) */
+/** Handle OAuth redirect result (call this on app startup) - Not needed with native plugin */
 export async function handleOAuthRedirect(authInstance: Auth): Promise<UserCredential | null> {
-  try {
-    const result = await getRedirectResult(authInstance);
-    return result;
-  } catch (error: any) {
-    console.error('OAuth redirect error:', error);
-    return null;
-  }
+  // With native plugin, redirects are handled automatically
+  // This function is kept for backwards compatibility but won't be used
+  return null;
 }
