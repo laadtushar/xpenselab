@@ -216,7 +216,7 @@ export function DataImporter() {
 
         const existingCategoryNames = new Set(expenseCategories.map(c => c.name.toLowerCase()));
 
-        const transactions: Omit<Transaction, 'id' | 'userId'>[] = dataRows.map((rowArray: any[], index) => {
+        const transactions = dataRows.map((rowArray: any[], index) => {
           const rowIndex = index + 2;
 
           if (!Array.isArray(rowArray) || rowArray.every(cell => cell === null || cell === '')) {
@@ -288,7 +288,7 @@ export function DataImporter() {
               category: category,
             };
           }
-        }).filter((t): t is Omit<Transaction, 'id' | 'userId'> => t !== null);
+        }).filter((t) => t !== null) as Omit<Transaction, 'id' | 'userId'>[];
         
         // Create new categories found during import
         if (newCategories.size > 0) {
