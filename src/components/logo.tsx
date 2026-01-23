@@ -41,6 +41,8 @@ export function Logo({
         viewBox="0 0 32 32"
         xmlns="http://www.w3.org/2000/svg"
         className={cn("text-primary", className)}
+        aria-label="XpenseLab Logo"
+        role="img"
       >
         <defs>
           <linearGradient id="gradient-icon1" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -71,6 +73,8 @@ export function Logo({
           viewBox="0 0 32 32"
           xmlns="http://www.w3.org/2000/svg"
           className="flex-shrink-0"
+          aria-label="XpenseLab Logo"
+          role="img"
         >
           <defs>
             <linearGradient id="gradient-h1" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -111,6 +115,8 @@ export function Logo({
         height="64"
         viewBox="0 0 32 32"
         xmlns="http://www.w3.org/2000/svg"
+        aria-label="XpenseLab Logo"
+        role="img"
       >
         <defs>
           <linearGradient id="gradient-s1" x1="0%" y1="0%" x2="0%" y2="100%">

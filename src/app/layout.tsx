@@ -18,14 +18,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.siteUrl),
   title: {
     default: siteConfig.name,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: ["Next.js", "React", "Tailwind CSS", "Firebase", "Genkit", "Finance App", "Expense Tracker"],
-  authors: [{ name: "XpenseLab" }],
-  creator: "XpenseLab",
+  keywords: siteConfig.keywords,
+  authors: [{ name: siteConfig.author }],
+  creator: siteConfig.author,
+  publisher: siteConfig.author,
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -45,6 +47,50 @@ export const metadata: Metadata = {
       { url: '/logo-icon.svg', sizes: '180x180', type: 'image/svg+xml' },
     ],
   },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: siteConfig.siteUrl,
+    siteName: siteConfig.name,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [
+      {
+        url: siteConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+    creator: '@xpenselab',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: siteConfig.siteUrl,
+  },
+  verification: {
+    // Add verification codes when available
+    // google: 'your-google-verification-code',
+    // yandex: 'your-yandex-verification-code',
+    // yahoo: 'your-yahoo-verification-code',
+  },
+  category: 'finance',
 };
 
 export default function RootLayout({

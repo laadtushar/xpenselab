@@ -1,0 +1,20 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Disallow admin and private routes
+Disallow: /dashboard
+Disallow: /expenses
+Disallow: /income
+Disallow: /budget
+Disallow: /settings
+Disallow: /checkout
+Disallow: /api/
+
+# Allow public pages
+Allow: /
+Allow: /login
+Allow: /privacy
+
+# Sitemap
+Sitemap: https://xpenselab.com/sitemap.xml

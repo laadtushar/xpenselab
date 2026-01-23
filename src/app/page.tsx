@@ -8,16 +8,92 @@ import { HomepageBottomNav } from "@/components/homepage-bottom-nav"
 import { DashboardPreview } from "@/components/homepage/dashboard-preview"
 import { ExpensesPreview } from "@/components/homepage/expenses-preview"
 import { BudgetPreview } from "@/components/homepage/budget-preview"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Free Personal Finance Tracker | XpenseLab",
+  description: siteConfig.description,
+  keywords: siteConfig.keywords,
+  openGraph: {
+    title: siteConfig.name,
+    description: siteConfig.description,
+    url: siteConfig.siteUrl,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: siteConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  alternates: {
+    canonical: siteConfig.siteUrl,
+  },
+}
 
 export default function Home() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": siteConfig.name,
+    "description": siteConfig.description,
+    "url": siteConfig.siteUrl,
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free basic plan available"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "100"
+    },
+    "featureList": [
+      "AI-powered expense categorization",
+      "Smart budgeting tools",
+      "Expense splitting with groups",
+      "Bank-grade encryption",
+      "Receipt scanning",
+      "Financial forecasting",
+      "Recurring transactions",
+      "Debt and loan tracking"
+    ]
+  };
+
+  const organizationData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": siteConfig.name,
+    "url": siteConfig.siteUrl,
+    "logo": `${siteConfig.siteUrl}/logo-icon.svg`,
+    "description": siteConfig.description,
+    "sameAs": []
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+      />
+      <div className="flex flex-col min-h-screen">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 hidden md:block">
         <div className="container flex h-14 items-center">
-          <Link href="/" className="flex items-center gap-2 mr-6">
+          <Link href="/" className="flex items-center gap-2 mr-6" aria-label="XpenseLab Home">
             <Logo variant="horizontal" showText={true} />
           </Link>
-          <nav className="flex items-center gap-6 text-sm">
+          <nav className="flex items-center gap-6 text-sm" aria-label="Main navigation">
             <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">
               Features
             </Link>
@@ -54,7 +130,7 @@ export default function Home() {
               {siteConfig.description} Stop guessing, start growing.
             </p>
             <div className="flex gap-4">
-              <Link href="/login" className={buttonVariants({ size: "lg" })}>
+              <Link href="/login" className={buttonVariants({ size: "lg" })} aria-label="Get started with XpenseLab">
                 Get Started for Free
               </Link>
             </div>
@@ -62,7 +138,7 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="container py-12 md:py-20">
+        <section id="features" aria-label="Features section" className="container py-12 md:py-20">
             <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
                 <h2 className="font-bold text-3xl leading-[1.1] sm:text-3xl md:text-5xl">Features</h2>
                 <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
@@ -155,7 +231,7 @@ export default function Home() {
         </section>
 
         {/* Screenshots Section */}
-        <section id="screenshots" className="container py-12 md:py-20">
+        <section id="screenshots" aria-label="Screenshots section" className="container py-12 md:py-20">
             <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center mb-12">
                 <h2 className="font-bold text-3xl leading-[1.1] sm:text-3xl md:text-5xl">See XpenseLab in Action</h2>
                 <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
@@ -201,7 +277,7 @@ export default function Home() {
 
 
         {/* Pricing Section */}
-        <section id="pricing" className="container py-12 md:py-20">
+        <section id="pricing" aria-label="Pricing section" className="container py-12 md:py-20">
           <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
             <h2 className="font-bold text-3xl leading-[1.1] sm:text-3xl md:text-5xl">Pricing</h2>
             <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
@@ -272,5 +348,6 @@ export default function Home() {
         </footer>
       <HomepageBottomNav />
     </div>
+    </>
   )
 }

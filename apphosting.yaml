@@ -8,6 +8,8 @@ env:
     secret: NEXT_PUBLIC_FIREBASE_API_KEY
   - variable: GOOGLE_GENAI_API_KEY
     secret: GOOGLE_GENAI_API_KEY
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: "https://xpenselab.com"
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     value: "pk_live_YOUR_PUBLISHABLE_KEY_HERE"
   - variable: STRIPE_SECRET_KEY

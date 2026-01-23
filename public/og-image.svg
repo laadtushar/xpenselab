@@ -1,0 +1,52 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#101622;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#182234;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#101622;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Logo icon gradients -->
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0d59f2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Accent gradient -->
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#0d59f2;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)" />
+  
+  <!-- Accent shapes -->
+  <circle cx="200" cy="150" r="200" fill="url(#accentGradient)" opacity="0.4" />
+  <circle cx="1000" cy="480" r="150" fill="url(#accentGradient)" opacity="0.3" />
+  
+  <!-- Logo Icon (centered, larger) -->
+  <g transform="translate(600, 250)">
+    <!-- Bar 1 - Full height, rotated 35deg -->
+    <rect x="-8" y="-80" width="16" height="160" rx="8" fill="url(#gradient1)" transform="rotate(35)" />
+    <!-- Bar 2 - 80% height, rotated -35deg -->
+    <rect x="-8" y="-64" width="16" height="128" rx="8" fill="url(#gradient2)" transform="rotate(-35)" opacity="0.9" />
+  </g>
+  
+  <!-- Brand Name -->
+  <text x="600" y="380" font-family="Manrope, sans-serif" font-size="72" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="-0.033em">xpenselab</text>
+  
+  <!-- Tagline -->
+  <text x="600" y="440" font-family="Manrope, sans-serif" font-size="32" font-weight="400" fill="#90a4cb" text-anchor="middle">Take Control of Your Finances</text>
+  
+  <!-- Feature highlights -->
+  <text x="600" y="510" font-family="Manrope, sans-serif" font-size="20" font-weight="300" fill="#90a4cb" text-anchor="middle" opacity="0.8">AI-Powered • Secure • Free to Start</text>
+</svg>
