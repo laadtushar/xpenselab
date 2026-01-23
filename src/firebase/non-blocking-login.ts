@@ -56,17 +56,24 @@ export async function initiateGoogleSignInWithPopup(authInstance: Auth): Promise
       const webCallbackUrl = 'https://xpenselab.com/auth/callback';
       
       // Get the OAuth URL from our API route
-      // Use full URL for native apps, relative for web
-      const apiUrl = typeof window !== 'undefined' && window.location.origin 
-        ? `${window.location.origin}/api/auth/google-url`
-        : 'https://xpenselab.com/api/auth/google-url';
+      // Always use full URL for native apps since we're in a WebView
+      const apiUrl = 'https://xpenselab.com/api/auth/google-url';
       
+      console.log('Fetching OAuth URL from:', apiUrl);
       const response = await fetch(`${apiUrl}?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch OAuth URL: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       if (!data.url) {
-        throw new Error('Failed to get OAuth URL');
+        console.error('API returned invalid data:', data);
+        throw new Error('Failed to get OAuth URL from API');
       }
+      
+      console.log('Opening OAuth URL in external browser:', data.url);
       
       // Open in external browser (Chrome Custom Tabs on Android)
       // This bypasses Google's WebView blocking policy
@@ -114,17 +121,24 @@ export async function initiateGitHubSignInWithPopup(authInstance: Auth): Promise
       const webCallbackUrl = 'https://xpenselab.com/auth/callback';
       
       // Get the OAuth URL from our API route
-      // Use full URL for native apps, relative for web
-      const apiUrl = typeof window !== 'undefined' && window.location.origin 
-        ? `${window.location.origin}/api/auth/github-url`
-        : 'https://xpenselab.com/api/auth/github-url';
+      // Always use full URL for native apps since we're in a WebView
+      const apiUrl = 'https://xpenselab.com/api/auth/github-url';
       
+      console.log('Fetching GitHub OAuth URL from:', apiUrl);
       const response = await fetch(`${apiUrl}?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch GitHub OAuth URL: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       if (!data.url) {
-        throw new Error('Failed to get OAuth URL');
+        console.error('API returned invalid data:', data);
+        throw new Error('Failed to get GitHub OAuth URL from API');
       }
+      
+      console.log('Opening GitHub OAuth URL in external browser:', data.url);
       
       // Open in external browser (Chrome Custom Tabs on Android)
       await Browser.open({ 
