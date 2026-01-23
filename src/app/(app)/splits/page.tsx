@@ -11,8 +11,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Users } from 'lucide-react';
 import type { Group } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PullToRefresh } from '@/components/ui/pull-to-refresh';
-import { useRouter } from 'next/navigation';
 import { ListSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -37,15 +35,8 @@ export default function SplitsPage() {
     }
   }, [isLoadingGroups, groups, selectedGroupId]);
 
-  const router = useRouter();
-
-  const handleRefresh = async () => {
-    router.refresh();
-  };
-
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Expense Splits">
         <div className="hidden md:block">
           <CreateGroupDialog />
@@ -87,7 +78,6 @@ export default function SplitsPage() {
           )}
         </div>
       )}
-      </div>
-    </PullToRefresh>
+    </div>
   );
 }

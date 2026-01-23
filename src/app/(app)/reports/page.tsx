@@ -14,8 +14,6 @@ import { useFinancials } from "@/context/financial-context";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { TimeGrain } from "@/lib/types";
-import { PullToRefresh } from "@/components/ui/pull-to-refresh";
-import { useRouter } from "next/navigation";
 
 export default function ReportsPage() {
   const { transactions, incomeCategories, expenseCategories, isLoading } = useFinancials();
@@ -75,15 +73,8 @@ export default function ReportsPage() {
     });
   }, [transactions, dateRange, selectedCategories, searchQuery, allCategories]);
 
-  const router = useRouter();
-
-  const handleRefresh = async () => {
-    router.refresh();
-  };
-
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="flex flex-col gap-6 w-full min-w-0 max-w-full">
+    <div className="flex flex-col gap-6 w-full min-w-0 max-w-full">
       <div className="flex flex-col gap-4 w-full min-w-0 max-w-full">
         <DashboardHeader title="Reports" />
         <div className="w-full min-w-0 max-w-full">
@@ -131,7 +122,6 @@ export default function ReportsPage() {
         <ReportGenerator />
       </div>
     </div>
-    </PullToRefresh>
   );
 }
 

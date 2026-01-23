@@ -11,8 +11,6 @@ import type { Income } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PlusCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PullToRefresh } from "@/components/ui/pull-to-refresh";
-import { useRouter } from "next/navigation";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -25,12 +23,6 @@ export default function IncomePage() {
   const { incomes, isLoading } = useFinancials();
   const [filters, setFilters] = useState({});
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({ column: 'date', direction: 'descending' });
-  const router = useRouter();
-
-  const handleRefresh = async () => {
-    router.refresh();
-  };
-
   const filteredIncomes = useMemo(() => {
     let filtered = [...incomes];
 
@@ -73,42 +65,40 @@ export default function IncomePage() {
   }, [incomes, filters, sortDescriptor]);
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
-        <DashboardHeader title="Income">
-          <div className="hidden md:block">
-            <IncomeForm />
-          </div>
-        </DashboardHeader>
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
+      <DashboardHeader title="Income">
+        <div className="hidden md:block">
+          <IncomeForm />
+        </div>
+      </DashboardHeader>
 
-        <Card className="w-full min-w-0 max-w-full">
-          <CardHeader>
-            <CardTitle>Income History</CardTitle>
-            <CardDescription>View, filter, and manage your income.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 w-full min-w-0 max-w-full">
-            <TransactionFilters onFilterChange={setFilters} type="income" />
-              {isLoading ? (
-                  <TableSkeleton rows={5} />
-              ) : filteredIncomes.length === 0 && incomes.length > 0 ? (
-                  <EmptyState
-                    icon={<DollarSign className="h-12 w-12" />}
-                    title="No matching income records"
-                    description="Try adjusting your filters to see more results."
-                  />
-              ) : filteredIncomes.length === 0 ? (
-                  <EmptyState
-                    icon={<DollarSign className="h-12 w-12" />}
-                    title="No income recorded yet"
-                    description="Start tracking your income by adding your first income entry."
-                  />
-              ) : (
-                  <IncomeTable incomes={filteredIncomes} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
-              )}
-          </CardContent>
-        </Card>
+      <Card className="w-full min-w-0 max-w-full">
+        <CardHeader>
+          <CardTitle>Income History</CardTitle>
+          <CardDescription>View, filter, and manage your income.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 w-full min-w-0 max-w-full">
+          <TransactionFilters onFilterChange={setFilters} type="income" />
+            {isLoading ? (
+                <TableSkeleton rows={5} />
+            ) : filteredIncomes.length === 0 && incomes.length > 0 ? (
+                <EmptyState
+                  icon={<DollarSign className="h-12 w-12" />}
+                  title="No matching income records"
+                  description="Try adjusting your filters to see more results."
+                />
+            ) : filteredIncomes.length === 0 ? (
+                <EmptyState
+                  icon={<DollarSign className="h-12 w-12" />}
+                  title="No income recorded yet"
+                  description="Start tracking your income by adding your first income entry."
+                />
+            ) : (
+                <IncomeTable incomes={filteredIncomes} onSortChange={setSortDescriptor} sortDescriptor={sortDescriptor} />
+            )}
+        </CardContent>
+      </Card>
 
-      </div>
-    </PullToRefresh>
+    </div>
   );
 }

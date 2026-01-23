@@ -13,8 +13,6 @@ import { PlusCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useEncryption } from '@/context/encryption-context';
 import { Button } from '@/components/ui/button';
-import { PullToRefresh } from '@/components/ui/pull-to-refresh';
-import { useRouter } from 'next/navigation';
 import { ListSkeleton } from '@/components/ui/skeletons';
 
 export default function DebtsPage() {
@@ -53,15 +51,9 @@ export default function DebtsPage() {
   const { data: settledDebts, isLoading: isLoadingSettled } = useCollection<Debt>(settledDebtsQuery, encryptionKeyForHooks);
 
   const isLoading = isLoadingTo || isLoadingFrom || isLoadingSettled;
-  const router = useRouter();
-
-  const handleRefresh = async () => {
-    router.refresh();
-  };
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
+    <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Individual Debts">
         <div className="hidden md:block">
           <AddDebtDialog />
@@ -94,7 +86,6 @@ export default function DebtsPage() {
             </Tabs>
         </CardContent>
       </Card>
-      </div>
-    </PullToRefresh>
+    </div>
   );
 }
