@@ -70,7 +70,7 @@ public class MainActivity extends BridgeActivity {
                             "}",
                             null
                         );
-                    } catch (e) {
+                    } catch (Exception e) {
                         // Ignore errors
                     }
                 }
