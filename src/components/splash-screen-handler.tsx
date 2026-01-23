@@ -29,43 +29,73 @@ export function SplashScreenHandler() {
     showSplash();
 
     let isHidden = false;
+    let pageLoaded = false;
+
+    // Check if page is actually loaded (not just DOM ready)
+    const checkPageLoaded = () => {
+      // Check if React has rendered and page is interactive
+      if (document.readyState === 'complete' && 
+          document.body && 
+          document.body.children.length > 0 &&
+          !document.body.querySelector('[data-loading="true"]')) {
+        return true;
+      }
+      return false;
+    };
 
     const hideSplash = async () => {
-      if (isHidden) return;
+      if (isHidden || !pageLoaded) return;
       isHidden = true;
       
       try {
-        // Wait a bit to ensure page is rendered and user sees content
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait a bit to ensure page is fully rendered
+        await new Promise(resolve => setTimeout(resolve, 800));
         await SplashScreen.hide();
       } catch (error) {
         console.error('Error hiding splash screen:', error);
       }
     };
 
-    // Hide when DOM is ready and page has loaded
-    const checkAndHide = () => {
-      // Only hide if page is actually loaded (not just DOM ready)
-      if (document.readyState === 'complete') {
+    // Listen for Capacitor page loaded event
+    const handleCapacitorPageLoaded = () => {
+      if (checkPageLoaded()) {
+        pageLoaded = true;
         hideSplash();
       }
     };
+    window.addEventListener('capacitor-page-loaded', handleCapacitorPageLoaded, { once: true });
 
-    // Wait for full page load
-    if (document.readyState === 'complete') {
-      // Page already loaded, wait a bit then hide
-      setTimeout(hideSplash, 500);
-    } else {
-      // Wait for page load
-      window.addEventListener('load', hideSplash, { once: true });
-    }
+    // Poll for page load (more reliable than events)
+    const checkInterval = setInterval(() => {
+      if (checkPageLoaded()) {
+        pageLoaded = true;
+        clearInterval(checkInterval);
+        hideSplash();
+      }
+    }, 200);
 
-    // Fallback: hide after max 10 seconds regardless
-    const timeout = setTimeout(hideSplash, 10000);
+    // Also listen for load event
+    const handleLoad = () => {
+      if (checkPageLoaded()) {
+        pageLoaded = true;
+        clearInterval(checkInterval);
+        hideSplash();
+      }
+    };
+    window.addEventListener('load', handleLoad, { once: true });
+
+    // Fallback: hide after max 30 seconds regardless (give more time for slow connections)
+    const timeout = setTimeout(() => {
+      pageLoaded = true;
+      clearInterval(checkInterval);
+      hideSplash();
+    }, 30000);
 
     return () => {
       clearTimeout(timeout);
-      window.removeEventListener('load', hideSplash);
+      clearInterval(checkInterval);
+      window.removeEventListener('load', handleLoad);
+      window.removeEventListener('capacitor-page-loaded', handleCapacitorPageLoaded);
     };
   }, []);
 

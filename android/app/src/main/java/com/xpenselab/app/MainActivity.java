@@ -46,6 +46,10 @@ public class MainActivity extends BridgeActivity {
             // Enable file access
             settings.setAllowFileAccess(true);
             settings.setAllowContentAccess(true);
+            // Increase timeout for slow connections
+            settings.setLoadsImagesAutomatically(true);
+            settings.setBlockNetworkLoads(false);
+            settings.setBlockNetworkImage(false);
             
             // Set custom WebViewClient to handle errors and page load completion
             webView.setWebViewClient(new WebViewClient() {
@@ -65,14 +69,12 @@ public class MainActivity extends BridgeActivity {
                 public void onPageFinished(WebView view, String url) {
                     super.onPageFinished(view, url);
                     // Page is loaded, JavaScript will handle hiding splash screen
-                    // But we can also trigger it here as a fallback
+                    // Don't hide it here - let the React component handle it to ensure page is fully rendered
                     try {
-                        // Execute JavaScript to trigger splash screen hide
+                        // Just trigger a custom event that the React component can listen to
                         view.evaluateJavascript(
-                            "if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen) { " +
-                            "window.Capacitor.Plugins.SplashScreen.hide(); " +
-                            "} else if (window.dispatchEvent) { " +
-                            "window.dispatchEvent(new Event('load')); " +
+                            "if (window.dispatchEvent) { " +
+                            "window.dispatchEvent(new CustomEvent('capacitor-page-loaded', { detail: { url: '" + url + "' } })); " +
                             "}",
                             null
                         );
@@ -88,11 +90,13 @@ public class MainActivity extends BridgeActivity {
                         int errorCode = error.getErrorCode();
                         String errorDescription = error.getDescription().toString();
                         
-                        // Check if it's a real connection error (not just a redirect or temporary issue)
-                        // ERROR_CONNECTION_ABORTED (error code -2) might be a false positive
+                        // Don't hide splash screen on error - let JavaScript handle it
+                        // This keeps the splash visible while showing error
+                        
+                        // Check if it's a real connection error
                         if (errorCode == WebViewClient.ERROR_TIMEOUT) {
-                            // Timeout - show error page
-                            String errorHtml = generateErrorPage("Connection timeout. Please check your internet connection.", errorCode);
+                            // Timeout - show error page but keep splash visible
+                            String errorHtml = generateErrorPage("Connection timeout. Please check your internet connection and try again.", errorCode);
                             view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
                         } else if (errorCode == WebViewClient.ERROR_CONNECT && 
                                    !errorDescription.contains("aborted") &&
