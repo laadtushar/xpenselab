@@ -33,22 +33,29 @@ export async function initializeCapacitorAuth(auth: Auth, onAuthSuccess?: () => 
         const success = url.searchParams.get('success') === 'true';
         
         if (success) {
-          // Check if we have credential info from the callback page
-          const accessToken = url.searchParams.get('accessToken');
-          const idToken = url.searchParams.get('idToken');
+          // Check if we have encoded credential (preferred method)
+          const encodedCredential = url.searchParams.get('credential');
           const providerId = url.searchParams.get('providerId') || 'google.com';
           
-          if (accessToken && idToken) {
-            // Reconstruct the OAuth credential and sign in
+          if (encodedCredential) {
+            // Reconstruct credential from JSON (preferred method)
             try {
+              const credentialJson = JSON.parse(atob(encodedCredential));
               const provider = providerId === 'github.com' 
                 ? new OAuthProvider('github.com')
                 : new OAuthProvider('google.com');
               
-              const credential = provider.credential({
-                idToken: idToken,
-                accessToken: accessToken
-              });
+              // Use credentialFromJSON if available, otherwise construct manually
+              let credential;
+              if (typeof provider.credentialFromJSON === 'function') {
+                credential = provider.credentialFromJSON(credentialJson);
+              } else {
+                // Fallback: construct credential manually
+                credential = provider.credential({
+                  idToken: credentialJson.idToken,
+                  accessToken: credentialJson.accessToken
+                });
+              }
               
               const userCredential = await signInWithCredential(auth, credential);
               console.log('OAuth redirect successful via credential:', userCredential.user.email);
@@ -57,7 +64,7 @@ export async function initializeCapacitorAuth(auth: Auth, onAuthSuccess?: () => 
               }
             } catch (credError: any) {
               console.error('Failed to sign in with credential:', credError);
-              // Fallback: try getRedirectResult (might work if sessionStorage was shared)
+              // Fallback: try getRedirectResult
               try {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 const result = await getRedirectResult(auth);
@@ -69,16 +76,41 @@ export async function initializeCapacitorAuth(auth: Auth, onAuthSuccess?: () => 
               }
             }
           } else {
-            // No credential info, try getRedirectResult (might work if sessionStorage was shared)
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const result = await getRedirectResult(auth);
-            if (result) {
-              console.log('OAuth redirect successful:', result.user.email);
-              if (onAuthSuccess) {
-                onAuthSuccess();
+            // Fallback: try old method with accessToken/idToken (for backwards compatibility)
+            const accessToken = url.searchParams.get('accessToken');
+            const idToken = url.searchParams.get('idToken');
+            
+            if (accessToken && idToken) {
+              try {
+                const provider = providerId === 'github.com' 
+                  ? new OAuthProvider('github.com')
+                  : new OAuthProvider('google.com');
+                
+                const credential = provider.credential({
+                  idToken: idToken,
+                  accessToken: accessToken
+                });
+                
+                const userCredential = await signInWithCredential(auth, credential);
+                console.log('OAuth redirect successful via credential (fallback):', userCredential.user.email);
+                if (onAuthSuccess) {
+                  onAuthSuccess();
+                }
+              } catch (credError: any) {
+                console.error('Failed to sign in with credential (fallback):', credError);
               }
             } else {
-              console.warn('No redirect result found and no credential info provided');
+              // No credential info, try getRedirectResult (might work if sessionStorage was shared)
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              const result = await getRedirectResult(auth);
+              if (result) {
+                console.log('OAuth redirect successful:', result.user.email);
+                if (onAuthSuccess) {
+                  onAuthSuccess();
+                }
+              } else {
+                console.warn('No redirect result found and no credential info provided');
+              }
             }
           }
         } else {

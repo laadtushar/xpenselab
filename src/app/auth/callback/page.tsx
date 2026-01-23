@@ -29,35 +29,69 @@ export default function AuthCallbackPage() {
         const result = await getRedirectResult(auth);
         
         if (result && result.credential) {
-          // Extract credential info to pass to the app
-          const credential = result.credential as any;
-          const accessToken = credential.accessToken || credential.oauthAccessToken;
-          const idToken = credential.idToken || credential.oauthIdToken;
+          // Use toJSON() to get serializable credential data
+          // This is safer than accessing properties directly
+          const credential = result.credential;
           const providerId = result.providerId || 'google.com';
           
-          if (accessToken && idToken) {
+          try {
+            // Serialize credential to JSON and base64 encode to avoid URL length issues
+            const credentialJson = credential.toJSON();
+            const encodedCredential = btoa(JSON.stringify(credentialJson));
+            
             // If we're in external browser, redirect to custom scheme to return to app
             if (isExternalBrowser) {
               const params = new URLSearchParams({
                 success: 'true',
-                accessToken: accessToken,
-                idToken: idToken,
+                credential: encodedCredential,
                 providerId: providerId
               });
+              
               // Use window.location.replace to ensure redirect happens
               window.location.replace(`xpenselab://auth/callback?${params.toString()}`);
+              
+              // Try to close the browser after redirect (may not work in all browsers)
+              setTimeout(() => {
+                try {
+                  if (window.opener) {
+                    window.close();
+                  }
+                } catch (e) {
+                  // Ignore - browser may not allow closing
+                }
+              }, 500);
+              
               return;
             } else {
               // We're in the app's WebView, just redirect to dashboard
               router.push('/dashboard');
               return;
             }
-          } else {
-            console.warn('Credential missing accessToken or idToken');
+          } catch (encodeError: any) {
+            console.error('Failed to encode credential:', encodeError);
+            // Fallback: try direct property access (less reliable)
+            const credentialAny = credential as any;
+            const accessToken = credentialAny.accessToken || credentialAny.oauthAccessToken;
+            const idToken = credentialAny.idToken || credentialAny.oauthIdToken;
+            
+            if (accessToken && idToken) {
+              if (isExternalBrowser) {
+                const params = new URLSearchParams({
+                  success: 'true',
+                  accessToken: accessToken.substring(0, 500), // Truncate to avoid URL limits
+                  idToken: idToken.substring(0, 500),
+                  providerId: providerId
+                });
+                window.location.replace(`xpenselab://auth/callback?${params.toString()}`);
+                return;
+              }
+            }
+            
+            console.warn('Credential encoding failed and fallback also failed');
             if (isExternalBrowser) {
-              window.location.replace('xpenselab://auth/callback?success=false&error=missing_credential');
+              window.location.replace('xpenselab://auth/callback?success=false&error=credential_encode_failed');
             } else {
-              router.push('/login?error=missing_credential');
+              router.push('/login?error=credential_encode_failed');
             }
             return;
           }
