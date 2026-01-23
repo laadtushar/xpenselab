@@ -20,16 +20,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStart() {
         super.onStart();
-        
-        // Show splash screen immediately when app starts
-        try {
-            com.getcapacitor.Plugin splashPlugin = getBridge().getPlugin("SplashScreen").getInstance();
-            if (splashPlugin instanceof com.getcapacitor.plugin.SplashScreen) {
-                ((com.getcapacitor.plugin.SplashScreen) splashPlugin).show();
-            }
-        } catch (Exception e) {
-            // Ignore if plugin not available
-        }
+        // Splash screen is handled by Capacitor automatically based on config
     }
 
     @Override
@@ -67,15 +58,7 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
                     super.onPageStarted(view, url, favicon);
-                    // Ensure splash screen stays visible while loading
-                    try {
-                        com.getcapacitor.Plugin splashPlugin = getBridge().getPlugin("SplashScreen").getInstance();
-                        if (splashPlugin instanceof com.getcapacitor.plugin.SplashScreen) {
-                            ((com.getcapacitor.plugin.SplashScreen) splashPlugin).show();
-                        }
-                    } catch (Exception e) {
-                        // Ignore
-                    }
+                    // Splash screen should stay visible (handled by Capacitor config)
                 }
 
                 @Override
