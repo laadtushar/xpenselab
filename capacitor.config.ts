@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   // Point to your deployed URL instead of local files
   // This allows the app to work with your Next.js API routes
   server: {
-    url: 'https://xpenselab.com',
+    url: 'https://xpenselab.com/dashboard',
     cleartext: false, // Use HTTPS
   },
   // For local development, you can override with:
