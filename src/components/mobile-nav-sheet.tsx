@@ -10,6 +10,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { SplitIcon } from '@/components/icons/split-icon';
+import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -105,7 +106,9 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
           <div className="h-1.5 w-12 bg-muted rounded-full" />
         </div>
         <SheetHeader className="text-left pb-4 border-b shrink-0">
-          <SheetTitle className="text-xl font-semibold">More</SheetTitle>
+          <div className="flex items-center justify-between">
+            <Logo variant="horizontal" showText={true} />
+          </div>
         </SheetHeader>
         <div className="mt-6 space-y-6 overflow-y-auto pb-8 flex-1 min-h-0">
           {personalNavItems.length > 0 && renderNavSection(personalNavItems, 'Personal')}

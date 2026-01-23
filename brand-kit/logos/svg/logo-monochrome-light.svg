@@ -1,0 +1,12 @@
+<svg width="200" height="150" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon - Dark for light backgrounds -->
+  <g transform="translate(100, 50)">
+    <!-- Bar 1 - Full height, rotated 35deg -->
+    <rect x="-2.5" y="-30" width="5" height="60" rx="2.5" fill="#101622" transform="rotate(35)" />
+    <!-- Bar 2 - 80% height, rotated -35deg -->
+    <rect x="-2.5" y="-24" width="5" height="48" rx="2.5" fill="#101622" fill-opacity="0.9" transform="rotate(-35)" />
+  </g>
+  
+  <!-- Text -->
+  <text x="100" y="110" font-family="Manrope, sans-serif" font-size="24" font-weight="700" fill="#101622" text-anchor="middle" letter-spacing="-0.033em">xpenselab</text>
+</svg>

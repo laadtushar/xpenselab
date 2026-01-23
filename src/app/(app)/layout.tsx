@@ -77,7 +77,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Render a global loading indicator until both Firebase Auth and our Firestore check are complete.
   if (isUserLoading || !isFirestoreCheckComplete) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen flex-col items-center justify-center gap-4">
+        <Logo variant="stacked" showText={true} />
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -90,8 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2 p-2">
-              <Logo />
-              <span className="text-xl font-headline font-semibold">XpenseLab</span>
+              <Logo variant="horizontal" showText={true} />
             </div>
           </SidebarHeader>
           <SidebarContent>

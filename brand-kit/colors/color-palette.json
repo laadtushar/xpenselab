@@ -1,0 +1,70 @@
+{
+  "brand": {
+    "name": "XpenseLab",
+    "description": "Financial management application brand colors"
+  },
+  "primary": {
+    "primary": {
+      "value": "#0d59f2",
+      "rgb": [13, 89, 242],
+      "usage": "Primary brand color, main CTAs, links"
+    },
+    "primaryHover": {
+      "value": "#0b4bcc",
+      "rgb": [11, 75, 204],
+      "usage": "Hover states for primary elements"
+    },
+    "electricBlue": {
+      "value": "#2563eb",
+      "rgb": [37, 99, 235],
+      "usage": "Accent color, gradient start"
+    },
+    "emeraldGreen": {
+      "value": "#10b981",
+      "rgb": [16, 185, 129],
+      "usage": "Success states, gradient end"
+    }
+  },
+  "backgrounds": {
+    "light": {
+      "value": "#f5f6f8",
+      "rgb": [245, 246, 248],
+      "usage": "Light mode background"
+    },
+    "dark": {
+      "value": "#101622",
+      "rgb": [16, 22, 34],
+      "usage": "Dark mode background"
+    },
+    "cardDark": {
+      "value": "#182234",
+      "rgb": [24, 34, 52],
+      "usage": "Dark mode card backgrounds"
+    }
+  },
+  "text": {
+    "primary": {
+      "light": "#101622",
+      "dark": "#ffffff",
+      "usage": "Primary text color"
+    },
+    "secondary": {
+      "value": "#90a4cb",
+      "rgb": [144, 164, 203],
+      "usage": "Secondary text, labels, hints"
+    }
+  },
+  "gradients": {
+    "primary": {
+      "from": "#2563eb",
+      "via": "#0d59f2",
+      "to": "#10b981",
+      "usage": "Logo icon gradient, primary accents"
+    },
+    "accent": {
+      "from": "#2563eb",
+      "to": "#10b981",
+      "usage": "Accent gradients, borders"
+    }
+  }
+}
