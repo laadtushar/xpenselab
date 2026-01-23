@@ -47,19 +47,33 @@ export default function AuthCallbackPage() {
                 providerId: providerId
               });
               
-              // Use window.location.replace to ensure redirect happens
-              window.location.replace(`xpenselab://auth/callback?${params.toString()}`);
+              const redirectUrl = `xpenselab://auth/callback?${params.toString()}`;
+              console.log('[Callback] Redirecting to app with URL:', redirectUrl.substring(0, 150) + '...');
+              console.log('[Callback] Current location:', window.location.href);
               
-              // Try to close the browser after redirect (may not work in all browsers)
-              setTimeout(() => {
+              // Use window.location.href immediately (don't wait for Browser.close)
+              // Some Android browsers need the redirect to happen immediately
+              window.location.href = redirectUrl;
+              
+              // Also try to close Capacitor Browser (but don't wait for it)
+              // Closing after redirect is better than before
+              setTimeout(async () => {
                 try {
-                  if (window.opener) {
-                    window.close();
-                  }
+                  const { Browser } = await import('@capacitor/browser');
+                  await Browser.close();
+                  console.log('[Callback] Browser closed after redirect');
                 } catch (e) {
-                  // Ignore - browser may not allow closing
+                  console.log('[Callback] Could not close browser:', e);
                 }
               }, 500);
+              
+              // Fallback: if still on callback page after 2 seconds, try replace
+              setTimeout(() => {
+                if (window.location.href.includes('/auth/callback')) {
+                  console.log('[Callback] Fallback: still on callback page, trying replace');
+                  window.location.replace(redirectUrl);
+                }
+              }, 2000);
               
               return;
             } else {
@@ -82,7 +96,23 @@ export default function AuthCallbackPage() {
                   idToken: idToken.substring(0, 500),
                   providerId: providerId
                 });
-                window.location.replace(`xpenselab://auth/callback?${params.toString()}`);
+                const redirectUrl = `xpenselab://auth/callback?${params.toString()}`;
+                console.log('Fallback redirect to app:', redirectUrl.substring(0, 100) + '...');
+                
+                // Try to close Capacitor Browser first
+                try {
+                  const { Browser } = await import('@capacitor/browser');
+                  await Browser.close();
+                } catch (e) {
+                  // Ignore
+                }
+                
+                window.location.href = redirectUrl;
+                setTimeout(() => {
+                  if (window.location.href.includes('xpenselab.com')) {
+                    window.location.replace(redirectUrl);
+                  }
+                }, 1000);
                 return;
               }
             }
@@ -98,7 +128,15 @@ export default function AuthCallbackPage() {
         } else {
           // No redirect result
           if (isExternalBrowser) {
-            window.location.replace('xpenselab://auth/callback?success=false&error=auth_failed');
+            console.warn('No redirect result found, redirecting to app with error');
+            const redirectUrl = 'xpenselab://auth/callback?success=false&error=auth_failed';
+            try {
+              const { Browser } = await import('@capacitor/browser');
+              await Browser.close();
+            } catch (e) {
+              // Ignore
+            }
+            window.location.href = redirectUrl;
           } else {
             router.push('/login?error=auth_failed');
           }
@@ -120,11 +158,17 @@ export default function AuthCallbackPage() {
 
   // Fallback: if we're still here after 5 seconds, try to redirect anyway
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       const isExternalBrowser = !Capacitor.isNativePlatform() || typeof (window as any).Capacitor === 'undefined';
       if (isExternalBrowser) {
         console.warn('Callback page timeout - redirecting to app anyway');
-        window.location.replace('xpenselab://auth/callback?success=false&error=timeout');
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.close();
+        } catch (e) {
+          // Ignore
+        }
+        window.location.href = 'xpenselab://auth/callback?success=false&error=timeout';
       }
     }, 5000);
     

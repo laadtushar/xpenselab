@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
 import { initiateGoogleSignInWithPopup, initiateGitHubSignInWithPopup, handleOAuthRedirect } from '@/firebase/non-blocking-login';
+import { initializeCapacitorAuth } from '@/lib/capacitor-auth';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +26,17 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [isUserLoading, user, router]);
+
+  // Initialize Capacitor auth handler for OAuth redirects (must be set up before redirect happens)
+  useEffect(() => {
+    if (auth) {
+      initializeCapacitorAuth(auth, () => {
+        // On successful auth, user state will update and redirect will happen
+        console.log('[Login] OAuth success callback triggered');
+        router.refresh();
+      });
+    }
+  }, [auth, router]);
 
   // Handle OAuth redirect when app opens
   useEffect(() => {

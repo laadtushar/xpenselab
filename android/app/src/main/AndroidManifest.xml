@@ -29,6 +29,17 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data 
+                    android:scheme="xpenselab"
+                    android:host="auth"
+                    android:pathPrefix="/callback" />
+            </intent-filter>
+            
+            <!-- Fallback: handle any xpenselab:// URL -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="xpenselab" />
             </intent-filter>
 

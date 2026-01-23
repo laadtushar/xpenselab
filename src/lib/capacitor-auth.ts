@@ -23,14 +23,32 @@ export async function initializeCapacitorAuth(auth: Auth, onAuthSuccess?: () => 
 
   // Handle app opening from OAuth redirect (custom scheme)
   App.addListener('appUrlOpen', async (event) => {
-    console.log('App opened with URL:', event.url);
+    console.log('[Capacitor Auth] App opened with URL:', event.url);
     
     // Check if this is an OAuth callback from external browser
     if (event.url.includes('auth/callback') || event.url.includes('xpenselab://')) {
+      console.log('[Capacitor Auth] Detected OAuth callback URL');
       try {
         // Parse URL to check for success/error
-        const url = new URL(event.url);
+        let url: URL;
+        try {
+          url = new URL(event.url);
+        } catch (urlError) {
+          // If URL parsing fails, try to construct it manually
+          console.error('[Capacitor Auth] Failed to parse URL, trying manual construction:', urlError);
+          // Extract query string if present
+          const queryIndex = event.url.indexOf('?');
+          if (queryIndex > 0) {
+            const base = event.url.substring(0, queryIndex);
+            const query = event.url.substring(queryIndex);
+            url = new URL(query, base);
+          } else {
+            url = new URL(event.url);
+          }
+        }
+        
         const success = url.searchParams.get('success') === 'true';
+        console.log('[Capacitor Auth] Success flag:', success);
         
         if (success) {
           // Check if we have encoded credential (preferred method)
@@ -58,8 +76,9 @@ export async function initializeCapacitorAuth(auth: Auth, onAuthSuccess?: () => 
               }
               
               const userCredential = await signInWithCredential(auth, credential);
-              console.log('OAuth redirect successful via credential:', userCredential.user.email);
+              console.log('[Capacitor Auth] OAuth redirect successful via credential:', userCredential.user.email);
               if (onAuthSuccess) {
+                console.log('[Capacitor Auth] Calling onAuthSuccess callback');
                 onAuthSuccess();
               }
             } catch (credError: any) {
