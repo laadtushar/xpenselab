@@ -73,6 +73,11 @@ export default function ExpensesPage() {
         </div>
       </DashboardHeader>
 
+      {/* Mobile Add Button */}
+      <div className="md:hidden">
+        <ExpenseForm />
+      </div>
+
       <Card className="w-full min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>Expense History</CardTitle>

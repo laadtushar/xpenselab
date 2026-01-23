@@ -72,6 +72,11 @@ export default function IncomePage() {
         </div>
       </DashboardHeader>
 
+      {/* Mobile Add Button */}
+      <div className="md:hidden">
+        <IncomeForm />
+      </div>
+
       <Card className="w-full min-w-0 max-w-full">
         <CardHeader>
           <CardTitle>Income History</CardTitle>
