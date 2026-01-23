@@ -30,26 +30,64 @@ For a detailed technical overview, project structure, and feature breakdown, ple
 
 ## ✨ Core Features
 
-- **Dashboard:** An at-a-glance overview of your financial health, including recent transactions and an income vs. expense chart.
-- **Transaction Management:** Add, view, and manage your income and expenses with detailed information.
-- **AI-Powered Categorization:** Expenses are automatically categorized using a Genkit AI flow to save you time.
-- **Budgeting:** Set monthly budgets and track your spending progress against them.
-- **Custom Categories:** Create and customize your own income and expense categories with unique icons.
-- **Expense Splitting:** Create groups with friends or family to easily split shared expenses.
-- **Debt Tracking:** Log and manage one-on-one debts.
-- **Bank Integration:** Connect your Monzo bank account to automatically import transactions (via OAuth2).
-- **Data Import/Export:** Import transactions from a CSV/XLSX file and export financial reports.
-- **Secure Authentication:** User accounts are secured with Firebase Authentication, supporting Google and GitHub providers.
+### Financial Management
+- **Dashboard:** An at-a-glance overview of your financial health, including recent transactions, income vs. expense charts, and key financial metrics
+- **Transaction Management:** Add, view, filter, and manage your income and expenses with detailed information
+- **Recurring Transactions:** Set up recurring income and expenses that automatically log on schedule
+- **Budgeting:** Set monthly budgets and track your spending progress with visual progress indicators
+- **Loans & EMIs:** Track loans, calculate EMIs, and monitor repayment schedules
+
+### AI-Powered Features (Premium)
+- **AI Expense Categorization:** Automatically categorize expenses using Google Gemini AI
+- **AI Budgeting Assistant:** Get personalized budget recommendations and spending insights
+- **AI Financial Insights:** Receive intelligent financial analysis and forecasting
+- **Predictive Forecasting:** AI-powered predictions for future spending patterns
+
+### Organization & Sharing
+- **Custom Categories:** Create and customize your own income and expense categories with unique icons
+- **Expense Splitting:** Create groups with friends or family to easily split shared expenses
+- **Debt Tracking:** Log and manage one-on-one debts and track who owes whom
+- **Loans Management:** Track loans, EMIs, and repayment schedules
+
+### Security & Privacy
+- **Client-Side Encryption:** Optional end-to-end encryption for your financial data
+- **Recovery Codes:** Secure backup codes for encryption recovery
+- **GDPR Compliant:** Full compliance with GDPR data protection regulations
+- **Secure Authentication:** Firebase Authentication with Google and GitHub OAuth providers
+
+### Integrations & Data
+- **Data Import/Export:** Import transactions from CSV/XLSX files and export financial reports
+- **Receipt Scanning:** (Premium) Scan receipts to automatically extract expense information
+
+### Premium Features
+- **Subscription Management:** Stripe-powered premium subscriptions ($10/month)
+- **Premium Badge:** Visual indicators for premium users
+- **Advanced AI Features:** All AI-powered features require premium subscription
+- **Priority Support:** Enhanced support for premium users
 
 ## 🛠️ Tech Stack
 
-- **Framework:** [Next.js](https://nextjs.org/) (with App Router)
-- **UI:** [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/)
-- **Component Library:** [ShadCN/UI](https://ui.shadcn.com/)
-- **Backend & Database:** [Firebase](https://firebase.google.com/) (Authentication, Firestore)
-- **Generative AI:** [Genkit](https://firebase.google.com/docs/genkit)
+### Frontend
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router, React Server Components)
+- **UI Library:** [React 18](https://react.dev/), [TypeScript 5.9](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/), [ShadCN/UI](https://ui.shadcn.com/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Charts:** [Recharts](https://recharts.org/)
+
+### Backend & Services
+- **Backend:** [Firebase](https://firebase.google.com/)
+  - **Authentication:** Firebase Auth (Google, GitHub OAuth)
+  - **Database:** Cloud Firestore (NoSQL)
+  - **Hosting:** Firebase App Hosting
+  - **Admin SDK:** Firebase Admin (server-side operations)
+- **Generative AI:** [Genkit](https://firebase.google.com/docs/genkit) with Google Gemini
+- **Payments:** [Stripe](https://stripe.com/) (Checkout Sessions, Webhooks)
+
+### Development & Monitoring
 - **Monitoring:** Web Vitals, Error Tracking, Network Monitoring, UI/UX Detection
-- **Deployment:** Firebase App Hosting
+- **Build Tool:** Turbopack (Next.js)
+- **Package Manager:** npm
+- **Code Quality:** ESLint, TypeScript strict mode
 
 ## 📦 Prerequisites
 
@@ -83,10 +121,22 @@ The application is designed to be run within the Firebase Studio environment.
    ```bash
    cp .env.example .env
    ```
-   Then edit `.env` and fill in your actual values:
-   - Required: `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY` for Firebase App Check
-   - Optional: `NEXT_PUBLIC_DISABLE_MONITORING` to disable runtime monitoring (default: enabled)
-   - See `.env.example` for all available configuration options
+   Then edit `.env` and fill in your actual values. 
+   
+   **📖 See [`.env.example`](./.env.example) for comprehensive instructions, all available variables, and detailed setup guides.**
+   
+   **Quick Start - Minimum Required:**
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID` - Your Firebase project ID
+   - `NEXT_PUBLIC_FIREBASE_API_KEY` - Your Firebase API key  
+   - `GOOGLE_GENAI_API_KEY` - For AI features (categorization, insights, forecasting)
+   
+   **For Premium Subscriptions:**
+   - `STRIPE_SECRET_KEY` - Stripe secret key (server-side)
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (public)
+   - `STRIPE_PRICE_ID` - Stripe price ID for $10/month subscription
+   - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
+   - See [Stripe Integration Guide](./docs/integrations/STRIPE_INTEGRATION.md) for complete setup
+   
 
 4. **Run the development server**
    ```bash
@@ -161,8 +211,7 @@ XpenseLab includes comprehensive runtime monitoring to detect UI/UX issues acros
 
 ### Documentation
 
-- **[UI/UX Monitoring Guide](./docs/UI_UX_MONITORING.md)** - Complete monitoring system documentation
-- **[Production Configuration](./docs/PRODUCTION_MONITORING.md)** - Production setup and security considerations
+**Note:** Runtime monitoring features are built into the application. See the codebase for implementation details.
 
 ### Integration
 
@@ -172,7 +221,7 @@ The monitoring system is ready to integrate with:
 - **Sentry** - Alternative error tracking solution
 - **Google Analytics** - For Web Vitals reporting
 
-See the [Production Monitoring Guide](./docs/PRODUCTION_MONITORING.md) for integration steps.
+See the [Application Guide](./docs/APPLICATION_GUIDE.md) for monitoring integration details.
 
 ## 🌐 Browser Support
 
@@ -190,44 +239,97 @@ XpenseLab supports all modern browsers:
 
 ### Firebase App Hosting
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+XpenseLab is deployed using Firebase App Hosting, which automatically builds and deploys from your GitHub repository.
 
-2. **Deploy to Firebase**
-   ```bash
-   firebase deploy --only hosting
-   ```
+1. **Configure Firebase App Hosting**
+   - Ensure `apphosting.yaml` is configured correctly
+   - Set up GitHub integration in Firebase Console
 
-3. **Set environment variables**
-   - Go to Firebase Console > App Hosting > Environment Variables
-   - Add all required variables from `.env.example`
+2. **Set environment variables and secrets**
+   
+   **For plain values (public variables):**
+   ```bash
+   # These can be set directly in apphosting.yaml or via Firebase Console
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=studio-3845013162-4f4cd
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_key_here
+   ```
+   
+   **For secrets (sensitive values):**
+   ```bash
+   # Use Firebase CLI to set secrets
+   npx firebase-tools apphosting:secrets:set NEXT_PUBLIC_FIREBASE_API_KEY
+   npx firebase-tools apphosting:secrets:set GOOGLE_GENAI_API_KEY
+   npx firebase-tools apphosting:secrets:set STRIPE_SECRET_KEY
+   npx firebase-tools apphosting:secrets:set STRIPE_PRICE_ID
+   npx firebase-tools apphosting:secrets:set STRIPE_WEBHOOK_SECRET
+   
+   # Grant backend access to secrets
+   npx firebase-tools apphosting:secrets:grantaccess NEXT_PUBLIC_FIREBASE_API_KEY,GOOGLE_GENAI_API_KEY,STRIPE_SECRET_KEY,STRIPE_PRICE_ID,STRIPE_WEBHOOK_SECRET --backend=studio
+   ```
+   
+   See [docs/setup/FIREBASE_APPHOSTING_COMMANDS.md](./docs/setup/FIREBASE_APPHOSTING_COMMANDS.md) for detailed instructions.
+
+3. **Deploy**
+   - Push to your main branch - Firebase App Hosting automatically deploys
+   - Or manually trigger: `firebase apphosting:backends:rollout --backend=studio`
+
+4. **Configure Stripe Webhook**
+   - Set webhook endpoint: `https://your-domain.com/api/webhook`
+   - Select events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+   - Copy webhook signing secret and set as `STRIPE_WEBHOOK_SECRET` secret
 
 ### Environment Variables for Production
 
-Ensure all environment variables are set in Firebase Console:
-- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-- `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY`
-- `GOOGLE_GENAI_API_KEY` or `GEMINI_API_KEY`
-- Other optional variables as needed
+**Required:**
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID` - Your Firebase project ID
+- `NEXT_PUBLIC_FIREBASE_API_KEY` - Firebase API key (set as secret)
+- `GOOGLE_GENAI_API_KEY` - Google Generative AI API key (set as secret)
+
+**For Premium Features:**
+- `STRIPE_SECRET_KEY` - Stripe secret key (set as secret)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (can be value)
+- `STRIPE_PRICE_ID` - Stripe price ID (set as secret)
+- `STRIPE_WEBHOOK_SECRET` - Webhook signing secret (set as secret)
+
+**Optional:**
+- `NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY` - For Firebase App Check
+- `NEXT_PUBLIC_DISABLE_MONITORING` - Disable runtime monitoring
 
 ## 🔒 Security
 
 ### Data Protection
 
-- **Encryption**: User financial data is encrypted at rest using client-side encryption
+- **Client-Side Encryption**: Optional end-to-end encryption for financial data using AES-256
+- **Recovery Codes**: Secure backup codes for encryption key recovery
 - **Authentication**: Secure authentication via Firebase Auth (Google, GitHub OAuth)
-- **API Security**: All API keys are server-side only (never exposed to browser)
+- **API Security**: All sensitive API keys are server-side only (never exposed to browser)
 - **Monitoring**: Runtime monitoring sanitizes URLs and never logs sensitive data
+- **Firestore Security Rules**: Comprehensive security rules ensure users can only access their own data
+
+### Premium Subscription Security
+
+- **Stripe Integration**: Secure payment processing via Stripe Checkout
+- **Webhook Verification**: All Stripe webhooks are cryptographically verified
+- **Server-Side Processing**: Payment verification happens server-side only
+- **Firebase Admin SDK**: Secure server-side operations for user tier updates
 
 ### Best Practices
 
-- Never commit `.env` files to version control
-- Use strong, unique passwords for Firebase accounts
-- Regularly update dependencies: `npm audit` and `npm update`
-- Enable Firebase App Check for production
-- Review Firebase Security Rules regularly
+- **Never commit `.env` files** to version control (already in `.gitignore`)
+- **Use secrets for sensitive values** in Firebase App Hosting (not plain values)
+- **Rotate API keys regularly**, especially if exposed in client-side code
+- **Use test keys for development**, production keys only in production
+- **Regularly update dependencies**: `npm audit` and `npm update`
+- **Enable Firebase App Check** for production with reCAPTCHA v3
+- **Review Firebase Security Rules** regularly (`firestore.rules`)
+- **Monitor webhook events** in Stripe Dashboard for payment issues
+
+### Environment Variable Security
+
+- Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser - only use for public keys
+- Server-side variables (no prefix) are never exposed to the client
+- Use Firebase App Hosting secrets for all sensitive values
+- See [`.env.example`](./.env.example) for security best practices
 
 ### Reporting Security Issues
 
@@ -269,7 +371,7 @@ npm run typecheck
 ### Getting Help
 
 - Check the [Application Guide](./docs/APPLICATION_GUIDE.md) for detailed documentation
-- Review [UI/UX Monitoring Guide](./docs/UI_UX_MONITORING.md) for monitoring issues
+- Review the [Documentation Index](./docs/README.md) for all available guides
 - Check existing GitHub issues
 - Create a new issue with:
   - Description of the problem
@@ -311,10 +413,27 @@ Contributions are welcome! Please follow these guidelines:
 
 ## 📚 Documentation
 
-- **[Application Guide](./docs/APPLICATION_GUIDE.md)** - Complete feature documentation and architecture
-- **[UI/UX Monitoring Guide](./docs/UI_UX_MONITORING.md)** - Runtime monitoring system documentation
-- **[Production Monitoring](./docs/PRODUCTION_MONITORING.md)** - Production setup and security
-- **[SaltEdge Testing](./docs/SALTEDGE_TESTING.md)** - SaltEdge integration testing guide
+**📖 [Documentation Index](./docs/README.md)** - Complete documentation index organized by category
+
+### Quick Links
+
+**Setup & Configuration:**
+- **[Environment Variables](./.env.example)** - Comprehensive environment variable setup guide
+- **[Firebase App Hosting Commands](./docs/setup/FIREBASE_APPHOSTING_COMMANDS.md)** - Commands for managing secrets and environment variables
+
+**Integrations:**
+- **[Stripe Integration](./docs/integrations/STRIPE_INTEGRATION.md)** - Complete Stripe payment setup, webhook configuration, and testing
+
+**Features:**
+- **[Recovery Codes Storage](./docs/features/RECOVERY_CODES_STORAGE.md)** - Encryption recovery code management
+- **[Change Code Edge Cases](./docs/features/CHANGE_CODE_EDGE_CASES.md)** - Encryption code change edge case analysis
+
+**Legal & Compliance:**
+- **[GDPR Compliance](./docs/legal/GDPR_COMPLIANCE.md)** - Data protection and GDPR compliance information
+
+**Core Documentation:**
+- **[Application Guide](./docs/APPLICATION_GUIDE.md)** - Complete feature documentation, architecture, and project structure
+- **[Brand Kit](./brand-kit/README.md)** - Brand assets, guidelines, and usage instructions
 
 ## 🔄 Point-in-Time Recovery (PITR)
 

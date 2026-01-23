@@ -376,12 +376,6 @@ export default function PrivacyPage() {
                       AI-powered expense categorization. Only expense descriptions are sent for processing.
                     </p>
                   </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Monzo / SaltEdge</h4>
-                    <p className="text-muted-foreground">
-                      Bank integration services. Data processing only occurs with your explicit consent.
-                    </p>
-                  </div>
                   <p className="text-xs text-muted-foreground pt-2">
                     All third-party processors have signed Data Processing Agreements (DPAs) that comply with GDPR Article 28.
                   </p>

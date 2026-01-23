@@ -354,8 +354,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
         encryptionSalt: encryptionSaltBase64, // Plain salt - needed for cross-browser key derivation
       });
       
-      // Note: User fields like monzoTokens will be encrypted on next update, not during enableEncryption
-      // This is safe because encryption is only enabled after all metadata is stored
+      // Note: User fields are no longer encrypted (bank integrations removed)
       
       toast({
         title: 'Encryption Enabled',

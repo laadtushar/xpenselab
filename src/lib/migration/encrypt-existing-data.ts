@@ -522,7 +522,7 @@ export async function migrateUserDataToEncrypted(
       }
     }
     
-    // Migrate User document itself (encrypt monzoTokens, saltEdgeCustomerId, saltEdgeConnections)
+    // Migrate User document itself (no encrypted fields - bank integrations removed)
     const userDocRef = doc(firestore, 'users', userId);
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {

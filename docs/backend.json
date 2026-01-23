@@ -25,15 +25,6 @@
             "description": "The user's subscription tier.",
             "enum": ["basic", "premium"]
         },
-        "monzoTokens": {
-            "type": "object",
-            "description": "Stores Monzo OAuth tokens.",
-            "properties": {
-                "accessToken": { "type": "string" },
-                "refreshToken": { "type": "string" },
-                "expiresAt": { "type": "string", "format": "date-time" }
-            }
-        },
         "aiRequestCount": {
           "type": "number",
           "description": "The number of AI requests made by the user today."

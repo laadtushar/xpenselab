@@ -23,7 +23,6 @@ XpenseLab is a comprehensive personal finance management tool designed to provid
 - **Individual Debts:** A separate feature for tracking simple one-on-one debts that are not tied to a specific group expense.
 
 ### 2.4. Integrations & Data Management
-- **Monzo Bank Integration:** Users can connect their Monzo account using an OAuth2 flow. This involves a Genkit flow (`exchangeMonzoToken`) to securely handle the token exchange and store credentials in Firestore.
 - **Data Import:** Users can import historical transaction data from CSV, TSV, or XLSX files. The importer is designed to be flexible with column headers.
 - **Report Generation:** Users can export their transaction data as a CSV file for a selected date range.
 

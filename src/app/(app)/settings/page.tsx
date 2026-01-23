@@ -4,10 +4,7 @@ import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DataImporter } from "@/components/settings/data-importer";
 import { ResetData } from "@/components/settings/reset-data";
 import { CurrencySettings } from "@/components/settings/currency-settings";
-import { SaltEdgeSettings } from "@/components/settings/saltedge-settings";
-import { MonzoSettings } from "@/components/settings/monzo-settings";
 import { EncryptionSettings } from "@/components/settings/encryption-settings";
-import { FEATURES } from "@/lib/config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, ExternalLink, Crown, Sparkles } from "lucide-react";
@@ -74,8 +71,6 @@ export default function SettingsPage() {
       )}
       <EncryptionSettings />
       <CurrencySettings />
-      {FEATURES.isSaltEdgeEnabled && <SaltEdgeSettings />}
-      {FEATURES.isMonzoEnabled && <MonzoSettings />}
       <DataImporter />
       <ResetData />
       

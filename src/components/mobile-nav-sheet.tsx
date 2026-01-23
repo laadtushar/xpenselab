@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { SplitIcon } from '@/components/icons/split-icon';
 import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFinancials } from '@/context/financial-context';
@@ -51,6 +51,13 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const { userData } = useFinancials();
   const isPremium = userData?.tier === 'premium';
+  
+  const sheetContentRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number>(0);
+  const touchStartTime = useRef<number>(0);
+  const isScrolling = useRef<boolean>(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleLinkClick = (href: string) => {
     setOpen(false);
@@ -63,6 +70,107 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
       auth.signOut();
     }
   };
+
+  // Swipe down to close functionality
+  useEffect(() => {
+    if (!open) return;
+
+    let cleanup: (() => void) | null = null;
+
+    // Use setTimeout to ensure the DOM is rendered
+    const timeoutId = setTimeout(() => {
+      const sheetContent = sheetContentRef.current;
+      const dragHandle = dragHandleRef.current;
+      const scrollContainer = scrollContainerRef.current;
+
+      if (!sheetContent) return;
+
+      const handleTouchStart = (e: TouchEvent) => {
+        touchStartY.current = e.touches[0].clientY;
+        touchStartTime.current = Date.now();
+        isScrolling.current = false;
+        
+        // Check if we're starting the touch on the scrollable content
+        const target = e.target as Node;
+        if (scrollContainer && scrollContainer.contains(target)) {
+          const scrollTop = scrollContainer.scrollTop;
+          const scrollHeight = scrollContainer.scrollHeight;
+          const clientHeight = scrollContainer.clientHeight;
+          
+          // If we're not at the top of the scroll container, allow scrolling
+          if (scrollTop > 0 || scrollHeight <= clientHeight) {
+            isScrolling.current = true;
+          }
+        }
+      };
+
+      const handleTouchMove = (e: TouchEvent) => {
+        if (isScrolling.current) return;
+
+        const currentY = e.touches[0].clientY;
+        const deltaY = currentY - touchStartY.current;
+
+        // Only allow swipe down (positive deltaY)
+        if (deltaY > 0) {
+          // Prevent default scrolling if we're swiping down from the top
+          if (scrollContainer && scrollContainer.scrollTop === 0) {
+            e.preventDefault();
+          }
+          
+          // Add visual feedback by moving the sheet down
+          if (deltaY > 10) {
+            sheetContent.style.transform = `translateY(${Math.min(deltaY, 100)}px)`;
+            sheetContent.style.transition = 'none';
+          }
+        }
+      };
+
+      const handleTouchEnd = (e: TouchEvent) => {
+        const currentY = e.changedTouches[0].clientY;
+        const deltaY = currentY - touchStartY.current;
+        const deltaTime = Date.now() - touchStartTime.current;
+        const velocity = deltaTime > 0 ? Math.abs(deltaY) / deltaTime : 0;
+
+        // Reset transform
+        sheetContent.style.transform = '';
+        sheetContent.style.transition = '';
+
+        // Close if swiped down enough (100px) or fast enough (0.3px/ms)
+        if (!isScrolling.current && (deltaY > 100 || (deltaY > 50 && velocity > 0.3))) {
+          setOpen(false);
+        }
+
+        isScrolling.current = false;
+      };
+
+      // Add listeners to drag handle and sheet content
+      if (dragHandle) {
+        dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
+        dragHandle.addEventListener('touchmove', handleTouchMove, { passive: false });
+        dragHandle.addEventListener('touchend', handleTouchEnd, { passive: true });
+      }
+
+      sheetContent.addEventListener('touchstart', handleTouchStart, { passive: false });
+      sheetContent.addEventListener('touchmove', handleTouchMove, { passive: false });
+      sheetContent.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+      cleanup = () => {
+        if (dragHandle) {
+          dragHandle.removeEventListener('touchstart', handleTouchStart);
+          dragHandle.removeEventListener('touchmove', handleTouchMove);
+          dragHandle.removeEventListener('touchend', handleTouchEnd);
+        }
+        sheetContent.removeEventListener('touchstart', handleTouchStart);
+        sheetContent.removeEventListener('touchmove', handleTouchMove);
+        sheetContent.removeEventListener('touchend', handleTouchEnd);
+      };
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (cleanup) cleanup();
+    };
+  }, [open]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -115,8 +223,12 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
         side="bottom" 
         className="h-[85vh] max-h-[600px] rounded-t-2xl pb-safe-area-inset-bottom flex flex-col"
         closeClassName="hidden"
+        ref={sheetContentRef}
       >
-        <div className="flex items-center justify-center mb-4 shrink-0">
+        <div 
+          ref={dragHandleRef}
+          className="flex items-center justify-center mb-4 shrink-0 touch-none cursor-grab active:cursor-grabbing"
+        >
           <div className="h-1.5 w-12 bg-muted rounded-full" />
         </div>
         <SheetHeader className="text-left pb-4 border-b shrink-0">
@@ -142,7 +254,7 @@ export function MobileNavSheet({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </SheetHeader>
-        <div className="mt-6 space-y-6 overflow-y-auto pb-8 flex-1 min-h-0">
+        <div ref={scrollContainerRef} className="mt-6 space-y-6 overflow-y-auto pb-8 flex-1 min-h-0">
           {personalNavItems.length > 0 && renderNavSection(personalNavItems, 'Personal')}
           {renderNavSection(sharedNavItems, 'Shared')}
           {renderNavSection(toolsNavItems, 'Tools & Reports')}

@@ -40,7 +40,7 @@ interface FinancialContextType {
   deleteUnusedCategories: (type: 'income' | 'expense') => Promise<void>;
 
   userData: UserData | null;
-  updateUser: (data: Partial<UserData> & { saltEdgeCustomerId?: FieldValue | undefined; saltEdgeConnections?: FieldValue | undefined }) => void;
+  updateUser: (data: Partial<UserData>) => void;
   
   resetData: () => void;
   isLoading: boolean;
@@ -389,36 +389,13 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId, firestore, incomes, expenses, incomeCategories, expenseCategories, toast]);
 
-  const updateUser = (data: Partial<UserData> & { saltEdgeCustomerId?: FieldValue | undefined; saltEdgeConnections?: FieldValue | undefined }) => {
+  const updateUser = (data: Partial<UserData>) => {
     if (!userDocRef || !firestore || !userId) return;
     // CRITICAL: Validate encryption state before write (unless updating non-encrypted fields only)
-    // Note: Some User fields are encrypted (monzoTokens, saltEdgeCustomerId, saltEdgeConnections)
-    // If updating encrypted fields, validate encryption state
-    const hasEncryptedFields = 'monzoTokens' in data || 'saltEdgeCustomerId' in data || 'saltEdgeConnections' in data;
-    if (hasEncryptedFields) {
-      validateEncryptionState();
-    }
+    // Note: User fields are no longer encrypted (bank integrations removed)
+    // If encryption is re-enabled in the future, add validation here
 
-    const updates: any = {};
-    
-    if (data.saltEdgeCustomerId === undefined) {
-      updates.saltEdgeCustomerId = deleteField();
-    }
-    
-    if (data.saltEdgeConnections === undefined) {
-      updates.saltEdgeConnections = deleteField();
-    }
-
-    if (Object.keys(updates).length > 0) {
-      const userRef = doc(firestore, "users", userId);
-      updateDocumentNonBlocking(userRef, updates, encryptionKeyForHooks);
-    }
-
-    // Merge other data
-    const { saltEdgeCustomerId, saltEdgeConnections, ...otherData } = data;
-    if (Object.keys(otherData).length > 0 || (saltEdgeCustomerId !== undefined && saltEdgeCustomerId !== deleteField()) || (saltEdgeConnections !== undefined && saltEdgeConnections !== deleteField())) {
-      setDocumentNonBlocking(userDocRef, data, { merge: true }, encryptionKeyForHooks);
-    }
+    setDocumentNonBlocking(userDocRef, data, { merge: true }, encryptionKeyForHooks);
   };
 
   const canMakeAiRequest = useCallback(() => {

@@ -58,9 +58,6 @@ We process your personal data based on the following legal grounds under GDPR Ar
 - **Expense Records**: Amount, date, description, category, merchant information
 - **Budget Information**: Monthly budgets, budget categories, spending limits
 - **Transaction History**: Historical financial transactions imported from CSV/XLSX files
-- **Bank Integration Data**: 
-  - Monzo: Transaction data, account balances (via OAuth2)
-  - SaltEdge: Bank account information, transaction data (if enabled)
 
 ### 3.3 Shared Finance Data
 
@@ -97,7 +94,6 @@ We process your personal data based on the following legal grounds under GDPR Ar
 - **AI Categorization**: Automatically categorize expenses using Genkit AI based on transaction descriptions
 - **Budget Management**: Track spending against budgets and provide visual progress indicators
 - **Data Analysis**: Generate insights, forecasts, and reports based on your financial data
-- **Bank Integration**: Import transactions from connected bank accounts (Monzo, SaltEdge)
 
 ### 4.2 Service Improvement
 
@@ -209,7 +205,6 @@ You can object to processing based on legitimate interests:
 ### 6.8 Right to Withdraw Consent (Article 7(3))
 
 You can withdraw consent at any time:
-- Revoke bank account connections (Monzo, SaltEdge) in Settings
 - Disable optional features that require consent
 - Update cookie preferences via the cookie consent banner
 
@@ -270,23 +265,7 @@ We use the following third-party services to provide our application:
 - **GDPR Compliance**: Google Cloud complies with GDPR
 - **Privacy Policy**: https://cloud.google.com/security/privacy
 
-### 8.3 Monzo (Bank Integration)
-
-- **Purpose**: Import transactions from Monzo bank accounts
-- **Data Processed**: Transaction data, account balances (via OAuth2)
-- **Location**: United Kingdom (GDPR compliant)
-- **GDPR Compliance**: Monzo is GDPR compliant
-- **Privacy Policy**: https://monzo.com/privacy
-
-### 8.4 SaltEdge (Bank Integration)
-
-- **Purpose**: Connect to multiple bank accounts and import transactions
-- **Data Processed**: Bank account information, transaction data
-- **Location**: Canada (with appropriate safeguards)
-- **GDPR Compliance**: SaltEdge provides GDPR-compliant services
-- **Privacy Policy**: https://www.saltedge.com/privacy_policy
-
-### 8.5 Data Processing Agreements
+### 8.3 Data Processing Agreements
 
 All third-party processors have signed Data Processing Agreements (DPAs) that comply with GDPR Article 28 requirements.
 
@@ -298,8 +277,6 @@ All third-party processors have signed Data Processing Agreements (DPAs) that co
 
 Your data may be transferred to and processed in countries outside the EU/EEA:
 - **United States**: Firebase, Google Cloud services
-- **United Kingdom**: Monzo (post-Brexit, with appropriate safeguards)
-- **Canada**: SaltEdge (with adequacy decision)
 
 ### 9.2 Safeguards
 

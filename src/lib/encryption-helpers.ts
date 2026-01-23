@@ -30,7 +30,7 @@ const ENCRYPTION_FIELD_MAPS: Record<string, string[]> = {
   Debt: ['amount', 'description', 'fromUserName', 'toUserName'],
   RecurringTransaction: ['amount', 'description'],
   SharedExpense: ['amount', 'description', 'splits'],
-  User: ['monzoTokens', 'saltEdgeCustomerId', 'saltEdgeConnections'],
+  User: [],
 };
 
 /**
@@ -74,7 +74,7 @@ export async function encryptDocument<T extends Record<string, any>>(
     return doc; // No fields to encrypt
   }
   
-  const encrypted = { ...doc };
+  const encrypted: Record<string, any> = { ...doc };
   
   for (const field of fieldsToEncrypt) {
     if (field in encrypted && encrypted[field] !== undefined && encrypted[field] !== null) {
@@ -86,18 +86,14 @@ export async function encryptDocument<T extends Record<string, any>>(
         continue; // Already encrypted, skip
       }
       
-      // Handle nested objects (like monzoTokens)
+      // Handle nested objects
       if (typeof value === 'object' && !Array.isArray(value)) {
         // Encrypt the entire object as JSON string
         const jsonString = JSON.stringify(value);
         encrypted[field] = await encryptValue(jsonString, encryptionKey);
       } else if (Array.isArray(value)) {
-        // Handle arrays (like saltEdgeConnections, splits)
-        if (field === 'saltEdgeConnections') {
-          // Encrypt entire array as JSON
-          const jsonString = JSON.stringify(value);
-          encrypted[field] = await encryptValue(jsonString, encryptionKey);
-        } else if (field === 'splits' && Array.isArray(value)) {
+        // Handle arrays (like splits)
+        if (field === 'splits' && Array.isArray(value)) {
           // Encrypt splits array - encrypt amount in each split
           encrypted[field] = await Promise.all(
             value.map(async (split: any) => {
@@ -131,7 +127,7 @@ export async function encryptDocument<T extends Record<string, any>>(
     // Missing fields are handled by hasEncryptedFields returning false
   }
   
-  return encrypted;
+  return encrypted as unknown as T;
 }
 
 /**
@@ -147,7 +143,7 @@ export async function decryptDocument<T extends Record<string, any>>(
     return doc; // No fields to decrypt
   }
   
-  const decrypted = { ...doc };
+  const decrypted: Record<string, any> = { ...doc };
   
   for (const field of fieldsToEncrypt) {
     if (field in decrypted && decrypted[field] !== undefined && decrypted[field] !== null) {
@@ -162,8 +158,7 @@ export async function decryptDocument<T extends Record<string, any>>(
         const decryptedValue = await decryptValue(value, encryptionKey);
         
         // Try to parse as JSON for objects/arrays
-        if (field === 'monzoTokens' || field === 'saltEdgeConnections' || 
-            (field === 'splits' && typeof value === 'string')) {
+        if (field === 'splits' && typeof value === 'string') {
           try {
             decrypted[field] = JSON.parse(decryptedValue);
           } catch {
@@ -210,7 +205,7 @@ export async function decryptDocument<T extends Record<string, any>>(
     }
   }
   
-  return decrypted;
+  return decrypted as unknown as T;
 }
 
 /**
@@ -316,7 +311,7 @@ export function hasEncryptedFields(doc: Record<string, any>, docType: string): b
       return false;
     }
     
-    // Handle objects (like monzoTokens)
+    // Handle objects
     if (typeof value === 'object' && value !== null) {
       // Objects are encrypted as JSON strings, so the value itself would be a string
       // If it's still an object, it's not encrypted

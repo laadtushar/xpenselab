@@ -9,27 +9,10 @@ export type User = {
   currency?: string;
   tier?: 'basic' | 'premium';
   premiumActivatedAt?: string; // ISO string - when user upgraded to premium
-  saltEdgeCustomerId?: string;
-  saltEdgeConnections?: {
-    connectionId: string;
-    providerCode: string;
-    providerName: string;
-    status: string;
-    createdAt: string;
-  }[];
   aiRequestCount?: number;
   lastAiRequestDate?: string; // YYYY-MM-DD
   hasCreatedDefaultCategories?: boolean;
   hasRunCategoryCleanup?: boolean;
-  monzoTokens?: {
-    access_token: string;
-    client_id: string;
-    expires_in: number;
-    refresh_token: string;
-    scope: string;
-    token_type: string;
-    user_id: string;
-  };
   // Encryption fields
   isEncrypted?: boolean; // Indicates encryption is enabled
   encryptionEnabledAt?: string; // ISO string timestamp
@@ -137,58 +120,6 @@ export type MemberBalance = {
   balance: number;
 };
 
-// Salt Edge Types
-export interface SaltEdgeAccount {
-  id: string;
-  connection_id: string;
-  name: string;
-  nature: string;
-  balance: number;
-  currency_code: string;
-  extra?: {
-    account_number?: string;
-    iban?: string;
-    sort_code?: string;
-  };
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SaltEdgeTransaction {
-  id: string;
-  connection_id: string;
-  account_id: string;
-  made_on: string;
-  amount: number;
-  currency_code: string;
-  description: string;
-  category?: string;
-  subcategory?: string;
-  duplicated?: boolean;
-  mode?: string;
-  status?: string;
-  extra?: {
-    original_amount?: number;
-    original_currency_code?: string;
-    merchant?: {
-      name?: string;
-      logo?: string;
-    };
-  };
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SaltEdgeConnection {
-  id: string;
-  customer_id: string;
-  provider_code: string;
-  provider_name: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
 // Loan/EMI Types
 export type Loan = {
   id: string;
@@ -208,99 +139,4 @@ export type Repayment = {
   amount: number;
   date: string; // ISO string
   notes?: string;
-};
-
-// Monzo Types
-export type MonzoAccount = {
-  id: string;
-  description: string;
-  created: string;
-  type: string;
-  currency: string;
-  country_code: string;
-  owners: {
-    user_id: string;
-    preferred_name: string;
-    preferred_first_name: string;
-  }[];
-  account_number?: string;
-  sort_code?: string;
-};
-
-export type MonzoTransaction = {
-  id: string;
-  created: string;
-  description: string;
-  amount: number;
-  fees: {
-    [key: string]: number;
-  };
-  currency: string;
-  merchant?: {
-    id: string;
-    group_id: string;
-    name: string;
-    logo: string;
-    emoji: string;
-    category: string;
-    online: boolean;
-    atm: boolean;
-    address: {
-      short_formatted: string;
-      formatted: string;
-      address: string;
-      city: string;
-      region: string;
-      country: string;
-      postcode: string;
-      latitude: number;
-      longitude: number;
-      zoom_level: number;
-      approximate: boolean;
-    };
-    created: string;
-    updated: string;
-    metadata: {
-      [key: string]: string;
-    };
-    disable_feedback: boolean;
-  } | null;
-  notes: string;
-  metadata: {
-    [key: string]: string;
-  };
-  account_balance: number;
-  attachments: {
-    created: string;
-    external_id: string;
-    file_type: string;
-    file_url: string;
-    id: string;
-    type: string;
-    url: string;
-    user_id: string;
-  }[];
-  category: string;
-  is_load: boolean;
-  settled: string; // ISO string
-  local_amount: number;
-  local_currency: string;
-  updated: string;
-  account_id: string;
-  user_id: string;
-  counterparty?: {
-    account_number: string;
-    name: string;
-    sort_code: string;
-    user_id: string;
-  };
-  scheme: string;
-  dedupe_id: string;
-  originator: boolean;
-  include_in_spending: boolean;
-  can_be_excluded_from_breakdown: boolean;
-  can_be_made_subscription: boolean;
-  can_split_the_bill: boolean;
-  can_add_to_tab: boolean;
-  amount_is_pending: boolean;
 };

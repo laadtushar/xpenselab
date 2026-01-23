@@ -121,7 +121,7 @@ export default function Home() {
                         <CardTitle>Bank Integration</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">Connect your bank accounts (Monzo, SaltEdge) to automatically import transactions securely via OAuth2.</p>
+                        <p className="text-muted-foreground">Import your financial data via CSV files for seamless transaction tracking.</p>
                     </CardContent>
                 </Card>
                  <Card>
