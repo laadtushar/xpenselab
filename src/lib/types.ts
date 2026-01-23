@@ -8,6 +8,7 @@ export type User = {
   createdAt: string; // ISO string
   currency?: string;
   tier?: 'basic' | 'premium';
+  premiumActivatedAt?: string; // ISO string - when user upgraded to premium
   saltEdgeCustomerId?: string;
   saltEdgeConnections?: {
     connectionId: string;

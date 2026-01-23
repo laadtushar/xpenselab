@@ -18,6 +18,12 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Dashboard">
         <div className="flex items-center gap-2">
+          {isPremium && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <Crown className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary hidden sm:inline">Premium</span>
+            </div>
+          )}
           {!isPremium && (
             <Link href="/checkout">
               <Button variant="default" size="sm" className="hidden sm:flex">

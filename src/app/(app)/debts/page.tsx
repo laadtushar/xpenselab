@@ -60,6 +60,11 @@ export default function DebtsPage() {
         </div>
       </DashboardHeader>
       
+      {/* Mobile Add Button */}
+      <div className="md:hidden">
+        <AddDebtDialog />
+      </div>
+      
       <Card className="w-full min-w-0 max-w-full">
         <CardContent className="pt-6 w-full min-w-0 max-w-full">
             <Tabs defaultValue="owed-by-others">

@@ -14,6 +14,12 @@ export default function LoansPage() {
           <AddLoanDialog />
         </div>
       </DashboardHeader>
+      
+      {/* Mobile Add Button */}
+      <div className="md:hidden">
+        <AddLoanDialog />
+      </div>
+      
       <div className="w-full min-w-0 max-w-full">
         <LoanList />
       </div>
