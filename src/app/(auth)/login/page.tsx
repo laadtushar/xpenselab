@@ -26,53 +26,98 @@ export default function LoginPage() {
     }
   }, [isUserLoading, user, router]);
 
+  // Reset signing state if user is not loading and no user (in case of stuck state)
+  useEffect(() => {
+    if (!isUserLoading && !user && isSigningIn) {
+      // If we've been signing in for more than 2 minutes, reset
+      const timeout = setTimeout(() => {
+        console.warn('[LoginPage] Sign-in state stuck, resetting...');
+        setIsSigningIn(false);
+      }, 120000); // 2 minutes
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isUserLoading, user, isSigningIn]);
+
   // Note: With native plugin, OAuth redirects are handled automatically
   // No need for manual redirect handling or listeners
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     if (!auth || isSigningIn) return;
     setIsSigningIn(true);
-    initiateGoogleSignInWithPopup(auth)
-      .then(result => {
-        if (result) {
-          toast({ title: 'Sign-in successful!', description: `Welcome, ${result.user.displayName || result.user.email}` });
-        }
-      })
-      .catch((error) => {
-        console.error('LoginPage: Google Sign-In failed:', error);
-        // Ignore COOP-related errors as they're just warnings
-        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-          toast({
-            title: 'Sign-In Failed',
-            description: error.message || 'Could not complete sign-in process.',
-            variant: 'destructive',
-          });
-        }
-        setIsSigningIn(false);
+    
+    try {
+      console.log('[LoginPage] Starting Google sign-in...');
+      const result = await Promise.race([
+        initiateGoogleSignInWithPopup(auth),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Sign-in timeout after 60 seconds')), 60000)
+        )
+      ]) as any;
+      
+      if (result) {
+        console.log('[LoginPage] Google sign-in successful:', result.user?.email);
+        toast({ title: 'Sign-in successful!', description: `Welcome, ${result.user.displayName || result.user.email}` });
+      }
+    } catch (error: any) {
+      console.error('[LoginPage] Google Sign-In failed:', error);
+      console.error('[LoginPage] Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
       });
+      
+      // Always reset signing state on error
+      setIsSigningIn(false);
+      
+      // Ignore COOP-related errors as they're just warnings
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+        toast({
+          title: 'Sign-In Failed',
+          description: error.message || 'Could not complete sign-in process.',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
-  const handleGitHubSignIn = () => {
+  const handleGitHubSignIn = async () => {
     if (!auth || isSigningIn) return;
     setIsSigningIn(true);
-    initiateGitHubSignInWithPopup(auth)
-      .then(result => {
-         if (result) {
-          toast({ title: 'Sign-in successful!', description: `Welcome, ${result.user.displayName || result.user.email}` });
-        }
-      })
-      .catch((error) => {
-        console.error('LoginPage: GitHub Sign-In failed:', error);
-        // Ignore COOP-related errors as they're just warnings
-        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-          toast({
-            title: 'Sign-In Failed',
-            description: error.message || 'Could not start sign-in process.',
-            variant: 'destructive',
-          });
-        }
-        setIsSigningIn(false);
+    
+    try {
+      console.log('[LoginPage] Starting GitHub sign-in...');
+      const result = await Promise.race([
+        initiateGitHubSignInWithPopup(auth),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Sign-in timeout after 60 seconds')), 60000)
+        )
+      ]) as any;
+      
+      if (result) {
+        console.log('[LoginPage] GitHub sign-in successful:', result.user?.email);
+        toast({ title: 'Sign-in successful!', description: `Welcome, ${result.user.displayName || result.user.email}` });
+      }
+    } catch (error: any) {
+      console.error('[LoginPage] GitHub Sign-In failed:', error);
+      console.error('[LoginPage] Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
       });
+      
+      // Always reset signing state on error
+      setIsSigningIn(false);
+      
+      // Ignore COOP-related errors as they're just warnings
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+        toast({
+          title: 'Sign-In Failed',
+          description: error.message || 'Could not start sign-in process.',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
   if (isUserLoading || user) {
