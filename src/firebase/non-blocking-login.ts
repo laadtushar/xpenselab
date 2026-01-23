@@ -9,7 +9,8 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  UserCredential
+  UserCredential,
+  getAuth
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in (non-blocking). */
@@ -41,16 +42,54 @@ function getRedirectUrl(): string {
   return typeof window !== 'undefined' ? window.location.origin + '/auth/callback' : '';
 }
 
-/** Initiate Google sign-in (uses redirect in native, popup in web). */
+/** Initiate Google sign-in (uses external browser in native, popup in web). */
 export async function initiateGoogleSignInWithPopup(authInstance: Auth): Promise<UserCredential> {
   const provider = new GoogleAuthProvider();
   
-  // Use redirect for native apps (Firebase will redirect to web URL, WebView will handle it)
+  // For native apps, use external browser (Chrome Custom Tabs) to avoid Google's WebView blocking
   if (isNativePlatform()) {
-    await signInWithRedirect(authInstance, provider);
-    // Note: signInWithRedirect doesn't return a promise with the result
-    // The result is handled via getRedirectResult after redirect
-    throw new Error('REDIRECT_INITIATED'); // Special error to indicate redirect was initiated
+    try {
+      // Import Browser plugin dynamically
+      const { Browser } = await import('@capacitor/browser');
+      
+      // Use our web callback URL as the redirect target
+      const webCallbackUrl = 'https://xpenselab.com/auth/callback';
+      
+      // Get the OAuth URL from our API route
+      // This ensures we have the correct Firebase handler URL
+      const response = await fetch(`/api/auth/google-url?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
+      const data = await response.json();
+      
+      if (!data.url) {
+        throw new Error('Failed to get OAuth URL');
+      }
+      
+      // Open in external browser (Chrome Custom Tabs on Android)
+      // This bypasses Google's WebView blocking policy
+      await Browser.open({ 
+        url: data.url
+      });
+      
+      // The authentication flow:
+      // 1. External browser opens Firebase handler URL
+      // 2. Firebase redirects to Google OAuth (in external browser - allowed by Google)
+      // 3. User authenticates with Google
+      // 4. Google redirects back to Firebase handler
+      // 5. Firebase processes auth and redirects to webCallbackUrl (https://xpenselab.com/auth/callback)
+      // 6. Our callback page processes getRedirectResult() and redirects to custom scheme (xpenselab://auth/callback)
+      // 7. App intercepts custom scheme via appUrlOpen listener
+      // 8. App calls getRedirectResult() to complete authentication
+      
+      throw new Error('REDIRECT_INITIATED');
+    } catch (error: any) {
+      if (error.message === 'REDIRECT_INITIATED') {
+        throw error;
+      }
+      // Fallback: use regular redirect (will likely be blocked by Google in WebView)
+      console.warn('Failed to open external browser, falling back to redirect:', error);
+      await signInWithRedirect(authInstance, provider);
+      throw new Error('REDIRECT_INITIATED');
+    }
   }
   
   // Use popup for web

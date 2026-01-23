@@ -25,21 +25,48 @@ export async function initializeCapacitorAuth(auth: Auth, onAuthSuccess?: () => 
   App.addListener('appUrlOpen', async (event) => {
     console.log('App opened with URL:', event.url);
     
-    // Check if this is an OAuth callback
-    if (event.url.includes('auth/callback') || event.url.includes('xpenselab://') || event.url.includes('__/auth/handler')) {
+    // Check if this is an OAuth callback from external browser
+    if (event.url.includes('auth/callback') || event.url.includes('xpenselab://')) {
       try {
-        // Wait a bit for Firebase to process the redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Parse URL to check for success/error
+        const url = new URL(event.url);
+        const success = url.searchParams.get('success') === 'true';
         
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('OAuth redirect successful:', result.user.email);
-          if (onAuthSuccess) {
-            onAuthSuccess();
+        if (success) {
+          // Wait a bit for Firebase to process the redirect
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Get the redirect result from Firebase
+          const result = await getRedirectResult(auth);
+          if (result) {
+            console.log('OAuth redirect successful:', result.user.email);
+            if (onAuthSuccess) {
+              onAuthSuccess();
+            }
+          } else {
+            console.warn('No redirect result found, but callback indicated success');
+            // Try again after a longer delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const retryResult = await getRedirectResult(auth);
+            if (retryResult && onAuthSuccess) {
+              onAuthSuccess();
+            }
           }
+        } else {
+          const error = url.searchParams.get('error');
+          console.error('OAuth callback indicated failure:', error);
         }
       } catch (error: any) {
         console.error('OAuth redirect error:', error);
+        // Try to get redirect result anyway
+        try {
+          const result = await getRedirectResult(auth);
+          if (result && onAuthSuccess) {
+            onAuthSuccess();
+          }
+        } catch (retryError) {
+          console.error('Failed to get redirect result:', retryError);
+        }
       }
     }
   });
