@@ -33,21 +33,36 @@ export function PullToRefresh({
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop > 0) return;
+      // Only allow pull-to-refresh when at the very top of the container
+      if (container.scrollTop > 0) {
+        canPull.current = false;
+        return;
+      }
       startY.current = e.touches[0].clientY;
       canPull.current = true;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!canPull.current || container.scrollTop > 0) return;
+      // If we can't pull or user has scrolled, allow normal scrolling
+      if (!canPull.current || container.scrollTop > 0) {
+        canPull.current = false;
+        return;
+      }
 
       const currentY = e.touches[0].clientY;
       const distance = currentY - startY.current;
 
-      if (distance > 0) {
+      // Only prevent default and show pull indicator if user is pulling DOWN significantly
+      // This allows normal scrolling when user scrolls up or makes small movements
+      if (distance > 10) {
         e.preventDefault();
         setIsPulling(true);
         setPullDistance(Math.min(distance, threshold * 1.5));
+      } else if (distance < -5) {
+        // User is scrolling up, cancel pull gesture
+        canPull.current = false;
+        setIsPulling(false);
+        setPullDistance(0);
       }
     };
 
