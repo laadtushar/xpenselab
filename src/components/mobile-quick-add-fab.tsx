@@ -377,6 +377,11 @@ export function MobileQuickAddFAB() {
     return null;
   }
 
+  // Ensure document.body exists before creating portal
+  if (typeof document === 'undefined' || !document.body) {
+    return null;
+  }
+
   // Render via portal to avoid nesting issues and ensure proper positioning
   const fabContent = (
     <>
@@ -390,7 +395,7 @@ export function MobileQuickAddFAB() {
 
       {/* Speed Dial Container - Positioned on right side like traditional FAB */}
       {/* Using fixed positioning relative to viewport, rendered at root level via portal */}
-      <div className="fixed bottom-20 right-1 z-[60] md:hidden">
+      <div className="fixed bottom-20 right-1 z-[60] md:hidden" style={{ position: 'fixed' }}>
         {/* Action Buttons - Aligned to right, dynamically shown based on page */}
         {actions.length > 0 && (
           <div
