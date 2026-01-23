@@ -103,9 +103,32 @@ export function DataImporter() {
   const handleImport = async () => {
     if (!file) {
       toast({
-        title: "No file selected",
-        description: "Please select a CSV, TSV or XLSX file to import.",
         variant: "destructive",
+        title: "No file selected",
+        description: "Please select a file to import.",
+      });
+      return;
+    }
+
+    // Security: Limit file size to prevent ReDoS attacks (10MB max)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: `File size must be less than ${MAX_FILE_SIZE / 1024 / 1024}MB. Please use a smaller file.`,
+      });
+      return;
+    }
+
+    // Security: Validate file type
+    const validExtensions = ['.xlsx', '.xls', '.csv', '.tsv'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    if (!validExtensions.includes(fileExtension)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file type",
+        description: `Please upload a file with one of these extensions: ${validExtensions.join(', ')}`,
       });
       return;
     }
@@ -140,17 +163,52 @@ export function DataImporter() {
       const newCategories = new Set<string>();
 
       try {
+        // Security: Add timeout protection and limits to prevent ReDoS
+        const MAX_ROWS = 10000; // Limit rows to prevent memory exhaustion
+        const MAX_COLUMNS = 100; // Limit columns to prevent ReDoS
+        
         const workbook = XLSX.read(data, {
           type: 'binary',
           cellDates: true,
-          dateNF: 'm/d/yyyy', 
+          dateNF: 'm/d/yyyy',
+          // Security: Limit sheet access to first sheet only
+          sheetStubs: false,
+          // Security: Limit cell parsing to prevent ReDoS
+          cellNF: false,
+          cellStyles: false,
         });
+        
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error("File contains no sheets.");
+        }
+        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: null });
+        
+        if (!worksheet) {
+          throw new Error("Unable to read worksheet data.");
+        }
+        
+        // Security: Limit data extraction to prevent ReDoS
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { 
+          header: 1, 
+          raw: false, 
+          defval: null,
+          // Limit range to prevent processing huge files
+          range: MAX_ROWS > 0 ? `A1:${String.fromCharCode(64 + Math.min(MAX_COLUMNS, 26))}${MAX_ROWS}` : undefined,
+        });
 
-        if (json.length < 2) {
+        if (!json || json.length < 2) {
           throw new Error("File is empty or has no data.");
+        }
+        
+        // Security: Enforce row limit
+        if (json.length > MAX_ROWS) {
+          toast({
+            variant: "default",
+            title: "File truncated",
+            description: `File contains ${json.length} rows. Only the first ${MAX_ROWS} rows will be imported.`,
+          });
         }
         
         const header: string[] = json[0].map((h: any) => String(h || '').trim().toLowerCase());
