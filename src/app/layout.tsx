@@ -6,6 +6,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
 import { WebVitals } from '@/components/web-vitals';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { WebViewErrorHandler } from '@/components/webview-error-handler';
 import { UIUXDashboard } from '@/components/ui-ux-dashboard';
 import { CookieConsent } from '@/components/cookie-consent';
 import { siteConfig } from '@/config/site';
@@ -188,21 +189,23 @@ export default function RootLayout({
       </head>
       <body className={GeistSans.className}>
         <ErrorBoundary>
-          <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem
-              disableTransitionOnChange
-          >
-              <FirebaseClientProvider>
-              {children}
-              </FirebaseClientProvider>
-              <Toaster />
-              <WebVitals />
-              <UIUXDashboard />
-              <CookieConsent />
-              <PWAInstallPrompt />
-          </ThemeProvider>
+          <WebViewErrorHandler>
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                enableSystem
+                disableTransitionOnChange
+            >
+                <FirebaseClientProvider>
+                {children}
+                </FirebaseClientProvider>
+                <Toaster />
+                <WebVitals />
+                <UIUXDashboard />
+                <CookieConsent />
+                <PWAInstallPrompt />
+            </ThemeProvider>
+          </WebViewErrorHandler>
         </ErrorBoundary>
       </body>
     </html>
