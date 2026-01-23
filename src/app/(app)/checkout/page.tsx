@@ -2,14 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadStripe } from '@stripe/stripe-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { Logo } from '@/components/logo';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
@@ -40,16 +37,16 @@ export default function CheckoutPage() {
           throw new Error(data.error || 'Failed to create checkout session');
         }
 
-        // Redirect to Stripe Checkout
-        const stripe = await stripePromise;
-        if (stripe) {
-          const { error: redirectError } = await stripe.redirectToCheckout({
-            sessionId: data.sessionId,
-          });
-
-          if (redirectError) {
-            throw new Error(redirectError.message);
-          }
+        // Redirect to Stripe Checkout using the session URL
+        // The API returns the session object which includes a 'url' property
+        if (data.sessionUrl) {
+          window.location.href = data.sessionUrl;
+        } else if (data.sessionId) {
+          // Fallback: construct URL from session ID if needed
+          // But ideally the API should return the full URL
+          throw new Error('Checkout session URL not provided');
+        } else {
+          throw new Error('Invalid response from server');
         }
       } catch (err: any) {
         console.error('Error creating checkout session:', err);

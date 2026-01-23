@@ -66,7 +66,10 @@ export async function POST(request: NextRequest) {
       cancel_url: `${request.nextUrl.origin}/pricing?canceled=true`,
     });
 
-    return NextResponse.json({ sessionId: session.id });
+    return NextResponse.json({ 
+      sessionId: session.id,
+      sessionUrl: session.url 
+    });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
     return NextResponse.json(

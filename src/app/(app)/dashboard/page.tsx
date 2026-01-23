@@ -5,20 +5,37 @@ import { OverviewChart } from "@/components/dashboard/overview-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Crown } from "lucide-react";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
+import { UpgradeBanner } from "@/components/dashboard/upgrade-banner";
+import { useFinancials } from "@/context/financial-context";
 
 export default function DashboardPage() {
+  const { userData } = useFinancials();
+  const isPremium = userData?.tier === 'premium';
+
   return (
     <div className="flex flex-col gap-8 w-full min-w-0 max-w-full">
       <DashboardHeader title="Dashboard">
-        <Link href="/expenses" passHref className="hidden md:inline-block">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Expense
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {!isPremium && (
+            <Link href="/checkout">
+              <Button variant="default" size="sm" className="hidden sm:flex">
+                <Crown className="mr-2 h-4 w-4" />
+                Upgrade to Premium
+              </Button>
+            </Link>
+          )}
+          <Link href="/expenses" passHref className="hidden md:inline-block">
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Expense
+            </Button>
+          </Link>
+        </div>
       </DashboardHeader>
+
+      <UpgradeBanner />
 
       <div className="w-full min-w-0 max-w-full">
         <DashboardStats />
