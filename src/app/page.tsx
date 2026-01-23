@@ -248,7 +248,7 @@ export default function Home() {
               </CardContent>
               <CardFooter>
                 <Link href="/login" className={buttonVariants({ className: "w-full" })}>
-                    Upgrade to Premium
+                    Get Started
                 </Link>
               </CardFooter>
             </Card>
