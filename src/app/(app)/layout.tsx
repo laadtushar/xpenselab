@@ -126,9 +126,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
         <MobileBottomNav />
+      </SidebarProvider>
         <MobileQuickAddFAB />
         <EncryptionUnlockModal />
-      </SidebarProvider>
       </FinancialProvider>
     </EncryptionProvider>
   );
