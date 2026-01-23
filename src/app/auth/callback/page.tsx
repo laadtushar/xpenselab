@@ -21,26 +21,55 @@ export default function AuthCallbackPage() {
 
     const processAuth = async () => {
       try {
-        // Get the redirect result from Firebase
+        // For native apps, we need to process the redirect result here (in external browser)
+        // and pass the OAuth credential to the app via custom scheme
+        if (Capacitor.isNativePlatform()) {
+          try {
+            // Call getRedirectResult in the external browser where sessionStorage is available
+            const result = await getRedirectResult(auth);
+            
+            if (result && result.credential) {
+              // Extract credential info to pass to the app
+              // OAuthCredential has accessToken and idToken properties
+              const credential = result.credential as any;
+              const accessToken = credential.accessToken || credential.oauthAccessToken;
+              const idToken = credential.idToken || credential.oauthIdToken;
+              const providerId = result.providerId || 'google.com';
+              
+              if (accessToken && idToken) {
+                // Redirect to custom scheme with credential info
+                // The app will reconstruct the credential and sign in
+                const params = new URLSearchParams({
+                  success: 'true',
+                  accessToken: accessToken,
+                  idToken: idToken,
+                  providerId: providerId
+                });
+                window.location.href = `xpenselab://auth/callback?${params.toString()}`;
+              } else {
+                console.warn('Credential missing accessToken or idToken');
+                window.location.href = 'xpenselab://auth/callback?success=false&error=missing_credential';
+              }
+            } else {
+              // No redirect result
+              window.location.href = 'xpenselab://auth/callback?success=false&error=auth_failed';
+            }
+          } catch (error: any) {
+            console.error('Auth callback error in external browser:', error);
+            window.location.href = 'xpenselab://auth/callback?success=false&error=' + encodeURIComponent(error.message || 'unknown');
+          }
+          return;
+        }
+        
+        // For web, process the redirect result here
         const result = await getRedirectResult(auth);
         
         if (result) {
-          // Authentication successful
-          if (Capacitor.isNativePlatform()) {
-            // For native apps, redirect to custom scheme to return to app
-            // The app will intercept this and process the auth result
-            window.location.href = 'xpenselab://auth/callback?success=true';
-          } else {
-            // For web, redirect to dashboard
-            router.push('/dashboard');
-          }
+          // Authentication successful - redirect to dashboard
+          router.push('/dashboard');
         } else {
           // No redirect result - might be an error or user cancelled
-          if (Capacitor.isNativePlatform()) {
-            window.location.href = 'xpenselab://auth/callback?success=false';
-          } else {
-            router.push('/login?error=auth_failed');
-          }
+          router.push('/login?error=auth_failed');
         }
       } catch (error: any) {
         console.error('Auth callback error:', error);

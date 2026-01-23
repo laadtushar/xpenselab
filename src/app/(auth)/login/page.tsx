@@ -20,6 +20,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
+      // Reset signing in state when user becomes available (auth completed)
+      setIsSigningIn(false);
       router.push('/dashboard');
     }
   }, [isUserLoading, user, router]);
@@ -58,6 +60,7 @@ export default function LoginPage() {
         // If redirect was initiated, don't show error (redirect will handle it)
         if (error.message === 'REDIRECT_INITIATED') {
           // Redirect was initiated, wait for redirect result
+          // Keep isSigningIn true - it will be reset when user state changes
           return;
         }
         // Ignore COOP-related errors as they're just warnings
@@ -68,9 +71,6 @@ export default function LoginPage() {
             variant: 'destructive',
           });
         }
-        setIsSigningIn(false);
-      })
-      .finally(() => {
         setIsSigningIn(false);
       });
   };
@@ -89,6 +89,7 @@ export default function LoginPage() {
         // If redirect was initiated, don't show error (redirect will handle it)
         if (error.message === 'REDIRECT_INITIATED') {
           // Redirect was initiated, wait for redirect result
+          // Keep isSigningIn true - it will be reset when user state changes
           return;
         }
         // Ignore COOP-related errors as they're just warnings
@@ -99,9 +100,6 @@ export default function LoginPage() {
             variant: 'destructive',
           });
         }
-        setIsSigningIn(false);
-      })
-       .finally(() => {
         setIsSigningIn(false);
       });
   };

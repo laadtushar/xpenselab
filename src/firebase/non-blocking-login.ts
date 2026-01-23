@@ -56,8 +56,12 @@ export async function initiateGoogleSignInWithPopup(authInstance: Auth): Promise
       const webCallbackUrl = 'https://xpenselab.com/auth/callback';
       
       // Get the OAuth URL from our API route
-      // This ensures we have the correct Firebase handler URL
-      const response = await fetch(`/api/auth/google-url?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
+      // Use full URL for native apps, relative for web
+      const apiUrl = typeof window !== 'undefined' && window.location.origin 
+        ? `${window.location.origin}/api/auth/google-url`
+        : 'https://xpenselab.com/api/auth/google-url';
+      
+      const response = await fetch(`${apiUrl}?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
       const data = await response.json();
       
       if (!data.url) {
@@ -96,15 +100,47 @@ export async function initiateGoogleSignInWithPopup(authInstance: Auth): Promise
   return signInWithPopup(authInstance, provider);
 }
 
-/** Initiate GitHub sign-in (uses redirect in native, popup in web). */
+/** Initiate GitHub sign-in (uses external browser in native, popup in web). */
 export async function initiateGitHubSignInWithPopup(authInstance: Auth): Promise<UserCredential> {
   const provider = new GithubAuthProvider();
   
-  // Use redirect for native apps (Firebase will redirect to web URL, WebView will handle it)
+  // For native apps, use external browser (Chrome Custom Tabs) to avoid potential WebView issues
   if (isNativePlatform()) {
-    await signInWithRedirect(authInstance, provider);
-    // Note: signInWithRedirect doesn't return a promise with the result
-    throw new Error('REDIRECT_INITIATED'); // Special error to indicate redirect was initiated
+    try {
+      // Import Browser plugin dynamically
+      const { Browser } = await import('@capacitor/browser');
+      
+      // Use our web callback URL as the redirect target
+      const webCallbackUrl = 'https://xpenselab.com/auth/callback';
+      
+      // Get the OAuth URL from our API route
+      // Use full URL for native apps, relative for web
+      const apiUrl = typeof window !== 'undefined' && window.location.origin 
+        ? `${window.location.origin}/api/auth/github-url`
+        : 'https://xpenselab.com/api/auth/github-url';
+      
+      const response = await fetch(`${apiUrl}?redirectUrl=${encodeURIComponent(webCallbackUrl)}`);
+      const data = await response.json();
+      
+      if (!data.url) {
+        throw new Error('Failed to get OAuth URL');
+      }
+      
+      // Open in external browser (Chrome Custom Tabs on Android)
+      await Browser.open({ 
+        url: data.url
+      });
+      
+      throw new Error('REDIRECT_INITIATED');
+    } catch (error: any) {
+      if (error.message === 'REDIRECT_INITIATED') {
+        throw error;
+      }
+      // Fallback: use regular redirect
+      console.warn('Failed to open external browser for GitHub, falling back to redirect:', error);
+      await signInWithRedirect(authInstance, provider);
+      throw new Error('REDIRECT_INITIATED');
+    }
   }
   
   // Use popup for web
