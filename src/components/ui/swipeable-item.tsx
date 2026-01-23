@@ -116,16 +116,16 @@ export function SwipeableItem({
       item.removeEventListener('touchmove', handleTouchMove);
       item.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [leftActions.length, rightActions.length, onSwipe, disabled]);
-
-  const handleActionClick = (action: SwipeAction) => {
-    action.action();
-    resetPosition();
-  };
+  }, [leftActions.length, rightActions.length, disabled]); // Removed onSwipe from deps
 
   const resetPosition = () => {
     setDragOffset(0);
     setIsOpen(false);
+  };
+
+  const handleActionClick = (action: SwipeAction) => {
+    action.action();
+    resetPosition();
   };
 
   const leftActionsWidth = leftActions.length * 70;
