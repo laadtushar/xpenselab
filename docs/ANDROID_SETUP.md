@@ -2,9 +2,13 @@
 
 ## Java Version Requirements
 
-Capacitor 8 requires **Java 21** for building Android apps. If you have a different Java version installed, you'll need Java 21.
+Capacitor 8 requires **Java 21** for building Android apps. 
 
-### Installing Java 21
+**✅ Java 21 is already installed and configured at:** `C:\Users\tusha\jdk-21\jdk-21.0.9+10`
+
+Gradle is configured to use this installation automatically via `gradle.properties`.
+
+### Installing Java 21 (If Needed)
 
 #### Option 1: Using SDKMAN (Recommended for Windows with WSL/Git Bash)
 
