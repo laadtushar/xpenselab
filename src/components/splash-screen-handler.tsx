@@ -14,6 +14,20 @@ export function SplashScreenHandler() {
       return; // Only run in native apps
     }
 
+    // Show splash screen immediately when component mounts
+    const showSplash = async () => {
+      try {
+        await SplashScreen.show({
+          showDuration: 0,
+          autoHide: false,
+        });
+      } catch (error) {
+        console.error('Error showing splash screen:', error);
+      }
+    };
+
+    showSplash();
+
     let isHidden = false;
 
     const hideSplash = async () => {
@@ -21,31 +35,37 @@ export function SplashScreenHandler() {
       isHidden = true;
       
       try {
-        // Wait a tiny bit to ensure page is rendered
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait a bit to ensure page is rendered and user sees content
+        await new Promise(resolve => setTimeout(resolve, 500));
         await SplashScreen.hide();
       } catch (error) {
         console.error('Error hiding splash screen:', error);
       }
     };
 
-    // Hide when DOM is ready
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      hideSplash();
+    // Hide when DOM is ready and page has loaded
+    const checkAndHide = () => {
+      // Only hide if page is actually loaded (not just DOM ready)
+      if (document.readyState === 'complete') {
+        hideSplash();
+      }
+    };
+
+    // Wait for full page load
+    if (document.readyState === 'complete') {
+      // Page already loaded, wait a bit then hide
+      setTimeout(hideSplash, 500);
     } else {
       // Wait for page load
       window.addEventListener('load', hideSplash, { once: true });
-      // Also hide when DOMContentLoaded fires (faster)
-      document.addEventListener('DOMContentLoaded', hideSplash, { once: true });
     }
 
-    // Fallback: hide after max 5 seconds regardless
-    const timeout = setTimeout(hideSplash, 5000);
+    // Fallback: hide after max 10 seconds regardless
+    const timeout = setTimeout(hideSplash, 10000);
 
     return () => {
       clearTimeout(timeout);
       window.removeEventListener('load', hideSplash);
-      document.removeEventListener('DOMContentLoaded', hideSplash);
     };
   }, []);
 

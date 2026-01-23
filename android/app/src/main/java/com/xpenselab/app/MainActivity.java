@@ -18,6 +18,21 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        
+        // Show splash screen immediately when app starts
+        try {
+            com.getcapacitor.Plugin splashPlugin = getBridge().getPlugin("SplashScreen").getInstance();
+            if (splashPlugin instanceof com.getcapacitor.plugin.SplashScreen) {
+                ((com.getcapacitor.plugin.SplashScreen) splashPlugin).show();
+            }
+        } catch (Exception e) {
+            // Ignore if plugin not available
+        }
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         
@@ -52,7 +67,15 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
                     super.onPageStarted(view, url, favicon);
-                    // Keep splash screen visible while loading
+                    // Ensure splash screen stays visible while loading
+                    try {
+                        com.getcapacitor.Plugin splashPlugin = getBridge().getPlugin("SplashScreen").getInstance();
+                        if (splashPlugin instanceof com.getcapacitor.plugin.SplashScreen) {
+                            ((com.getcapacitor.plugin.SplashScreen) splashPlugin).show();
+                        }
+                    } catch (Exception e) {
+                        // Ignore
+                    }
                 }
 
                 @Override
@@ -77,18 +100,30 @@ public class MainActivity extends BridgeActivity {
 
                 @Override
                 public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                    // Only handle main frame errors (page load failures) and only for actual errors
-                    if (request.isForMainFrame() && error.getErrorCode() != WebViewClient.ERROR_HOST_LOOKUP) {
-                        // Check if it's a timeout or connection error
+                    // Only handle main frame errors (page load failures)
+                    if (request.isForMainFrame()) {
                         int errorCode = error.getErrorCode();
-                        if (errorCode == WebViewClient.ERROR_TIMEOUT || 
-                            errorCode == WebViewClient.ERROR_CONNECT ||
-                            errorCode == WebViewClient.ERROR_IO) {
-                            // Load a custom error page HTML
-                            String errorHtml = generateErrorPage(error.getDescription().toString(), errorCode);
+                        String errorDescription = error.getDescription().toString();
+                        
+                        // Check if it's a real connection error (not just a redirect or temporary issue)
+                        // ERROR_CONNECTION_ABORTED (error code -2) might be a false positive
+                        if (errorCode == WebViewClient.ERROR_TIMEOUT) {
+                            // Timeout - show error page
+                            String errorHtml = generateErrorPage("Connection timeout. Please check your internet connection.", errorCode);
+                            view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
+                        } else if (errorCode == WebViewClient.ERROR_CONNECT && 
+                                   !errorDescription.contains("aborted") &&
+                                   !errorDescription.contains("redirect")) {
+                            // Connection error (but not aborted/redirect which might be false positives)
+                            String errorHtml = generateErrorPage("Unable to connect. Please check your internet connection.", errorCode);
+                            view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
+                        } else if (errorCode == WebViewClient.ERROR_IO) {
+                            // IO error
+                            String errorHtml = generateErrorPage("Network error. Please try again.", errorCode);
                             view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
                         } else {
-                            // For other errors, let the default handler deal with it
+                            // For other errors (including connection aborted which might be a redirect), 
+                            // let the default handler deal with it or retry
                             super.onReceivedError(view, request, error);
                         }
                     }
