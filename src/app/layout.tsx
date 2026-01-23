@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { WebVitals } from '@/components/web-vitals';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WebViewErrorHandler } from '@/components/webview-error-handler';
+import { SplashScreenHandler } from '@/components/splash-screen-handler';
 import { UIUXDashboard } from '@/components/ui-ux-dashboard';
 import { CookieConsent } from '@/components/cookie-consent';
 import { siteConfig } from '@/config/site';
@@ -190,6 +191,7 @@ export default function RootLayout({
       <body className={GeistSans.className}>
         <ErrorBoundary>
           <WebViewErrorHandler>
+            <SplashScreenHandler />
             <ThemeProvider
                 attribute="class"
                 defaultTheme="dark"

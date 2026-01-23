@@ -83,8 +83,15 @@ export function useWebViewError(): [WebViewErrorState, () => void] {
   }, []);
 
   useEffect(() => {
-    // Check initial state
-    checkConnection();
+    // Don't check connection immediately - wait a bit to let page load
+    // Only check if we're already offline
+    if (!navigator.onLine) {
+      setState({
+        hasError: true,
+        error: 'No internet connection',
+        isOffline: true,
+      });
+    }
 
     // Listen for online/offline events
     const handleOnline = () => {
@@ -143,8 +150,13 @@ export function useWebViewError(): [WebViewErrorState, () => void] {
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
 
-    // Periodic connection check (every 30 seconds)
-    const interval = setInterval(checkConnection, 30000);
+    // Periodic connection check (every 60 seconds) - less aggressive
+    // Only check if we think we're offline
+    const interval = setInterval(() => {
+      if (!navigator.onLine) {
+        checkConnection();
+      }
+    }, 60000);
 
     return () => {
       window.removeEventListener('online', handleOnline);

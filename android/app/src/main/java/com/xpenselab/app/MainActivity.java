@@ -2,49 +2,107 @@ package com.xpenselab.app;
 
 import android.graphics.Bitmap;
 import android.net.http.SslError;
+import android.os.Bundle;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         
-        // Set custom WebViewClient to handle errors
-        getBridge().getWebView().setWebViewClient(new WebViewClient() {
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                // Only handle main frame errors (page load failures)
-                if (request.isForMainFrame()) {
-                    // Load a custom error page HTML
-                    String errorHtml = generateErrorPage(error.getDescription().toString(), error.getErrorCode());
+        // Configure WebView settings for better network handling
+        WebView webView = getBridge().getWebView();
+        if (webView != null) {
+            WebSettings settings = webView.getSettings();
+            // Enable JavaScript
+            settings.setJavaScriptEnabled(true);
+            // Enable DOM storage
+            settings.setDomStorageEnabled(true);
+            // Enable database storage
+            settings.setDatabaseEnabled(true);
+            // Set cache mode to load from network first, then cache
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+            // Enable mixed content (if needed)
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+            // Set user agent
+            settings.setUserAgentString(settings.getUserAgentString());
+            // Enable file access
+            settings.setAllowFileAccess(true);
+            settings.setAllowContentAccess(true);
+            
+            // Set custom WebViewClient to handle errors and page load completion
+            webView.setWebViewClient(new WebViewClient() {
+                @Override
+                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                    // Let WebView handle all URLs normally
+                    return false;
+                }
+
+                @Override
+                public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                    super.onPageStarted(view, url, favicon);
+                    // Keep splash screen visible while loading
+                }
+
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+                    // Page is loaded, JavaScript will handle hiding splash screen
+                    // But we can also trigger it here as a fallback
+                    try {
+                        // Execute JavaScript to trigger splash screen hide
+                        view.evaluateJavascript(
+                            "if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen) { " +
+                            "window.Capacitor.Plugins.SplashScreen.hide(); " +
+                            "} else if (window.dispatchEvent) { " +
+                            "window.dispatchEvent(new Event('load')); " +
+                            "}",
+                            null
+                        );
+                    } catch (e) {
+                        // Ignore errors
+                    }
+                }
+
+                @Override
+                public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                    // Only handle main frame errors (page load failures) and only for actual errors
+                    if (request.isForMainFrame() && error.getErrorCode() != WebViewClient.ERROR_HOST_LOOKUP) {
+                        // Check if it's a timeout or connection error
+                        int errorCode = error.getErrorCode();
+                        if (errorCode == WebViewClient.ERROR_TIMEOUT || 
+                            errorCode == WebViewClient.ERROR_CONNECT ||
+                            errorCode == WebViewClient.ERROR_IO) {
+                            // Load a custom error page HTML
+                            String errorHtml = generateErrorPage(error.getDescription().toString(), errorCode);
+                            view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
+                        } else {
+                            // For other errors, let the default handler deal with it
+                            super.onReceivedError(view, request, error);
+                        }
+                    }
+                }
+
+                @Override
+                public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                    // For production, cancel SSL errors (don't allow invalid certificates)
+                    handler.cancel();
+                    String errorHtml = generateErrorPage("SSL Certificate Error: " + error.toString(), error.getPrimaryError());
                     view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
                 }
-            }
-
-            @Override
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                // For SSL errors, you might want to show a warning or allow it in dev
-                // For production, it's safer to cancel
-                handler.cancel();
-                String errorHtml = generateErrorPage("SSL Certificate Error", error.getPrimaryError());
-                view.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null);
-            }
-
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-            }
-        });
+            });
+        }
     }
 
     private String generateErrorPage(String errorDescription, int errorCode) {

@@ -27,40 +27,44 @@ export function WebViewErrorHandler({ children }: WebViewErrorHandlerProps) {
   }, []);
 
   useEffect(() => {
-    // Listen for page load errors (specifically for WebView)
-    const handleError = (event: ErrorEvent) => {
-      // Check for WebView-specific errors
-      if (
-        event.message?.includes('net::ERR_') ||
-        event.message?.includes('Failed to load') ||
-        event.message?.includes('NetworkError') ||
-        event.message?.includes('Load failed')
-      ) {
-        setPageLoadError(true);
-      }
-    };
-
-    // Listen for failed resource loads
-    const handleResourceError = (event: Event) => {
-      const target = event.target as HTMLElement;
-      if (
-        (target instanceof HTMLImageElement || target instanceof HTMLScriptElement || target instanceof HTMLLinkElement) &&
-        !target.src?.includes('data:') // Ignore data URIs
-      ) {
-        // Check if it's a critical resource
-        if (target instanceof HTMLScriptElement || target instanceof HTMLLinkElement) {
+    // Only listen for errors after a delay to avoid false positives during initial load
+    const timeout = setTimeout(() => {
+      // Listen for page load errors (specifically for WebView)
+      const handleError = (event: ErrorEvent) => {
+        // Check for WebView-specific errors, but be more specific
+        if (
+          event.message &&
+          (event.message.includes('net::ERR_TIMED_OUT') ||
+           event.message.includes('net::ERR_CONNECTION_REFUSED') ||
+           event.message.includes('net::ERR_NAME_NOT_RESOLVED') ||
+           event.message.includes('Failed to fetch') && event.message.includes('timeout'))
+        ) {
           setPageLoadError(true);
         }
-      }
-    };
+      };
 
-    window.addEventListener('error', handleError);
-    window.addEventListener('error', handleResourceError, true); // Use capture phase
+      // Listen for failed resource loads (but only critical ones)
+      const handleResourceError = (event: Event) => {
+        const target = event.target as HTMLElement;
+        // Only care about critical resources that would break the app
+        if (target instanceof HTMLScriptElement && target.src) {
+          // Check if it's a Next.js chunk or critical script
+          if (target.src.includes('/_next/') || target.src.includes('runtime')) {
+            setPageLoadError(true);
+          }
+        }
+      };
 
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('error', handleResourceError, true);
-    };
+      window.addEventListener('error', handleError);
+      window.addEventListener('error', handleResourceError, true); // Use capture phase
+
+      return () => {
+        window.removeEventListener('error', handleError);
+        window.removeEventListener('error', handleResourceError, true);
+      };
+    }, 5000); // Wait 5 seconds before enabling error detection
+
+    return () => clearTimeout(timeout);
   }, []);
 
   // Only show error page in native apps when there's an error

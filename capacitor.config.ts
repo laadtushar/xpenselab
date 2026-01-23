@@ -16,9 +16,13 @@ const config: CapacitorConfig = {
   // },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 0, // Don't auto-hide, we'll hide it manually
+      launchAutoHide: false, // Keep splash visible until page loads
       backgroundColor: '#101622',
-      showSpinner: false,
+      showSpinner: true,
+      spinnerColor: '#2563eb',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
     },
     StatusBar: {
       style: 'dark',
