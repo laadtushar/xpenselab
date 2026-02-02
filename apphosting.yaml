@@ -1,5 +1,7 @@
 runConfig:
   maxInstances: 1
+  memory: 1Gi
+  cpu: 1
 
 env:
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
