@@ -1,0 +1,28 @@
+{
+  "status": "success",
+  "result": {
+    "name": "projects/studio-3845013162-4f4cd/locations/us-central1/backends/studio",
+    "createTime": "2025-10-30T12:08:37.017052352Z",
+    "updateTime": "2026-02-02T10:35:54.959561Z",
+    "uri": "studio--studio-3845013162-4f4cd.us-central1.hosted.app",
+    "managedResources": [
+      {
+        "runService": {
+          "service": "projects/809765872395/locations/us-central1/services/studio"
+        }
+      }
+    ],
+    "codebase": {
+      "repository": "projects/studio-3845013162-4f4cd/locations/us-central1/connections/apphosting-github-conn-c3atijm/gitRepositoryLinks/laadtushar-xpenselab",
+      "rootDirectory": "/"
+    },
+    "displayName": "Studio",
+    "uid": "e33dd37c-0ca1-44c6-94f8-ca089e7f05d0",
+    "etag": "cXla3DaoU3hgL6udGm4G3PjPL7NBMcJly8SUNE7r_dc",
+    "reconciling": false,
+    "servingLocality": "GLOBAL_ACCESS",
+    "serviceAccount": "firebase-app-hosting-compute@studio-3845013162-4f4cd.iam.gserviceaccount.com",
+    "appId": "1:809765872395:web:f36d801e758c77ee3eb80e",
+    "environment": "prod"
+  }
+}

@@ -47,7 +47,7 @@ export default function Home() {
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "USD",
+      "priceCurrency": "GBP",
       "description": "Free basic plan available"
     },
     "aggregateRating": {
@@ -312,7 +312,7 @@ export default function Home() {
                 <CardDescription>Unlock powerful AI features and advanced controls.</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 space-y-4">
-                 <p><span className="text-4xl font-bold">$10</span><span className="text-muted-foreground">/month</span></p>
+                 <p><span className="text-4xl font-bold">£10</span><span className="text-muted-foreground">/month</span></p>
                 <ul className="space-y-2">
                   <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Everything in Basic</li>
                   <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />AI Expense Categorization</li>

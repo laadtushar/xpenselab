@@ -2,7 +2,7 @@
 
 **Last Updated:** January 2025  
 **Data Controller:** XpenseLab  
-**Contact:** info@xpenselab.com
+**Contact:** tushar@xpenselab.com
 
 ---
 
@@ -212,7 +212,7 @@ You can withdraw consent at any time:
 
 To exercise any of these rights:
 1. **In-App**: Use the Settings page for most data management tasks
-2. **Email**: Contact us at [Your Contact Email] with your request
+2. **Email**: Contact us at tushar@xpenselab.com with your request
 3. **Response Time**: We will respond within 30 days (as required by GDPR)
 
 ---
@@ -344,7 +344,7 @@ We implement multiple layers of security to prevent breaches:
 
 If you have questions about data protection or wish to exercise your rights:
 
-**Email**: [Your Contact Email]  
+**Email**: tushar@xpenselab.com  
 **Subject Line**: "GDPR Request - [Your Request Type]"
 
 ### 12.2 Supervisory Authority

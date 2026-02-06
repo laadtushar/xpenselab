@@ -12,7 +12,7 @@ export default function PrivacyPage() {
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
       <DashboardHeader title="Privacy & GDPR Compliance" />
-      
+
       <div className="space-y-6">
         {/* Introduction */}
         <Card>
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This page provides an overview of how we handle your data, your rights under GDPR, and our data protection measures. 
+              This page provides an overview of how we handle your data, your rights under GDPR, and our data protection measures.
               For complete details, please refer to our{' '}
               <Link href="/docs/GDPR_COMPLIANCE.md" className="underline hover:text-foreground" target="_blank">
                 full GDPR Compliance Documentation
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <a href="mailto:info@xpenselab.com?subject=GDPR Request">
+                <a href="mailto:tushar@xpenselab.com?subject=GDPR Request">
                   <Mail className="h-4 w-4 mr-2" />
                   Contact DPO
                 </a>
@@ -301,9 +301,9 @@ export default function PrivacyPage() {
                       For requests that cannot be handled in-app, contact us at:
                     </p>
                     <Button variant="outline" size="sm" asChild>
-                      <a href="mailto:info@xpenselab.com?subject=GDPR Request">
+                      <a href="mailto:tushar@xpenselab.com?subject=GDPR Request">
                         <Mail className="h-4 w-4 mr-2" />
-                        info@xpenselab.com
+                        tushar@xpenselab.com
                       </a>
                     </Button>
                   </div>
@@ -457,9 +457,9 @@ export default function PrivacyPage() {
                   For questions about data protection or to exercise your rights:
                 </p>
                 <Button variant="outline" size="sm" asChild>
-                  <a href="mailto:info@xpenselab.com?subject=GDPR Request">
+                  <a href="mailto:tushar@xpenselab.com?subject=GDPR Request">
                     <Mail className="h-4 w-4 mr-2" />
-                    info@xpenselab.com
+                    tushar@xpenselab.com
                   </a>
                 </Button>
               </div>
