@@ -13,6 +13,7 @@ import { useFinancials } from '@/context/financial-context';
 import { useEncryption } from '@/context/encryption-context';
 import { EmptyState } from '../ui/empty-state';
 import { Handshake } from 'lucide-react';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 
 interface DebtListProps {
   debts: Debt[];
@@ -33,6 +34,8 @@ export function DebtList({ debts, type }: DebtListProps) {
   const { toast } = useToast();
   const { userData } = useFinancials();
   const { encryptionKey, isEncryptionEnabled, isUnlocked } = useEncryption();
+
+  const { visibleItems, sentinelRef, hasMore, total } = useInfiniteScroll(debts, 25);
 
   const handleSettleDebt = (debtId: string) => {
     if (!firestore || !user) return;
@@ -103,7 +106,7 @@ export function DebtList({ debts, type }: DebtListProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {debts.map(debt => {
+        {visibleItems.map(debt => {
           const parties = getParties(debt, user!.uid);
           const otherPartyName = debt.fromUserId === user!.uid ? debt.toUserName : debt.fromUserName;
           return (
@@ -133,6 +136,13 @@ export function DebtList({ debts, type }: DebtListProps) {
         })}
       </TableBody>
     </Table>
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-1" />
+      {hasMore && (
+        <div className="py-3 text-center text-xs text-muted-foreground">
+          Showing {visibleItems.length} of {total} — scroll for more
+        </div>
+      )}
     </div>
   );
 }

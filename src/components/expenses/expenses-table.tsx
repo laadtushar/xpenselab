@@ -26,6 +26,7 @@ import { SplitExpenseDialog } from "./split-expense-dialog";
 import type { Expense } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { Input } from "@/components/ui/input";
 import { SwipeableItem } from "@/components/ui/swipeable-item";
 import {
@@ -54,6 +55,8 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
   const [newExpense, setNewExpense] = useState<Partial<Expense>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Partial<Expense>>({});
+
+  const { visibleItems, sentinelRef, hasMore, total } = useInfiniteScroll(expenses, 25);
 
   const createSortHandler = (column: 'description' | 'amount' | 'date') => () => {
     if (!sortDescriptor || sortDescriptor.column !== column) {
@@ -161,7 +164,7 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
                 <Button onClick={handleAddExpense}>Add</Button>
               </TableCell>
             </TableRow>
-            {expenses.length > 0 ? expenses.map((expense) => {
+            {visibleItems.length > 0 ? visibleItems.map((expense) => {
               const isEditing = editingId === expense.id;
               return (
                 <TableRow key={expense.id}>
@@ -249,6 +252,13 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
             )}
           </TableBody>
         </Table>
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+        {hasMore && (
+          <div className="py-3 text-center text-xs text-muted-foreground">
+            Showing {visibleItems.length} of {total} expenses — scroll for more
+          </div>
+        )}
       </div>
 
       {/* Mobile Card View */}
@@ -276,7 +286,7 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
           </CardContent>
         </Card>
 
-        {expenses.length > 0 ? expenses.map((expense) => {
+        {visibleItems.length > 0 ? visibleItems.map((expense) => {
           const isEditing = editingId === expense.id;
           return (
             <SwipeableItem
@@ -393,6 +403,13 @@ export function ExpensesTable({ expenses, onSortChange, sortDescriptor }: Expens
           )
         }) : (
           <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg">No expenses found.</div>
+        )}
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+        {hasMore && (
+          <div className="py-3 text-center text-xs text-muted-foreground">
+            Showing {visibleItems.length} of {total} — scroll for more
+          </div>
         )}
       </div>
     </div>

@@ -25,6 +25,7 @@ import { CategoryIcon } from "../icons/category-icon";
 import type { Income } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -52,6 +53,8 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
   const [newIncome, setNewIncome] = useState<Partial<Income>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<Partial<Income>>({});
+
+  const { visibleItems, sentinelRef, hasMore, total } = useInfiniteScroll(incomes, 25);
 
   const createSortHandler = (column: 'description' | 'amount' | 'date') => () => {
     if (!sortDescriptor || sortDescriptor.column !== column) {
@@ -159,7 +162,7 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
                 <Button onClick={handleAddIncome}>Add</Button>
               </TableCell>
             </TableRow>
-            {incomes.length > 0 ? incomes.map((income) => {
+            {visibleItems.length > 0 ? visibleItems.map((income) => {
               const isEditing = editingId === income.id;
               return (
                 <TableRow key={income.id}>
@@ -244,6 +247,13 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
             )}
           </TableBody>
         </Table>
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+        {hasMore && (
+          <div className="py-3 text-center text-xs text-muted-foreground">
+            Showing {visibleItems.length} of {total} records — scroll for more
+          </div>
+        )}
       </div>
 
       {/* Mobile Card View */}
@@ -271,7 +281,7 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
           </CardContent>
         </Card>
 
-        {incomes.length > 0 ? incomes.map((income) => {
+        {visibleItems.length > 0 ? visibleItems.map((income) => {
           const isEditing = editingId === income.id;
           return (
             <Card key={income.id}>
@@ -348,6 +358,13 @@ export function IncomeTable({ incomes, onSortChange, sortDescriptor }: IncomeTab
           )
         }) : (
           <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg">No income found.</div>
+        )}
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+        {hasMore && (
+          <div className="py-3 text-center text-xs text-muted-foreground">
+            Showing {visibleItems.length} of {total} — scroll for more
+          </div>
         )}
       </div>
     </div>
