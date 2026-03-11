@@ -219,7 +219,7 @@ const Sidebar = React.forwardRef<
       <aside
         ref={ref}
         className={cn("group peer hidden md:block text-sidebar-foreground",
-        "h-svh transition-all duration-300 ease-in-out",
+        "sticky top-0 h-svh transition-all duration-300 ease-in-out",
         state === 'expanded' ? 'w-[var(--sidebar-width)]' : 'w-[var(--sidebar-width-icon)]',
         variant === 'inset' ? 'p-2' : ''
       )}

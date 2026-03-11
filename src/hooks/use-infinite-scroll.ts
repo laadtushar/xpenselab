@@ -13,11 +13,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export function useInfiniteScroll<T>(items: T[], pageSize = 25) {
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const initialRenderRef = useRef(true);
 
   // Reset to first page whenever the source array or pageSize changes
   // (e.g. user applies a filter or changes the sort order).
   useEffect(() => {
     setVisibleCount(pageSize);
+    initialRenderRef.current = true;
   }, [items, pageSize]);
 
   const loadMore = useCallback(() => {
@@ -28,61 +30,39 @@ export function useInfiniteScroll<T>(items: T[], pageSize = 25) {
   const hasMore = visibleCount < items.length;
 
   useEffect(() => {
-    // Only attach the observer when there are actually more items to load.
     if (!hasMore) return;
 
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
-    // Don't immediately fire — wait until the sentinel is genuinely below the
-    // visible area. We use a scroll-triggered approach: track the first scroll
-    // event and then attach IntersectionObserver, so the initial paint never
-    // accidentally triggers a load.
-    let observer: IntersectionObserver | null = null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
 
-    const attachObserver = () => {
-      if (observer) return; // already attached
-      observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            loadMore();
-          }
-        },
-        {
-          // No extra rootMargin — only trigger when sentinel is actually
-          // entering the viewport from below.
-          rootMargin: '0px',
-          threshold: 0,
+        // Skip the very first intersection callback that fires on mount
+        // when the sentinel is already inside the viewport (list is short).
+        if (initialRenderRef.current) {
+          initialRenderRef.current = false;
+          return;
         }
-      );
-      observer.observe(sentinel);
-    };
 
-    // Check if the sentinel is already off-screen (below viewport).
-    // If it is, we can safely attach the observer immediately.
-    // If it's within the viewport, only attach after the user scrolls.
-    const rect = sentinel.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        loadMore();
+      },
+      { rootMargin: '200px', threshold: 0 }
+    );
 
-    if (rect.top > viewportHeight) {
-      // Sentinel is already below the fold — attach immediately.
-      attachObserver();
-    } else {
-      // Sentinel is within the visible area (initial items don't fill the page).
-      // Only start observing after the user deliberately scrolls down.
-      const onScroll = () => {
-        attachObserver();
-        window.removeEventListener('scroll', onScroll, { capture: true });
-      };
-      window.addEventListener('scroll', onScroll, { capture: true, passive: true });
-      return () => {
-        window.removeEventListener('scroll', onScroll, { capture: true });
-        observer?.disconnect();
-      };
-    }
+    observer.observe(sentinel);
+
+    // After the initial paint, mark fresh render complete so subsequent
+    // intersection events (real scrolls) are handled normally.
+    // Use rAF to wait for the browser paint, then allow future callbacks.
+    const rafId = requestAnimationFrame(() => {
+      initialRenderRef.current = false;
+    });
 
     return () => {
-      observer?.disconnect();
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, [hasMore, loadMore]);
 
