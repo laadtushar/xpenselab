@@ -12,7 +12,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  */
 export function useInfiniteScroll<T>(items: T[], pageSize = 25) {
   const [visibleCount, setVisibleCount] = useState(pageSize);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  
+  // We need to support multiple sentinels because the UI might render
+  // different sentinels for desktop and mobile views, and only one will
+  // be visible at a time.
+  const sentinelRefs = useRef<Set<Element>>(new Set());
   const initialRenderRef = useRef(true);
 
   // Reset to first page whenever the source array or pageSize changes
@@ -29,15 +33,22 @@ export function useInfiniteScroll<T>(items: T[], pageSize = 25) {
   const visibleItems = items.slice(0, visibleCount);
   const hasMore = visibleCount < items.length;
 
+  // This callback ref can be attached to multiple elements in the DOM.
+  const sentinelRef = useCallback((node: Element | null) => {
+    if (node) {
+      sentinelRefs.current.add(node);
+    }
+  }, []);
+
   useEffect(() => {
     if (!hasMore) return;
-
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    if (sentinelRefs.current.size === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (!entries[0].isIntersecting) return;
+        // Find if ANY of the observed sentinels are intersecting
+        const isIntersecting = entries.some(entry => entry.isIntersecting);
+        if (!isIntersecting) return;
 
         // Skip the very first intersection callback that fires on mount
         // when the sentinel is already inside the viewport (list is short).
@@ -51,11 +62,15 @@ export function useInfiniteScroll<T>(items: T[], pageSize = 25) {
       { rootMargin: '200px', threshold: 0 }
     );
 
-    observer.observe(sentinel);
+    // Observe all registered sentinel elements
+    sentinelRefs.current.forEach(sentinel => {
+      if (sentinel instanceof Element) {
+         observer.observe(sentinel);
+      }
+    });
 
     // After the initial paint, mark fresh render complete so subsequent
     // intersection events (real scrolls) are handled normally.
-    // Use rAF to wait for the browser paint, then allow future callbacks.
     const rafId = requestAnimationFrame(() => {
       initialRenderRef.current = false;
     });
@@ -63,6 +78,8 @@ export function useInfiniteScroll<T>(items: T[], pageSize = 25) {
     return () => {
       cancelAnimationFrame(rafId);
       observer.disconnect();
+      // Keep the elements in the Set, just stop observing them.
+      // The callback ref will handle re-adding them if they mount/unmount.
     };
   }, [hasMore, loadMore]);
 
