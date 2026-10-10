@@ -18,7 +18,6 @@ This directory contains all documentation for XpenseLab, organized by category.
 - **[GDPR Compliance](./legal/GDPR_COMPLIANCE.md)** - Data protection and GDPR compliance information
 
 ### Core Documentation
-- **[Application Guide](./APPLICATION_GUIDE.md)** - Complete feature documentation, architecture, and project structure
 - **[backend.json](./backend.json)** - Data model blueprint defining Firestore structure
 
 ## 🔗 Quick Links

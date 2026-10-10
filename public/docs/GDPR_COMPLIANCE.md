@@ -352,7 +352,7 @@ If you have questions about data protection or wish to exercise your rights:
 If you believe we have not addressed your concerns, you can file a complaint with your local Data Protection Authority:
 
 - **UK**: Information Commissioner's Office (ICO) - https://ico.org.uk
-- **EU**: Your local Data Protection Authority - https://edpb.europa.eu/about-edpb/board/members_en
+- **EU**: Your local Data Protection Authority - https://www.edpb.europa.eu/about-edpb/our-members_en
 
 ### 12.3 Response Times
 
