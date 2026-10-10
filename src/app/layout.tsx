@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { GeistSans } from 'geist/font/sans';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseScope } from '@/components/firebase-scope';
 import { ThemeProvider } from '@/components/theme-provider';
 import { WebVitals } from '@/components/web-vitals';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -11,6 +11,8 @@ import { SplashScreenHandler } from '@/components/splash-screen-handler';
 import { UIUXDashboard } from '@/components/ui-ux-dashboard';
 import { CookieConsent } from '@/components/cookie-consent';
 import { siteConfig } from '@/config/site';
+import { FAMILY_FOUNDER } from '@/lib/family';
+import { HOME_TITLE } from '@/lib/seo';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
 export const viewport: Viewport = {
@@ -21,15 +23,17 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.siteUrl),
+  // Pages set their own full title (see lib/seo.ts); this is the fallback for
+  // a page that sets none, e.g. the signed-in app.
   title: {
-    default: siteConfig.name,
+    default: HOME_TITLE,
     template: `%s | ${siteConfig.name}`,
   },
-  description: siteConfig.description,
+  description: siteConfig.metaDescription,
   keywords: siteConfig.keywords,
-  authors: [{ name: siteConfig.author }],
+  authors: [{ name: siteConfig.author, url: FAMILY_FOUNDER.url }],
   creator: siteConfig.author,
-  publisher: siteConfig.author,
+  publisher: siteConfig.publisher,
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -49,28 +53,21 @@ export const metadata: Metadata = {
       { url: '/logo-icon.svg', sizes: '180x180', type: 'image/svg+xml' },
     ],
   },
+  // No canonical, og:url or og:image here on purpose. A canonical set in the
+  // root layout is inherited by every page that does not override it, which
+  // pointed every page at the home page. Each public page sets its own
+  // (lib/seo.ts); the og:image comes from app/opengraph-image.tsx.
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: siteConfig.siteUrl,
     siteName: siteConfig.name,
-    title: siteConfig.name,
-    description: siteConfig.description,
-    images: [
-      {
-        url: siteConfig.ogImage,
-        width: 1200,
-        height: 630,
-        alt: siteConfig.name,
-      },
-    ],
+    title: HOME_TITLE,
+    description: siteConfig.metaDescription,
   },
   twitter: {
     card: 'summary_large_image',
-    title: siteConfig.name,
-    description: siteConfig.description,
-    images: [siteConfig.ogImage],
-    creator: '@xpenselab',
+    title: HOME_TITLE,
+    description: siteConfig.metaDescription,
   },
   robots: {
     index: true,
@@ -82,9 +79,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  alternates: {
-    canonical: siteConfig.siteUrl,
   },
   verification: {
     // Add verification codes when available
@@ -198,9 +192,9 @@ export default function RootLayout({
                 enableSystem
                 disableTransitionOnChange
             >
-                <FirebaseClientProvider>
+                <FirebaseScope>
                 {children}
-                </FirebaseClientProvider>
+                </FirebaseScope>
                 <Toaster />
                 <WebVitals />
                 <UIUXDashboard />

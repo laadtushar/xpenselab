@@ -9,83 +9,58 @@ import { DashboardPreview } from "@/components/homepage/dashboard-preview"
 import { ExpensesPreview } from "@/components/homepage/expenses-preview"
 import { BudgetPreview } from "@/components/homepage/budget-preview"
 import { Metadata } from "next"
+import { FamilyFooter } from "@/components/family-footer"
+import { FAMILY_FOUNDER, FAMILY_STUDIO } from "@/lib/family"
+import { HOME_TITLE, jsonLd, pageMetadata } from "@/lib/seo"
 
 export const metadata: Metadata = {
-  title: "Free Personal Finance Tracker | XpenseLab",
-  description: siteConfig.description,
+  ...pageMetadata({
+    title: HOME_TITLE,
+    description: siteConfig.metaDescription,
+    path: "/",
+  }),
   keywords: siteConfig.keywords,
-  openGraph: {
-    title: siteConfig.name,
-    description: siteConfig.description,
-    url: siteConfig.siteUrl,
-    siteName: siteConfig.name,
-    images: [
-      {
-        url: siteConfig.ogImage,
-        width: 1200,
-        height: 630,
-        alt: siteConfig.name,
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
-  },
-  alternates: {
-    canonical: siteConfig.siteUrl,
-  },
 }
 
 export default function Home() {
+  // One JSON-LD block for the page. No ratings, reviews or user counts:
+  // none exist to cite. The free Basic plan is the offer; Premium is a paid
+  // extra and says so in the description.
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": siteConfig.name,
-    "description": siteConfig.description,
     "url": siteConfig.siteUrl,
+    "description": siteConfig.metaDescription,
     "applicationCategory": "FinanceApplication",
     "operatingSystem": "Web",
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "GBP",
-      "description": "Free basic plan available"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "100"
+      "description": "Free Basic plan. The optional paid Premium plan adds the AI features."
     },
     "featureList": [
-      "AI-powered expense categorization",
-      "Smart budgeting tools",
-      "Expense splitting with groups",
-      "Bank-grade encryption",
-      "Receipt scanning",
-      "Financial forecasting",
+      "Income and expense tracking",
+      "Budgets with progress tracking",
       "Recurring transactions",
-      "Debt and loan tracking"
-    ]
-  };
-
-  const organizationData = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": siteConfig.name,
-    "url": siteConfig.siteUrl,
-    "logo": `${siteConfig.siteUrl}/logo-icon.svg`,
-    "description": siteConfig.description,
-    "sameAs": []
+      "Loan and debt tracking",
+      "Expense splitting with groups",
+      "Spreadsheet import (CSV, TSV, Excel) and CSV export",
+      "Optional client-side encryption",
+      "Premium: AI expense categorization, budgeting assistant, insights and forecasting",
+      "Premium: receipt scanning"
+    ],
+    "publisher": { "@type": "Organization", "name": FAMILY_STUDIO.name, "url": FAMILY_STUDIO.url },
+    "creator": { "@type": "Organization", "name": FAMILY_STUDIO.name, "url": FAMILY_STUDIO.url },
+    "author": { "@type": "Person", "name": FAMILY_FOUNDER.name, "url": FAMILY_FOUNDER.url }
   };
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
       <div className="flex flex-col min-h-screen">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 hidden md:block">
@@ -176,10 +151,10 @@ export default function Home() {
                  <Card>
                     <CardHeader>
                         <Shield className="h-10 w-10 text-primary mb-2"/>
-                        <CardTitle>Bank-Grade Encryption</CardTitle>
+                        <CardTitle>Optional Encryption</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">Your financial data is encrypted with AES-256 before storage. Only you can decrypt your data with your password.</p>
+                        <p className="text-muted-foreground">Turn on client-side encryption in Settings and your financial data is encrypted in your browser with AES-256-GCM before it is stored. Only your encryption code can unlock it.</p>
                     </CardContent>
                 </Card>
                  <Card>
@@ -194,10 +169,10 @@ export default function Home() {
                  <Card>
                     <CardHeader>
                         <Link2 className="h-10 w-10 text-primary mb-2"/>
-                        <CardTitle>Bank Integration</CardTitle>
+                        <CardTitle>Spreadsheet Import</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">Import your financial data via CSV files for seamless transaction tracking.</p>
+                        <p className="text-muted-foreground">Bring in your existing transactions from CSV, TSV or Excel files, and export reports as CSV whenever you need them.</p>
                     </CardContent>
                 </Card>
                  <Card>
@@ -296,7 +271,7 @@ export default function Home() {
                   <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Track Income & Expenses</li>
                   <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Manual Budgeting</li>
                   <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Expense Splitting</li>
-                  <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Bank-Grade Encryption</li>
+                  <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Optional Client-Side Encryption</li>
                   <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Recurring Transactions</li>
                 </ul>
               </CardContent>
@@ -333,16 +308,16 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-        <footer className="py-6 md:px-8 md:py-0 border-t pb-20 md:pb-6">
-            <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-                <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                    Built by {siteConfig.author}. The source code is available on GitHub.
-                </p>
-                <div className="flex items-center gap-4">
+        <footer className="border-t py-6 pb-20 md:px-8 md:pb-6">
+            <div className="container flex flex-col items-center justify-between gap-6 md:flex-row md:items-start">
+                <FamilyFooter />
+                <div className="flex flex-col items-center gap-2 md:items-end">
                     <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                         Privacy & GDPR
                     </Link>
-                    {/* Add social links here if needed */}
+                    <p className="text-center text-sm text-muted-foreground md:text-right">
+                        XpenseLab's <a href={siteConfig.links.github} className="underline underline-offset-4 hover:text-foreground">source code is available on GitHub</a>.
+                    </p>
                 </div>
             </div>
         </footer>

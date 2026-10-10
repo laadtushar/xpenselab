@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase/provider';
 import { initiateGoogleSignInWithPopup, initiateGitHubSignInWithPopup } from '@/firebase/non-blocking-login';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { FamilyFooter } from '@/components/family-footer';
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -140,7 +141,7 @@ export default function LoginPage() {
       <main className="flex flex-1 items-center justify-center bg-background p-4">
         <Card className="w-full max-w-sm">
             <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <h1 className="text-2xl font-semibold leading-none tracking-tight">Welcome Back</h1>
             <CardDescription>Sign in to manage your finances</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -161,6 +162,11 @@ export default function LoginPage() {
             </CardContent>
         </Card>
       </main>
+      <footer className="border-t py-6">
+        <div className="container flex justify-center md:justify-start">
+          <FamilyFooter />
+        </div>
+      </footer>
     </div>
   );
 }
