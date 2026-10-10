@@ -10,7 +10,7 @@
 
 Welcome to XpenseLab, a modern and intelligent application for managing your personal finances. This application is built with a powerful stack including Next.js, Firebase, and Genkit, providing a robust platform for tracking income, expenses, budgets, and more.
 
-For a detailed technical overview, project structure, and feature breakdown, please see the [**Application Guide**](./docs/APPLICATION_GUIDE.md).
+For setup guides, integrations and compliance notes, see the [**Documentation Index**](./docs/README.md).
 
 ## 📋 Table of Contents
 
@@ -148,7 +148,7 @@ The application is designed to be run within the Firebase Studio environment.
 5. **Open your browser**
    Navigate to [http://localhost:9002](http://localhost:9002)
 
-For more in-depth information, refer to the [**Application Guide**](./docs/APPLICATION_GUIDE.md).
+For more in-depth information, refer to the [**Documentation Index**](./docs/README.md).
 
 ## 🛠️ Available Scripts
 
@@ -221,7 +221,7 @@ The monitoring system is ready to integrate with:
 - **Sentry** - Alternative error tracking solution
 - **Google Analytics** - For Web Vitals reporting
 
-See the [Application Guide](./docs/APPLICATION_GUIDE.md) for monitoring integration details.
+The monitoring code lives under `src/lib/` (`error-monitor.ts`, `network-monitor.ts`, `ui-ux-monitor.ts`) and `src/components/web-vitals.tsx`.
 
 ## 🌐 Browser Support
 
@@ -370,7 +370,6 @@ npm run typecheck
 
 ### Getting Help
 
-- Check the [Application Guide](./docs/APPLICATION_GUIDE.md) for detailed documentation
 - Review the [Documentation Index](./docs/README.md) for all available guides
 - Check existing GitHub issues
 - Create a new issue with:
@@ -432,7 +431,6 @@ Contributions are welcome! Please follow these guidelines:
 - **[GDPR Compliance](./docs/legal/GDPR_COMPLIANCE.md)** - Data protection and GDPR compliance information
 
 **Core Documentation:**
-- **[Application Guide](./docs/APPLICATION_GUIDE.md)** - Complete feature documentation, architecture, and project structure
 - **[Brand Kit](./brand-kit/README.md)** - Brand assets, guidelines, and usage instructions
 
 ## 🔄 Point-in-Time Recovery (PITR)
@@ -577,8 +575,7 @@ gcloud firestore databases clone \
 ## 💬 Support
 
 - **Documentation**: Check the [docs](./docs/) folder for detailed guides
-- **Issues**: [GitHub Issues](https://github.com/your-repo/xpenselab/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/xpenselab/discussions)
+- **Issues**: [GitHub Issues](https://github.com/laadtushar/xpenselab/issues)
 
 ## 📄 License
 

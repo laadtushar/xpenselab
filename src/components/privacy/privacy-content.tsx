@@ -8,7 +8,11 @@ import { Shield, Lock, Eye, Trash2, Download, Ban, AlertCircle, Mail, ExternalLi
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-export default function PrivacyPage() {
+/**
+ * The privacy summary. The public page lives in src/app/privacy/page.tsx; this
+ * is its interactive body (tabs, accordion, cookie-preferences button).
+ */
+export function PrivacyContent() {
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
       <DashboardHeader title="Privacy & GDPR Compliance" />
@@ -82,7 +86,6 @@ export default function PrivacyPage() {
                       <li>Income and expense records</li>
                       <li>Budget information</li>
                       <li>Transaction history</li>
-                      <li>Bank integration data (if connected)</li>
                     </ul>
                   </div>
                   <div>
@@ -108,7 +111,7 @@ export default function PrivacyPage() {
                     <li>Provide core financial tracking services</li>
                     <li>Automatically categorize expenses using AI</li>
                     <li>Generate insights and forecasts</li>
-                    <li>Import transactions from connected bank accounts</li>
+                    <li>Import transactions from the CSV or Excel files you upload</li>
                     <li>Improve application performance and reliability</li>
                     <li>Ensure security and prevent fraud</li>
                   </ul>
@@ -125,7 +128,7 @@ export default function PrivacyPage() {
                   <p>We process your data based on:</p>
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong>Contractual Necessity:</strong> To provide our financial tracking services</li>
-                    <li><strong>Consent:</strong> For optional features like analytics and bank integrations</li>
+                    <li><strong>Consent:</strong> For optional features like analytics</li>
                     <li><strong>Legitimate Interests:</strong> For security, fraud prevention, and service improvement</li>
                     <li><strong>Legal Obligation:</strong> To comply with applicable laws and regulations</li>
                   </ul>
@@ -160,7 +163,7 @@ export default function PrivacyPage() {
                         <p>You can access all personal data we hold about you:</p>
                         <ul className="list-disc list-inside space-y-1">
                           <li>View your data directly in the application</li>
-                          <li>Export your financial data (CSV/XLSX) from Settings</li>
+                          <li>Download your financial data as a CSV report from Reports</li>
                           <li>Request a complete data export by contacting us</li>
                         </ul>
                         <div className="pt-2">
@@ -226,13 +229,13 @@ export default function PrivacyPage() {
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <p>You can receive your data in a structured, machine-readable format:</p>
                         <ul className="list-disc list-inside space-y-1">
-                          <li>Export all financial data as CSV/XLSX from Settings</li>
+                          <li>Export all financial data as a CSV report from Reports</li>
                           <li>Request API access to your data (contact us)</li>
                           <li>Transfer your data to another service</li>
                         </ul>
                         <div className="pt-2">
                           <Button variant="outline" size="sm" asChild>
-                            <Link href="/settings">Export Data</Link>
+                            <Link href="/reports">Export Data</Link>
                           </Button>
                         </div>
                       </div>
@@ -272,7 +275,6 @@ export default function PrivacyPage() {
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <p>You can withdraw consent at any time:</p>
                         <ul className="list-disc list-inside space-y-1">
-                          <li>Revoke bank account connections in Settings</li>
                           <li>Disable optional features that require consent</li>
                           <li>Update cookie preferences via the cookie consent banner</li>
                         </ul>
@@ -332,9 +334,9 @@ export default function PrivacyPage() {
                   <div>
                     <h4 className="font-semibold mb-2">Encryption</h4>
                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                      <li><strong>Client-Side Encryption:</strong> Financial data encrypted using AES-GCM (256-bit) before storage</li>
+                      <li><strong>Optional Client-Side Encryption:</strong> When you turn it on in Settings, your financial data is encrypted in your browser using AES-GCM (256-bit) before storage</li>
                       <li><strong>Key Derivation:</strong> PBKDF2 with 100,000 iterations</li>
-                      <li><strong>Encryption at Rest:</strong> All sensitive data stored encrypted in Firestore</li>
+                      <li><strong>Encryption at Rest:</strong> Data is stored in Google Firestore, which encrypts data at rest</li>
                       <li><strong>Encryption in Transit:</strong> TLS/HTTPS for all data transmission</li>
                     </ul>
                   </div>
@@ -475,7 +477,7 @@ export default function PrivacyPage() {
                     </a>
                   </li>
                   <li>
-                    <a href="https://edpb.europa.eu/about-edpb/board/members_en" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                    <a href="https://www.edpb.europa.eu/about-edpb/our-members_en" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
                       EU: European Data Protection Board
                     </a>
                   </li>

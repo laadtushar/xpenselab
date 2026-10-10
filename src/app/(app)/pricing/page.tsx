@@ -43,7 +43,7 @@ export default function PricingPage() {
               <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Track Income & Expenses</li>
               <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Manual Budgeting</li>
               <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Expense Splitting</li>
-              <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Bank-Grade Encryption</li>
+              <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Optional Client-Side Encryption</li>
               <li className="flex items-center"><Check className="mr-2 h-4 w-4 text-green-500" />Recurring Transactions</li>
             </ul>
           </CardContent>

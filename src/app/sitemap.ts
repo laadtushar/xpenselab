@@ -1,27 +1,13 @@
 import { MetadataRoute } from 'next';
-import { siteConfig } from '@/config/site';
+import { absoluteUrl } from '@/lib/seo';
 
+// Public, indexable pages only, with the same absolute canonical URLs the
+// pages declare. Not listed on purpose: /login (noindex), the signed-in app
+// and /api. No lastModified: the repo has no per-page dates to cite, and a
+// build-time "now" would claim every page changed on every deploy.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = siteConfig.siteUrl;
-
   return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
+    { url: absoluteUrl('/') },
+    { url: absoluteUrl('/privacy') },
   ];
 }
